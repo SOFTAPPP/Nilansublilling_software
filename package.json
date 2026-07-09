@@ -1,0 +1,11 @@
+{
+  "name": "nilanshu-billing-software-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Root workspace for Nilanshu Billing Software",
+  "scripts": {
+    "dev": "cd nilanshu-billing-app && npm run tauri dev",
+    "build": "cd nilanshu-billing-app && npm run tauri build",
+    "tauri": "cd nilanshu-billing-app && npm run tauri"
+  }
+}
