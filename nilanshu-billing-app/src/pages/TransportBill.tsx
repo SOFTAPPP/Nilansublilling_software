@@ -4,10 +4,54 @@ import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
 
 export default function TransportBill() {
-  const { parties } = useStore();
+  const { parties, createBill, showDialog } = useStore();
   const [items, setItems] = useState<BillLineItem[]>([]);
   const [partyPhone, setPartyPhone] = useState('');
   const [partyName, setPartyName] = useState('');
+  const [billNo, setBillNo] = useState('');
+
+  const handleSave = async () => {
+    if (items.length === 0) {
+      showDialog({ title: 'Validation Error', message: 'Please add at least one item.', type: 'alert' });
+      return;
+    }
+    if (!billNo) {
+      showDialog({ title: 'Validation Error', message: 'Please enter a Bill No.', type: 'alert' });
+      return;
+    }
+    
+    const foundParty = parties.find(p => p.phone === partyPhone || p.name.toLowerCase() === partyName.toLowerCase());
+    
+    try {
+      await createBill({
+        type: 'transport',
+        billNumber: billNo,
+        partyId: foundParty ? foundParty.id : null,
+        subtotal: totalAmount,
+        discount: 0,
+        total: grandTotal,
+        vehicleNo: dispatchDetails.vehicleNo,
+        destination: dispatchDetails.destination,
+        driverName: dispatchDetails.driverName,
+        lrNo: dispatchDetails.lrNo,
+        lineItems: items.map(i => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          mrp: i.mrp,
+          discountPercent: i.discountPercent,
+          amount: i.amount,
+        }))
+      });
+      showDialog({ title: 'Success', message: 'Transport Bill saved successfully!', type: 'alert' });
+      setItems([]);
+      setBillNo('');
+      setDispatchDetails({ vehicleNo: '', destination: '', driverName: '', lrNo: '' });
+      setPartyPhone('');
+      setPartyName('');
+    } catch (err) {
+      showDialog({ title: 'Save Failed', message: 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
+    }
+  };
 
   const handlePartyLookup = (val: string, field: 'phone' | 'name') => {
     if (field === 'phone') setPartyPhone(val);
@@ -34,12 +78,20 @@ export default function TransportBill() {
     <div className="bg-gray-100 text-black p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full relative">
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">Transport / Dispatch Bill</h2>
-        <button 
-          onClick={() => window.print()}
-          className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
-        >
-          Print Transport Bill
-        </button>
+        <div className="flex gap-4">
+          <button 
+            onClick={handleSave} 
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 font-sans"
+          >
+            Save to Database
+          </button>
+          <button 
+            onClick={() => window.print()}
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
+          >
+            Print Transport Bill
+          </button>
+        </div>
       </div>
 
       <div className="a4-page border border-black relative">
@@ -71,14 +123,23 @@ export default function TransportBill() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 p-4 gap-2">
+          <div className="grid grid-cols-2 p-4 gap-2 text-xs">
             <p className="font-semibold">Date:</p><p>{new Date().toLocaleDateString('en-GB')}</p>
+            
+            <p className="font-semibold">Bill No:</p>
+            <input value={billNo} onChange={e => setBillNo(e.target.value)} className="border-b border-gray-300 outline-none bg-transparent" placeholder="TRN-101" />
+            
             <p className="font-semibold">Vehicle No:</p>
-            <input value={dispatchDetails.vehicleNo} onChange={e => setDispatchDetails({...dispatchDetails, vehicleNo: e.target.value})} className="border-b border-gray-300 outline-none" />
+            <input value={dispatchDetails.vehicleNo} onChange={e => setDispatchDetails({...dispatchDetails, vehicleNo: e.target.value})} className="border-b border-gray-300 outline-none bg-transparent" />
+            
             <p className="font-semibold">Destination:</p>
-            <input value={dispatchDetails.destination} onChange={e => setDispatchDetails({...dispatchDetails, destination: e.target.value})} className="border-b border-gray-300 outline-none" />
+            <input value={dispatchDetails.destination} onChange={e => setDispatchDetails({...dispatchDetails, destination: e.target.value})} className="border-b border-gray-300 outline-none bg-transparent" />
+            
+            <p className="font-semibold">Driver Name:</p>
+            <input value={dispatchDetails.driverName} onChange={e => setDispatchDetails({...dispatchDetails, driverName: e.target.value})} className="border-b border-gray-300 outline-none bg-transparent" />
+            
             <p className="font-semibold">L.R. No:</p>
-            <input value={dispatchDetails.lrNo} onChange={e => setDispatchDetails({...dispatchDetails, lrNo: e.target.value})} className="border-b border-gray-300 outline-none" />
+            <input value={dispatchDetails.lrNo} onChange={e => setDispatchDetails({...dispatchDetails, lrNo: e.target.value})} className="border-b border-gray-300 outline-none bg-transparent" />
           </div>
         </div>
 

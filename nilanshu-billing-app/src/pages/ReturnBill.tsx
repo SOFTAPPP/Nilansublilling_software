@@ -10,7 +10,7 @@ export default function ReturnBill() {
         🚨 RETURN BILL MODE ACTIVE - THIS WILL REDUCE OUTSTANDING BALANCE AND ADD TO STOCK 🚨
       </div>
       <div className="print:before:content-['RETURN_BILL'] print:before:absolute print:before:top-0 print:before:left-0 print:before:text-4xl print:before:font-bold print:before:text-gray-400">
-        <CreditBill />
+        <CreditBill type="return" />
       </div>
     </div>
   );

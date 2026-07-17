@@ -54,6 +54,10 @@ model Bill {
   discount    Float          @default(0)
   total       Float
   status      String         @default("completed")
+  vehicleNo   String?
+  destination String?
+  driverName  String?
+  lrNo        String?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   lineItems   BillLineItem[]

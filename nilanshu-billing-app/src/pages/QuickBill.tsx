@@ -4,10 +4,42 @@ import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
 
 export default function QuickBill() {
-  const { settings, updateSettings } = useStore();
+  const { settings, updateSettings, createBill, showDialog } = useStore();
   const [items, setItems] = useState<BillLineItem[]>([]);
   const [billNo, setBillNo] = useState('');
   const [billDate, setBillDate] = useState(() => new Date().toLocaleDateString('en-GB'));
+
+  const handleSave = async () => {
+    if (items.length === 0) {
+      showDialog({ title: 'Validation Error', message: 'Please add at least one item.', type: 'alert' });
+      return;
+    }
+    if (!billNo) {
+      showDialog({ title: 'Validation Error', message: 'Please enter a Bill No.', type: 'alert' });
+      return;
+    }
+    try {
+      await createBill({
+        type: 'quick',
+        billNumber: billNo,
+        subtotal: totalAmount,
+        discount: 0,
+        total: grandTotal,
+        lineItems: items.map(i => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          mrp: i.mrp,
+          discountPercent: i.discountPercent,
+          amount: i.amount,
+        }))
+      });
+      showDialog({ title: 'Success', message: 'Quick Bill saved successfully!', type: 'alert' });
+      setItems([]);
+      setBillNo('');
+    } catch (err) {
+      showDialog({ title: 'Save Failed', message: 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
+    }
+  };
 
   // Calculate totals
   const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
@@ -22,12 +54,20 @@ export default function QuickBill() {
     <div className="bg-gray-100 text-black p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full">
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">Quick Bill</h2>
-        <button 
-          onClick={handlePrint}
-          className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
-        >
-          Print Bill
-        </button>
+        <div className="flex gap-4">
+          <button 
+            onClick={handleSave} 
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+          >
+            Save to Database
+          </button>
+          <button 
+            onClick={handlePrint}
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
+          >
+            Print Bill
+          </button>
+        </div>
       </div>
 
       {/* Bill Canvas */}

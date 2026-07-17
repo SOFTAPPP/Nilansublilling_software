@@ -86,9 +86,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Chart */}
-        <div className="lg:col-span-2 bg-card p-6 rounded-xl border border-border shadow-sm">
+        <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Sales Trend</h2>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -103,27 +103,53 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Low Stock List */}
-        <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
-          <h2 className="text-lg font-semibold mb-4 text-red-500 flex items-center gap-2">
-            <AlertTriangle size={20} /> Low Stock Alerts
-          </h2>
-          <div className="space-y-4 overflow-y-auto max-h-72 pr-2">
-            {lowStockProducts.slice(0, 8).map(p => (
-              <div key={p.id} className="flex justify-between items-center border-b border-border pb-2 last:border-0">
-                <div>
-                  <p className="font-medium text-sm">{p.name}</p>
-                  <p className="text-xs text-muted-foreground">{p.category}</p>
+        {/* Bottom Lists Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Low Stock List */}
+          <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
+            <h2 className="text-lg font-semibold mb-4 text-red-500 flex items-center gap-2">
+              <AlertTriangle size={20} /> Low Stock Alerts
+            </h2>
+            <div className="space-y-4 overflow-y-auto max-h-72 pr-2">
+              {lowStockProducts.slice(0, 8).map(p => (
+                <div key={p.id} className="flex justify-between items-center border-b border-border pb-2 last:border-0">
+                  <div>
+                    <p className="font-medium text-sm">{p.name}</p>
+                    <p className="text-xs text-muted-foreground">{p.category}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-red-500">{p.stock} left</p>
+                    <p className="text-xs text-muted-foreground">Min: {p.lowStockThreshold}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-red-500">{p.stock} left</p>
-                  <p className="text-xs text-muted-foreground">Min: {p.lowStockThreshold}</p>
+              ))}
+              {lowStockProducts.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-8">Stock levels are healthy.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Customer Outstanding Dues */}
+          <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
+            <h2 className="text-lg font-semibold mb-4 text-blue-500 flex items-center gap-2">
+              <IndianRupee size={20} /> Customer Outstanding Dues (Credit Left)
+            </h2>
+            <div className="space-y-4 overflow-y-auto max-h-72 pr-2">
+              {parties.filter(p => p.outstandingBalance > 0).sort((a, b) => b.outstandingBalance - a.outstandingBalance).slice(0, 8).map(p => (
+                <div key={p.id} className="flex justify-between items-center border-b border-border pb-2 last:border-0">
+                  <div>
+                    <p className="font-medium text-sm">{p.name}</p>
+                    <p className="text-xs text-muted-foreground">{p.phone}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-red-500">₹{p.outstandingBalance.toFixed(2)}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-            {lowStockProducts.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-8">Stock levels are healthy.</p>
-            )}
+              ))}
+              {parties.filter(p => p.outstandingBalance > 0).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-8">No outstanding customer dues.</p>
+              )}
+            </div>
           </div>
         </div>
       </div>

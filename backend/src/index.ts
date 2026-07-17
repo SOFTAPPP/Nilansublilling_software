@@ -6,6 +6,7 @@ import productRoutes from './routes/products';
 import partyRoutes from './routes/parties';
 import billRoutes from './routes/bills';
 import settingRoutes from './routes/settings';
+import smsRoutes from './routes/sms';
 import { authenticate } from './middleware/auth';
 
 dotenv.config();
@@ -22,6 +23,7 @@ app.use('/api/products', authenticate, productRoutes);
 app.use('/api/parties', authenticate, partyRoutes);
 app.use('/api/bills', authenticate, billRoutes);
 app.use('/api/settings', authenticate, settingRoutes);
+app.use('/api/sms', smsRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

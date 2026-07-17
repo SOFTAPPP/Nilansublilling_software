@@ -3,7 +3,7 @@ import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
 
-export default function CreditBill() {
+export default function CreditBill({ type = 'credit' }: { type?: 'credit' | 'return' }) {
   const { parties, settings, updateSettings, createBill, showDialog } = useStore();
   const [items, setItems] = useState<BillLineItem[]>([]);
   
@@ -38,6 +38,12 @@ export default function CreditBill() {
       setBuyerAddress(foundParty.address);
       setPartyDiscount(foundParty.discountPercentage);
       setPartyId(foundParty.id);
+      
+      // Auto-fill consignee details
+      setConsigneeName(foundParty.name);
+      setConsigneeAddress(foundParty.address);
+      setConsigneeState(foundParty.gstin ? foundParty.gstin.substring(0, 2) : '19'); // Default WB state code 19
+      setBuyerState(foundParty.gstin ? foundParty.gstin.substring(0, 2) : '19');
     } else {
       setPartyId(null);
     }
@@ -77,7 +83,7 @@ export default function CreditBill() {
     
     try {
       await createBill({
-        type: 'credit',
+        type: type,
         billNumber: invoiceNo,
         partyId: partyId,
         subtotal: totalAmount,
@@ -91,7 +97,12 @@ export default function CreditBill() {
           amount: i.amount,
         }))
       });
-      showDialog({ title: 'Success', message: 'Bill saved successfully!', type: 'alert' });
+      showDialog({ title: 'Success', message: `${type === 'return' ? 'Return' : 'Credit'} Bill saved successfully!`, type: 'alert' });
+      
+      if (buyerPhone) {
+        await handleSendSMS();
+      }
+      
       setItems([]);
       setInvoiceNo('');
     } catch (err) {
@@ -99,19 +110,36 @@ export default function CreditBill() {
     }
   };
 
-  const handleSendSMS = () => {
+  const handleSendSMS = async () => {
     if (!buyerPhone) {
       showDialog({ title: 'Missing Info', message: "Please enter customer's phone number first.", type: 'alert' });
       return;
     }
-    showDialog({ title: 'SMS Sent', message: `SMS sent to ${buyerName} at ${buyerPhone} successfully!`, type: 'alert' });
+    try {
+      const response = await fetch('http://localhost:5000/api/sms/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: buyerPhone,
+          message: `Dear ${buyerName || 'Customer'}, thank you for your transaction. Total: Rs. ${grandTotal.toFixed(2)}. ${type === 'return' ? 'Return' : 'Invoice'} No: ${invoiceNo || 'N/A'}.`
+        })
+      });
+      if (response.ok) {
+        showDialog({ title: 'SMS Sent', message: `SMS sent to ${buyerName} at ${buyerPhone} successfully!`, type: 'alert' });
+      } else {
+        throw new Error('Failed to send SMS');
+      }
+    } catch (err) {
+      console.error(err);
+      showDialog({ title: 'SMS Failed', message: `Could not send SMS to ${buyerPhone}. Ensure server is running.`, type: 'alert' });
+    }
   };
 
   return (
     <div className="bg-gray-100 text-black p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full relative">
       {/* Header Controls (No Print) */}
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
-        <h2 className="text-2xl font-bold">Chalan / Credit Bill (Tax Invoice)</h2>
+        <h2 className="text-2xl font-bold">{type === 'return' ? 'Sales Return Bill' : 'Chalan / Credit Bill (Tax Invoice)'}</h2>
         <div className="flex gap-4">
           <button onClick={handleSave} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Save to Database</button>
           <button 
@@ -159,7 +187,7 @@ export default function CreditBill() {
         {/* Header */}
         <div className="text-center py-2 border-b border-black font-semibold text-lg flex justify-between px-4">
           <span className="w-1/3"></span>
-          <span className="w-1/3">TAX INVOICE</span>
+          <span className="w-1/3">{type === 'return' ? 'SALES RETURN' : 'TAX INVOICE'}</span>
           <span className="w-1/3 text-right text-xs font-normal mt-1">(ORIGINAL FOR RECIPIENT)</span>
         </div>
 
@@ -190,7 +218,15 @@ export default function CreditBill() {
             <div className="border-t border-black p-2 flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <p className="font-semibold text-xs text-gray-500">Buyer (Bill to)</p>
-                {partyDiscount > 0 && <span className="text-green-600 font-bold text-xs ml-auto">Discount: {partyDiscount}%</span>}
+                <div className="flex items-center gap-1 ml-auto">
+                  <span className="text-xs text-green-600 font-bold">Discount %:</span>
+                  <input
+                    type="number"
+                    value={partyDiscount}
+                    onChange={e => setPartyDiscount(parseFloat(e.target.value) || 0)}
+                    className="w-12 border border-gray-400 p-1 text-xs text-right rounded outline-none bg-transparent"
+                  />
+                </div>
               </div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="w-16">Phone:</span>
@@ -302,7 +338,7 @@ export default function CreditBill() {
               onChange={setItems} 
               columns={['sno', 'name', 'hsn', 'qty', 'rate', 'per', 'amount']}
               globalDiscount={partyDiscount}
-              maxItems={10}
+              maxItems={20}
             />
           </div>
           

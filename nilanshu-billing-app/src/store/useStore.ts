@@ -129,7 +129,47 @@ export const useStore = create<AppState>((set) => ({
   closeDialog: () => set((state) => ({ dialog: { ...state.dialog, isOpen: false } })),
   setProducts: (products) => set({ products }),
   setParties: (parties) => set({ parties }),
-  updateSettings: (newSettings) => set((state) => ({ settings: { ...state.settings, ...newSettings } })),
+  updateSettings: async (newSettings) => {
+    try {
+      const db = await getDb();
+      const current = useStore.getState().settings;
+      const updated = { ...current, ...newSettings };
+      
+      const res = await db.select('SELECT * FROM "Settings" WHERE id = 1');
+      if (Array.isArray(res) && res.length > 0) {
+        await db.execute(
+          `UPDATE "Settings" SET 
+            "companyName"=$1, "companyAddress"=$2, "companyCity"=$3, "companyGstin"=$4, 
+            "companyState"=$5, "companyContact"=$6, "companyEmail"=$7, "companyPan"=$8, 
+            "bankAccountName"=$9, "bankName"=$10, "bankAccountNo"=$11, "bankIfsc"=$12 
+          WHERE id = 1`,
+          [
+            updated.companyName || '', updated.companyAddress || '', updated.companyCity || '', updated.companyGstin || '',
+            updated.companyState || '', updated.companyContact || '', updated.companyEmail || '', updated.companyPan || '',
+            updated.bankAccountName || '', updated.bankName || '', updated.bankAccountNo || '', updated.bankIfsc || ''
+          ]
+        );
+      } else {
+        await db.execute(
+          `INSERT INTO "Settings" (
+            id, "companyName", "companyAddress", "companyCity", "companyGstin", 
+            "companyState", "companyContact", "companyEmail", "companyPan", 
+            "bankAccountName", "bankName", "bankAccountNo", "bankIfsc"
+          ) VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+          [
+            updated.companyName || '', updated.companyAddress || '', updated.companyCity || '', updated.companyGstin || '',
+            updated.companyState || '', updated.companyContact || '', updated.companyEmail || '', updated.companyPan || '',
+            updated.bankAccountName || '', updated.bankName || '', updated.bankAccountNo || '', updated.bankIfsc || ''
+          ]
+        );
+      }
+      set({ settings: updated });
+    } catch (error) {
+      console.error('Failed to update settings in database', error);
+      // Fallback to local state if database fails
+      set((state) => ({ settings: { ...state.settings, ...newSettings } }));
+    }
+  },
   toggleTheme: () => set((state) => {
     const newTheme = state.theme === 'light' ? 'dark' : 'light';
     if (newTheme === 'dark') {
@@ -169,7 +209,11 @@ export const useStore = create<AppState>((set) => ({
   fetchSettings: async () => {
     try {
       const db = await getDb();
-      const res = await db.select('SELECT * FROM "Settings" WHERE id = 1');
+      let res = await db.select('SELECT * FROM "Settings" WHERE id = 1');
+      if (!Array.isArray(res) || res.length === 0) {
+        await db.execute('INSERT INTO "Settings" (id) VALUES (1)');
+        res = await db.select('SELECT * FROM "Settings" WHERE id = 1');
+      }
       if (Array.isArray(res) && res.length > 0) {
         set({ settings: res[0] as Settings });
       }
@@ -241,8 +285,24 @@ export const useStore = create<AppState>((set) => ({
     const db = await getDb();
     const id = crypto.randomUUID();
     await db.execute(
-      'INSERT INTO "Bill" (id, type, "billNumber", "partyId", subtotal, discount, total, status, date, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW(), NOW())',
-      [id, billData.type || 'cash', billData.billNumber || `BILL-${Date.now()}`, billData.partyId || null, billData.subtotal, billData.discount, billData.total, billData.status || 'completed']
+      `INSERT INTO "Bill" (
+        id, type, "billNumber", "partyId", subtotal, discount, total, status, date, 
+        "vehicleNo", destination, "driverName", "lrNo", "createdAt", "updatedAt"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9, $10, $11, $12, NOW(), NOW())`,
+      [
+        id, 
+        billData.type || 'cash', 
+        billData.billNumber || `BILL-${Date.now()}`, 
+        billData.partyId || null, 
+        billData.subtotal, 
+        billData.discount, 
+        billData.total, 
+        billData.status || 'completed',
+        billData.vehicleNo || null,
+        billData.destination || null,
+        billData.driverName || null,
+        billData.lrNo || null
+      ]
     );
     for (const item of (billData.lineItems || [])) {
         const itemId = crypto.randomUUID();
@@ -250,9 +310,23 @@ export const useStore = create<AppState>((set) => ({
             'INSERT INTO "BillLineItem" (id, "billId", "productId", quantity, mrp, "discountPercent", amount, rate, hsn) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
             [itemId, id, item.productId, item.quantity, item.mrp, item.discountPercent, item.amount, item.rate || null, item.hsn || null]
         );
-        // reduce stock
-        await db.execute('UPDATE "Product" SET stock = stock - $1 WHERE id = $2', [item.quantity, item.productId]);
+        // adjust stock
+        if (billData.type === 'return') {
+          await db.execute('UPDATE "Product" SET stock = stock + $1 WHERE id = $2', [item.quantity, item.productId]);
+        } else {
+          await db.execute('UPDATE "Product" SET stock = stock - $1 WHERE id = $2', [item.quantity, item.productId]);
+        }
+    }
+    // adjust party outstanding balance
+    if (billData.partyId) {
+      if (billData.type === 'credit') {
+        await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [billData.total, billData.partyId]);
+      } else if (billData.type === 'return') {
+        await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [billData.total, billData.partyId]);
+      }
     }
     await useStore.getState().fetchProducts();
+    await useStore.getState().fetchParties();
+    await useStore.getState().fetchBills();
   },
 }));

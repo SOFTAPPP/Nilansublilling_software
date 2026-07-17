@@ -53,8 +53,12 @@ export const BillEngine: React.FC<BillEngineProps> = ({
   }, [readOnly, products, items]);
 
   const handleBarcodeScan = (barcode: string) => {
-    // Dummy barcode lookup, map barcode to product. We use name for now as fallback.
-    const product = products.find(p => p.id === barcode || p.name.toLowerCase().includes(barcode.toLowerCase()));
+    const cleanBarcode = barcode.trim();
+    const product = products.find(p => 
+      p.id === cleanBarcode || 
+      (p.hsn && p.hsn.trim() === cleanBarcode) ||
+      p.name.toLowerCase().includes(cleanBarcode.toLowerCase())
+    );
     if (product) {
       addLineItem(product);
     }
@@ -114,8 +118,10 @@ export const BillEngine: React.FC<BillEngineProps> = ({
 
   // Render product search suggestions
   const renderProductSuggestions = (index: number, currentName: string) => {
-    if (activeRow !== index || !currentName) return null;
-    const suggestions = products.filter(p => p.name.toLowerCase().includes(currentName.toLowerCase())).slice(0, 5);
+    if (activeRow !== index) return null;
+    const suggestions = products
+      .filter(p => !currentName || p.name.toLowerCase().includes(currentName.toLowerCase()))
+      .slice(0, 5);
     
     if (suggestions.length === 0) return null;
 
@@ -193,18 +199,17 @@ export const BillEngine: React.FC<BillEngineProps> = ({
                   {readOnly ? (
                     <div className="p-2 text-center">{item.quantity}</div>
                   ) : (
-                    <input 
-                      type="number"
-                      min="1"
-                      className="w-full p-2 text-center bg-transparent outline-none"
-                      value={item.quantity || ''}
-                      onChange={(e) => updateLineItem(index, 'quantity', parseInt(e.target.value) || 0)}
-                      onBlur={(e) => {
-                        if (!e.target.value || parseInt(e.target.value) < 1) {
-                          updateLineItem(index, 'quantity', 1);
-                        }
-                      }}
-                    />
+                    <select
+                      className="w-full p-2 text-center bg-transparent outline-none cursor-pointer text-xs"
+                      value={item.quantity}
+                      onChange={(e) => updateLineItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                    >
+                      {Array.from({ length: 100 }, (_, i) => i + 1).map((val) => (
+                        <option key={val} value={val} className="text-black bg-white">
+                          {val}
+                        </option>
+                      ))}
+                    </select>
                   )}
                 </td>
               )}

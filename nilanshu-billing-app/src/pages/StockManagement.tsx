@@ -19,7 +19,8 @@ export default function StockManagement() {
 
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          p.id.toLowerCase().includes(searchTerm.toLowerCase());
+                          p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (p.bindingVariant && p.bindingVariant.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = selectedCategory === 'ALL' || p.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
