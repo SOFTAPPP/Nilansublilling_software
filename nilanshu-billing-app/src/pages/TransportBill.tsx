@@ -1,14 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
 
-export default function TransportBill() {
-  const { parties, createBill, showDialog } = useStore();
+export default function TransportBill({ viewBill }: { viewBill?: any }) {
+  const { transporters, createBill, showDialog } = useStore();
   const [items, setItems] = useState<BillLineItem[]>([]);
-  const [partyPhone, setPartyPhone] = useState('');
-  const [partyName, setPartyName] = useState('');
+  const [transporterPhone, setTransporterPhone] = useState('');
+  const [transporterName, setTransporterName] = useState('');
   const [billNo, setBillNo] = useState('');
+
+  useEffect(() => {
+    if (viewBill) {
+      setBillNo(viewBill.billNumber || '');
+      if (viewBill.transporterId) {
+        const t = transporters.find(t => t.id === viewBill.transporterId);
+        if (t) {
+          setTransporterName(t.name);
+          setTransporterPhone(t.phone);
+        }
+      }
+      if (viewBill.lineItems) {
+        setItems(viewBill.lineItems.map((li: any) => ({
+          ...li,
+          mrp: li.mrp || li.rate,
+          amount: li.amount,
+        })));
+      }
+    }
+  }, [viewBill, transporters]);
 
   const handleSave = async () => {
     if (items.length === 0) {
@@ -20,13 +40,13 @@ export default function TransportBill() {
       return;
     }
     
-    const foundParty = parties.find(p => p.phone === partyPhone || p.name.toLowerCase() === partyName.toLowerCase());
+    const foundTransporter = transporters.find(p => p.phone === transporterPhone || p.name.toLowerCase() === transporterName.toLowerCase());
     
     try {
       await createBill({
         type: 'transport',
         billNumber: billNo,
-        partyId: foundParty ? foundParty.id : null,
+        transporterId: foundTransporter ? foundTransporter.id : null,
         subtotal: totalAmount,
         discount: 0,
         total: grandTotal,
@@ -36,31 +56,35 @@ export default function TransportBill() {
         lrNo: dispatchDetails.lrNo,
         lineItems: items.map(i => ({
           productId: i.productId,
+          productName: i.productName,
           quantity: i.quantity,
           mrp: i.mrp,
           discountPercent: i.discountPercent,
           amount: i.amount,
+          rate: i.rate,
+          hsn: i.hsn,
         }))
       });
       showDialog({ title: 'Success', message: 'Transport Bill saved successfully!', type: 'alert' });
       setItems([]);
       setBillNo('');
       setDispatchDetails({ vehicleNo: '', destination: '', driverName: '', lrNo: '' });
-      setPartyPhone('');
-      setPartyName('');
-    } catch (err) {
-      showDialog({ title: 'Save Failed', message: 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
+      setTransporterPhone('');
+      setTransporterName('');
+    } catch (err: any) {
+      const msg = typeof err === 'string' ? err : err.message;
+      showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
     }
   };
 
-  const handlePartyLookup = (val: string, field: 'phone' | 'name') => {
-    if (field === 'phone') setPartyPhone(val);
-    if (field === 'name') setPartyName(val);
+  const handleTransporterLookup = (val: string, field: 'phone' | 'name') => {
+    if (field === 'phone') setTransporterPhone(val);
+    if (field === 'name') setTransporterName(val);
 
-    const foundParty = parties.find(p => p.phone === val || p.name.toLowerCase() === val.toLowerCase());
-    if (foundParty) {
-      setPartyName(foundParty.name);
-      setPartyPhone(foundParty.phone);
+    const foundTransporter = transporters.find(p => p.phone === val || p.name.toLowerCase() === val.toLowerCase());
+    if (foundTransporter) {
+      setTransporterName(foundTransporter.name);
+      setTransporterPhone(foundTransporter.phone);
     }
   };
   const [dispatchDetails, setDispatchDetails] = useState({
@@ -74,19 +98,29 @@ export default function TransportBill() {
   const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
   const grandTotal = Math.round(totalAmount);
 
+  const handlePrint = () => {
+    try {
+      window.print();
+    } catch (err) {
+      showDialog({ title: 'Print Error', message: 'Some technical error happened or your printer is having an issue. Please fix it.', type: 'alert' });
+    }
+  };
+
   return (
     <div className="bg-gray-100 text-black p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full relative">
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">Transport / Dispatch Bill</h2>
         <div className="flex gap-4">
+          {!viewBill && (
+            <button 
+              onClick={handleSave} 
+              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 font-sans"
+            >
+              Save to Database
+            </button>
+          )}
           <button 
-            onClick={handleSave} 
-            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 font-sans"
-          >
-            Save to Database
-          </button>
-          <button 
-            onClick={() => window.print()}
+            onClick={handlePrint}
             className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
           >
             Print Transport Bill
@@ -107,20 +141,26 @@ export default function TransportBill() {
             <div className="flex gap-2 mb-2 items-center">
               <span className="w-16">Phone:</span>
               <input 
-                list="party-phones"
-                value={partyPhone} onChange={e => handlePartyLookup(e.target.value, 'phone')} 
+                list="transporter-phones"
+                value={transporterPhone} onChange={e => handleTransporterLookup(e.target.value, 'phone')} 
                 className="font-bold w-full outline-none bg-transparent border-b border-gray-300"
-                placeholder="Lookup by Phone"
+                placeholder="Lookup Transporter by Phone"
               />
+              <datalist id="transporter-phones">
+                {transporters.map(t => <option key={t.id} value={t.phone}>{t.name}</option>)}
+              </datalist>
             </div>
             <div className="flex gap-2 items-center">
               <span className="w-16">Name:</span>
               <input 
-                list="party-names"
-                value={partyName} onChange={e => handlePartyLookup(e.target.value, 'name')} 
+                list="transporter-names"
+                value={transporterName} onChange={e => handleTransporterLookup(e.target.value, 'name')} 
                 className="font-bold w-full outline-none bg-transparent border-b border-gray-300"
-                placeholder="Enter Party Name"
+                placeholder="Enter Transporter Name"
               />
+              <datalist id="transporter-names">
+                {transporters.map(t => <option key={t.id} value={t.name}>{t.phone}</option>)}
+              </datalist>
             </div>
           </div>
           <div className="grid grid-cols-2 p-4 gap-2 text-xs">
@@ -147,7 +187,7 @@ export default function TransportBill() {
           <BillEngine items={items} onChange={setItems} columns={['sno', 'name', 'qty', 'rate', 'amount']} />
         </div>
 
-        <div className="border-t border-black flex">
+        <div className="border-y border-black flex">
           <div className="w-3/4 p-2 border-r border-black">
             <p className="font-bold">Total Bundles/Qty: {totalQuantity}</p>
             <p className="italic text-sm mt-2">Amount in words: {numberToWords(grandTotal)}</p>

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Trash2, ChevronDown } from 'lucide-react';
 import { useStore, BillLineItem, Product } from '../../store/useStore';
 
 interface BillEngineProps {
@@ -11,6 +11,40 @@ interface BillEngineProps {
   maxItems?: number;
 }
 
+const CellInput = ({ value, onChange, onFocus, placeholder, className, readOnly }: any) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  // We don't need local state for cursor preservation if we use setSelectionRange directly.
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const start = e.target.selectionStart;
+    const end = e.target.selectionEnd;
+    const val = e.target.value;
+    
+    // Call the parent update which might cause asynchronous re-renders
+    onChange(val);
+
+    // Force the cursor back to exactly where it was right after the DOM update cycle
+    requestAnimationFrame(() => {
+      if (inputRef.current) {
+        inputRef.current.setSelectionRange(start, end);
+      }
+    });
+  };
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      className={className}
+      value={value || ''}
+      onChange={handleChange}
+      onFocus={onFocus}
+      placeholder={placeholder}
+      readOnly={readOnly}
+    />
+  );
+};
+
 export const BillEngine: React.FC<BillEngineProps> = ({ 
   items, 
   onChange,
@@ -21,6 +55,7 @@ export const BillEngine: React.FC<BillEngineProps> = ({
 }) => {
   const { products, showDialog } = useStore();
   const [activeRow, setActiveRow] = useState<number | null>(null);
+  const [openQtyDropdown, setOpenQtyDropdown] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Barcode scanner detection
@@ -39,9 +74,11 @@ export const BillEngine: React.FC<BillEngineProps> = ({
 
       if (e.key === 'Enter' && barcodeBuffer.current.length > 3) {
         // Barcode scanned
+        e.preventDefault(); // prevent form submit or other default action
         handleBarcodeScan(barcodeBuffer.current);
         barcodeBuffer.current = '';
       } else if (e.key.length === 1) {
+        // Ignore space and other non-barcode chars if needed, but standard barcodes can be alphanumeric
         barcodeBuffer.current += e.key;
       }
       
@@ -55,12 +92,37 @@ export const BillEngine: React.FC<BillEngineProps> = ({
   const handleBarcodeScan = (barcode: string) => {
     const cleanBarcode = barcode.trim();
     const product = products.find(p => 
-      p.id === cleanBarcode || 
-      (p.hsn && p.hsn.trim() === cleanBarcode) ||
-      p.name.toLowerCase().includes(cleanBarcode.toLowerCase())
+      p.barcode === cleanBarcode ||
+      p.id === cleanBarcode
     );
+    
     if (product) {
-      addLineItem(product);
+      // Check if item is already in the bill
+      const existingItemIndex = items.findIndex(item => item.productId === product.id);
+      
+      if (existingItemIndex >= 0) {
+        // Increment quantity if already exists
+        const currentQty = items[existingItemIndex].quantity || 0;
+        updateLineItem(existingItemIndex, 'quantity', currentQty + 1);
+      } else {
+        // Check if there is an empty row we can populate
+        const emptyRowIndex = items.findIndex(item => !item.productId);
+        if (emptyRowIndex >= 0) {
+          // Populate the empty row
+          updateLineItem(emptyRowIndex, 'productId', product.id);
+          // If we have room, add a new empty row to maintain the 'ready to type' state
+          if (items.length < maxItems) {
+            // Note: updateLineItem above already calls onChange, but addLineItem uses the old items state.
+            // Actually, we don't need to explicitly add an empty row because the user might just scan again.
+            // If they scan again, emptyRowIndex will find another one or create one.
+          }
+        } else {
+          // Add a new row
+          addLineItem(product);
+        }
+      }
+    } else {
+      showDialog({ title: 'Barcode Not Found', message: `No product found for barcode: ${cleanBarcode}`, type: 'alert' });
     }
   };
 
@@ -70,14 +132,15 @@ export const BillEngine: React.FC<BillEngineProps> = ({
       return;
     }
 
+    const discountPct = product && globalDiscount > 0 ? globalDiscount : 0;
     const newItem: BillLineItem = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       productId: product?.id || '',
       productName: product?.name || '',
       quantity: 1,
       mrp: product?.price || 0,
-      discountPercent: globalDiscount || 0,
-      amount: product ? (product.price - (product.price * (globalDiscount || 0) / 100)) : 0,
+      discountPercent: discountPct,
+      amount: product ? (product.price - (product.price * discountPct / 100)) : 0,
       hsn: product?.hsn || '',
       rate: product?.price || 0
     };
@@ -105,6 +168,19 @@ export const BillEngine: React.FC<BillEngineProps> = ({
       }
     }
 
+    // Auto-resolve product name to productId on blur or name change
+    if (field === 'productName') {
+      const match = products.find(p => p.name.toLowerCase() === value?.toLowerCase());
+      if (match) {
+        item.productId = match.id;
+        item.mrp = match.price;
+        item.hsn = match.hsn || '';
+        item.rate = match.price;
+      } else {
+        item.productId = '';
+      }
+    }
+
     // Recalculate amount
     const basePrice = columns.includes('rate') ? (item.rate || 0) : item.mrp;
     // Fallback to global discount if item discount is 0 and global exists
@@ -120,23 +196,24 @@ export const BillEngine: React.FC<BillEngineProps> = ({
   const renderProductSuggestions = (index: number, currentName: string) => {
     if (activeRow !== index) return null;
     const suggestions = products
-      .filter(p => !currentName || p.name.toLowerCase().includes(currentName.toLowerCase()))
-      .slice(0, 5);
+      .filter(p => !currentName || p.name.toLowerCase().includes(currentName.toLowerCase()) || p.category.toLowerCase().includes(currentName.toLowerCase()))
+      .slice(0, 20);
     
     if (suggestions.length === 0) return null;
 
     return (
-      <div className="absolute z-10 w-full bg-card border border-border mt-1 rounded-md shadow-lg">
+      <div className="absolute z-10 w-[400px] bg-card border border-border mt-1 rounded-md shadow-lg max-h-60 overflow-y-auto">
         {suggestions.map(p => (
           <div 
             key={p.id} 
-            className="px-3 py-2 cursor-pointer hover:bg-muted text-sm"
+            className="px-3 py-2 cursor-pointer hover:bg-muted text-sm flex justify-between items-center"
             onClick={() => {
               updateLineItem(index, 'productId', p.id);
               setActiveRow(null);
             }}
           >
-            {p.name} - ₹{p.price}
+            <span className="flex-1 truncate">{p.name}</span>
+            <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">{p.category} | Stock: {p.stock} | ₹{p.price}</span>
           </div>
         ))}
       </div>
@@ -172,11 +249,10 @@ export const BillEngine: React.FC<BillEngineProps> = ({
                     <div className="p-2">{item.productName}</div>
                   ) : (
                     <>
-                      <input 
-                        type="text"
+                      <CellInput 
                         className="w-full p-2 bg-transparent outline-none focus:bg-background"
                         value={item.productName}
-                        onChange={(e) => updateLineItem(index, 'productName', e.target.value)}
+                        onChange={(val: string) => updateLineItem(index, 'productName', val)}
                         onFocus={() => setActiveRow(index)}
                         placeholder="Type to search..."
                       />
@@ -187,9 +263,9 @@ export const BillEngine: React.FC<BillEngineProps> = ({
               )}
               {columns.includes('hsn') && (
                 <td className="p-0 border border-border">
-                  <input 
-                    type="text" className="w-full p-2 text-center bg-transparent outline-none"
-                    value={item.hsn || ''} onChange={(e) => updateLineItem(index, 'hsn', e.target.value)}
+                  <CellInput 
+                    className="w-full p-2 text-center bg-transparent outline-none"
+                    value={item.hsn || ''} onChange={(val: string) => updateLineItem(index, 'hsn', val)}
                     readOnly={readOnly}
                   />
                 </td>
@@ -199,17 +275,35 @@ export const BillEngine: React.FC<BillEngineProps> = ({
                   {readOnly ? (
                     <div className="p-2 text-center">{item.quantity}</div>
                   ) : (
-                    <select
-                      className="w-full p-2 text-center bg-transparent outline-none cursor-pointer text-xs"
-                      value={item.quantity}
-                      onChange={(e) => updateLineItem(index, 'quantity', parseInt(e.target.value) || 1)}
-                    >
-                      {Array.from({ length: 100 }, (_, i) => i + 1).map((val) => (
-                        <option key={val} value={val} className="text-black bg-white">
-                          {val}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <div 
+                        className="w-full p-2 text-center bg-transparent outline-none cursor-pointer flex items-center justify-center gap-1 hover:bg-muted/50 transition-colors"
+                        onClick={() => setOpenQtyDropdown(openQtyDropdown === index ? null : index)}
+                      >
+                        <span className="font-medium">{item.quantity}</span>
+                        <ChevronDown size={14} className="text-muted-foreground print:hidden" />
+                      </div>
+                      
+                      {openQtyDropdown === index && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setOpenQtyDropdown(null)}></div>
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-20 bg-card border border-border shadow-lg rounded-md z-50 max-h-44 overflow-y-auto no-print text-sm">
+                            {Array.from({ length: 100 }, (_, i) => i + 1).map((val) => (
+                              <div 
+                                key={val} 
+                                className={`p-2 text-center cursor-pointer hover:bg-muted transition-colors ${item.quantity === val ? 'bg-primary text-primary-foreground font-medium' : ''}`}
+                                onClick={() => {
+                                  updateLineItem(index, 'quantity', val);
+                                  setOpenQtyDropdown(null);
+                                }}
+                              >
+                                {val}
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   )}
                 </td>
               )}

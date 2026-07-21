@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useStore, Product } from '../store/useStore';
-import { Search, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Upload } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 export default function StockManagement() {
-  const { products, addProduct, updateProduct, deleteProduct, showDialog } = useStore();
+  const { products, addProduct, addProductsBulk, updateProduct, deleteProduct, showDialog } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
@@ -11,7 +12,7 @@ export default function StockManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Product>>({
-    name: '', category: '', price: 0, stock: 0, lowStockThreshold: 10, bindingVariant: '', hsn: ''
+    name: '', category: '', price: 0, stock: 0, lowStockThreshold: 10, bindingVariant: '', hsn: '', barcode: ''
   });
 
   // Get unique categories
@@ -20,6 +21,7 @@ export default function StockManagement() {
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (p.barcode && p.barcode.toLowerCase().includes(searchTerm.toLowerCase())) ||
                           (p.bindingVariant && p.bindingVariant.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = selectedCategory === 'ALL' || p.category === selectedCategory;
     return matchesSearch && matchesCategory;
@@ -31,7 +33,7 @@ export default function StockManagement() {
       setFormData(product);
     } else {
       setEditingId(null);
-      setFormData({ name: '', category: '', price: 0, stock: 0, lowStockThreshold: 10, bindingVariant: '', hsn: '' });
+      setFormData({ name: '', category: '', price: 0, stock: 0, lowStockThreshold: 10, bindingVariant: '', hsn: '', barcode: '' });
     }
     setIsModalOpen(true);
   };
@@ -60,13 +62,75 @@ export default function StockManagement() {
     });
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const isJson = file.name.toLowerCase().endsWith('.json');
+      let newProducts: Partial<Product>[] = [];
+
+      if (isJson) {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if (Array.isArray(data)) {
+          newProducts = data;
+        } else {
+          throw new Error('JSON file must contain an array of products');
+        }
+      } else {
+        // Excel or CSV
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const data = XLSX.utils.sheet_to_json(worksheet);
+        
+        // Map Excel columns to Product fields
+        newProducts = data.map((row: any) => ({
+          name: row.name || row.Name || row['Product Name'] || '',
+          category: row.category || row.Category || 'ALL',
+          price: Number(row.price || row.Price || row.MRP || 0),
+          stock: Number(row.stock || row.Stock || row.Qty || 0),
+          lowStockThreshold: Number(row.lowStockThreshold || row['Min Stock'] || 10),
+          bindingVariant: row.bindingVariant || row.Variant || row.Binding || '',
+          hsn: row.hsn || row.HSN || '',
+          barcode: row.barcode || row.Barcode || ''
+        })).filter(p => p.name); // only keep rows that at least have a name
+      }
+
+      if (newProducts.length > 0) {
+        await addProductsBulk(newProducts);
+        showDialog({ title: 'Success', message: `Imported ${newProducts.length} products successfully.`, type: 'alert' });
+      } else {
+        showDialog({ title: 'Import Failed', message: 'No valid products found in the file.', type: 'alert' });
+      }
+    } catch (err: any) {
+      console.error(err);
+      showDialog({ title: 'Import Error', message: err.message || 'Failed to read file.', type: 'alert' });
+    }
+    // reset input
+    e.target.value = '';
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Stock Management</h1>
-        <button onClick={() => handleOpenModal()} className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2">
-          <Plus size={18} /> Add Product
-        </button>
+        <div className="flex gap-2">
+          <label className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/90 flex items-center gap-2 cursor-pointer transition-colors border border-border shadow-sm">
+            <Upload size={18} /> Import Stock
+            <input 
+              type="file" 
+              accept=".json,.csv,.xlsx,.xls" 
+              className="hidden" 
+              onChange={handleFileUpload} 
+            />
+          </label>
+          <button onClick={() => handleOpenModal()} className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2">
+            <Plus size={18} /> Add Product
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -99,6 +163,7 @@ export default function StockManagement() {
             <tr>
               <th className="p-4 font-medium">Product Name</th>
               <th className="p-4 font-medium">Category</th>
+              <th className="p-4 font-medium">Barcode</th>
               <th className="p-4 font-medium">Variant/Binding</th>
               <th className="p-4 font-medium text-right">MRP (₹)</th>
               <th className="p-4 font-medium text-right">Stock</th>
@@ -115,6 +180,7 @@ export default function StockManagement() {
                     {product.category}
                   </span>
                 </td>
+                <td className="p-4 text-muted-foreground">{product.barcode || '-'}</td>
                 <td className="p-4 text-muted-foreground">{product.bindingVariant || '-'}</td>
                 <td className="p-4 text-right">{product.price.toFixed(2)}</td>
                 <td className="p-4 text-right">
@@ -179,11 +245,15 @@ export default function StockManagement() {
                 </div>
                 <div>
                   <label className="block text-sm mb-1">HSN Code</label>
-                  <input value={formData.hsn} onChange={e => setFormData({...formData, hsn: e.target.value})} className="w-full border p-2 rounded bg-background" />
+                  <input value={formData.hsn || ''} onChange={e => setFormData({...formData, hsn: e.target.value})} className="w-full border p-2 rounded bg-background" />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Barcode</label>
+                  <input value={formData.barcode || ''} onChange={e => setFormData({...formData, barcode: e.target.value})} className="w-full border p-2 rounded bg-background" />
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm mb-1">Variant / Binding</label>
-                  <input value={formData.bindingVariant} onChange={e => setFormData({...formData, bindingVariant: e.target.value})} className="w-full border p-2 rounded bg-background" />
+                  <input value={formData.bindingVariant || ''} onChange={e => setFormData({...formData, bindingVariant: e.target.value})} className="w-full border p-2 rounded bg-background" />
                 </div>
               </div>
             </div>

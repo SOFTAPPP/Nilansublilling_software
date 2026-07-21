@@ -123,37 +123,76 @@
 @media print {
   @page {
     size: A4;
-    margin: 0;
+    margin: 5mm;
   }
-  body, html {
+  ::-webkit-scrollbar {
+    display: none !important;
+  }
+  * {
+    scrollbar-width: none !important;
+  }
+  body, html, #root {
+    display: block !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     background-color: white !important;
     color: black !important;
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  /* Reset layout wrappers to avoid shifting content and clipping */
+  .min-h-screen, .h-screen, main {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    width: 100% !important;
+    overflow: visible !important;
   }
   .a4-page {
-    width: 210mm !important;
-    height: 296.5mm !important; /* Slightly less than 297mm to prevent blank second page */
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
     margin: 0 !important;
     box-shadow: none !important;
-    border: none !important;
-    page-break-after: auto;
-    page-break-inside: avoid;
-    overflow: hidden !important;
+    overflow: visible !important;
   }
   .half-a4-page {
-    width: 210mm !important;
-    height: 148mm !important; 
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
     margin: 0 !important;
     box-shadow: none !important;
-    border: none !important;
-    page-break-after: auto;
-    page-break-inside: avoid;
-    overflow: hidden !important;
+    overflow: visible !important;
   }
   .no-print {
     display: none !important;
+  }
+  /* Show stamps in print */
+  .a4-page .absolute {
+    display: flex !important;
+  }
+  /* Ensure text remains visible in inputs during print */
+  input, textarea {
+    border: none !important;
+    outline: none !important;
+    background: transparent !important;
+  }
+  /* Hide placeholder text in print mode */
+  input::placeholder {
+    color: transparent !important;
+  }
+  /* Hide date picker calendar icons and spin buttons in print */
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="date"]::-webkit-inner-spin-button,
+  input[type="date"]::-webkit-clear-button {
+    display: none !important;
+    -webkit-appearance: none !important;
   }
 }

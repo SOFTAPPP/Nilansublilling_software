@@ -17,6 +17,7 @@ model Admin {
 
 model Product {
   id                String         @id @default(uuid())
+  barcode           String?        @unique
   name              String
   category          String
   price             Float
@@ -43,24 +44,38 @@ model Party {
   bills              Bill[]
 }
 
+model Transporter {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  address   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  bills     Bill[]
+}
+
 model Bill {
-  id          String         @id @default(uuid())
-  type        String         // 'cash', 'credit', 'quick', 'return', 'transport'
-  billNumber  String         @unique
-  date        DateTime       @default(now())
-  partyId     String?
-  party       Party?         @relation(fields: [partyId], references: [id])
-  subtotal    Float
-  discount    Float          @default(0)
-  total       Float
-  status      String         @default("completed")
-  vehicleNo   String?
-  destination String?
-  driverName  String?
-  lrNo        String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  lineItems   BillLineItem[]
+  id            String         @id @default(uuid())
+  type          String
+  billNumber    String         @unique
+  date          DateTime       @default(now())
+  partyId       String?
+  party         Party?         @relation(fields: [partyId], references: [id])
+  transporterId String?
+  transporter   Transporter?   @relation(fields: [transporterId], references: [id])
+  subtotal      Float
+  discount      Float          @default(0)
+  cgst          Float          @default(0)
+  sgst          Float          @default(0)
+  total         Float
+  status        String         @default("completed")
+  vehicleNo     String?
+  destination   String?
+  driverName    String?
+  lrNo          String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  lineItems     BillLineItem[]
 }
 
 model BillLineItem {

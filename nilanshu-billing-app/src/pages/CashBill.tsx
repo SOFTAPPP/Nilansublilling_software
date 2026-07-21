@@ -1,16 +1,38 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
 
-export default function CashBill() {
+export default function CashBill({ viewBill }: { viewBill?: any }) {
   const { settings, updateSettings, createBill, parties, showDialog } = useStore();
   const [items, setItems] = useState<BillLineItem[]>([]);
   const [partyId, setPartyId] = useState<string | null>(null);
   const [partyName, setPartyName] = useState('');
-  const [memoNo, setMemoNo] = useState('');
-  const [billDate, setBillDate] = useState(() => new Date().toLocaleDateString('en-GB'));
+  const [memoNo, setMemoNo] = useState('CSH-');
+  const [billDate, setBillDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [showPaidStamp, setShowPaidStamp] = useState(true);
+
+  useEffect(() => {
+    if (viewBill) {
+      setMemoNo(viewBill.billNumber || '');
+      setBillDate(new Date(viewBill.date).toISOString().split('T')[0]);
+      if (viewBill.partyId) {
+        setPartyId(viewBill.partyId);
+        const p = parties.find(p => p.id === viewBill.partyId);
+        setPartyName(p ? p.name : '');
+      } else {
+        setPartyName('Walk-in Customer');
+      }
+      if (viewBill.lineItems) {
+        setItems(viewBill.lineItems.map((li: any) => ({
+          ...li,
+          mrp: li.mrp || li.rate,
+          amount: li.amount,
+          discountPercent: li.discountPercent || 0,
+        })));
+      }
+    }
+  }, [viewBill, parties]);
 
   const handlePartyLookup = (val: string) => {
     setPartyName(val);
@@ -39,28 +61,39 @@ export default function CashBill() {
       showDialog({ title: 'Validation Error', message: 'Please enter a Memo No.', type: 'alert' });
       return;
     }
-    
+
     try {
       await createBill({
         type: 'cash',
         billNumber: memoNo,
         partyId: partyId,
+        date: billDate,
         subtotal: mrpTotal,
         discount: discountTotal,
         total: grandTotal,
         lineItems: items.map(i => ({
           productId: i.productId,
+          productName: i.productName,
           quantity: i.quantity,
           mrp: i.mrp,
           discountPercent: i.discountPercent,
           amount: i.amount,
+          rate: i.rate,
+          hsn: i.hsn,
         }))
       });
       showDialog({ title: 'Success', message: 'Bill saved successfully!', type: 'alert' });
-      setItems([]);
-      setMemoNo('');
+    } catch (err: any) {
+      const msg = typeof err === 'string' ? err : err.message;
+      showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
+    }
+  };
+
+  const handlePrint = () => {
+    try {
+      window.print();
     } catch (err) {
-      showDialog({ title: 'Save Failed', message: 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
+      showDialog({ title: 'Print Error', message: 'Some technical error happened or your printer is having an issue. Please fix it.', type: 'alert' });
     }
   };
 
@@ -69,24 +102,33 @@ export default function CashBill() {
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">Cash Memo</h2>
         <div className="flex gap-4">
-          <button onClick={handleSave} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Save to Database</button>
+          {!viewBill && (
+            <button onClick={handleSave} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Save to Database</button>
+          )}
           <button onClick={() => setShowPaidStamp(!showPaidStamp)} className="border border-red-500 text-red-500 px-4 py-2 rounded hover:bg-red-50">Toggle Stamp</button>
-          <button onClick={() => window.print()} className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90">Print Bill</button>
+          <button onClick={handlePrint} className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90">Print Bill</button>
         </div>
       </div>
 
       {/* Bill Canvas */}
-      <div className="a4-page relative flex flex-col p-8 pt-10 bg-white">
+      <div className="a4-page relative flex flex-col p-4 print:p-2 bg-white">
         
+        {/* Stamps overlay */}
+        {showPaidStamp && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-green-600 border-4 border-green-600 rounded-full w-48 h-48 flex items-center justify-center opacity-30 pointer-events-none z-0">
+            <span className="text-5xl font-bold uppercase tracking-widest">PAID</span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="text-center flex flex-col items-center">
-          <input value={settings.companyName} onChange={e => updateSettings({companyName: e.target.value})} placeholder="Company Name" className="text-3xl font-bold uppercase tracking-wide text-center w-full outline-none bg-transparent" />
-          <input value={settings.companyAddress} onChange={e => updateSettings({companyAddress: e.target.value})} placeholder="Address Line 1" className="text-sm mt-1 text-center w-full outline-none bg-transparent" />
-          <input value={settings.companyCity} onChange={e => updateSettings({companyCity: e.target.value})} placeholder="City & Pin" className="text-sm text-center w-full outline-none bg-transparent" />
+          <input value={settings.companyName} onChange={e => updateSettings({ companyName: e.target.value })} placeholder="Company Name" className="text-3xl font-bold uppercase tracking-wide text-center w-full outline-none bg-transparent" />
+          <input value={settings.companyAddress} onChange={e => updateSettings({ companyAddress: e.target.value })} placeholder="Address Line 1" className="text-sm mt-1 text-center w-full outline-none bg-transparent" />
+          <input value={settings.companyCity} onChange={e => updateSettings({ companyCity: e.target.value })} placeholder="City & Pin" className="text-sm text-center w-full outline-none bg-transparent" />
           <div className="flex gap-2 text-sm justify-center w-full">
-             <span className="flex items-center justify-end w-1/2 pr-1">Phone: <input value={settings.companyContact} onChange={e => updateSettings({companyContact: e.target.value})} className="outline-none bg-transparent w-[90px] ml-1" placeholder="Phone" /></span>
-             <span>|</span>
-             <span className="flex items-center justify-start w-1/2 pl-4">Email: <input value={settings.companyEmail} onChange={e => updateSettings({companyEmail: e.target.value})} className="outline-none bg-transparent w-48 ml-1" placeholder="Email" /></span>
+            <span className="flex items-center justify-end w-1/2 pr-1">Phone: <input value={settings.companyContact} onChange={e => updateSettings({ companyContact: e.target.value })} className="outline-none bg-transparent w-[90px] ml-1" placeholder="Phone" /></span>
+            <span>|</span>
+            <span className="flex items-center justify-start w-1/2 pl-4">Email: <input value={settings.companyEmail} onChange={e => updateSettings({ companyEmail: e.target.value })} className="outline-none bg-transparent flex-1 ml-1" placeholder="Email" /></span>
           </div>
         </div>
 
@@ -97,11 +139,11 @@ export default function CashBill() {
         <div className="flex justify-between items-start mb-4 text-sm">
           <div className="flex items-center gap-2 mt-2">
             <span className="font-semibold whitespace-nowrap">Party Name :</span>
-            <input 
+            <input
               list="party-names"
-              type="text" 
-              value={partyName} 
-              onChange={e => handlePartyLookup(e.target.value)} 
+              type="text"
+              value={partyName}
+              onChange={e => handlePartyLookup(e.target.value)}
               className="outline-none w-64 bg-transparent font-bold uppercase"
               placeholder="CASH CUSTOMER"
             />
@@ -113,22 +155,23 @@ export default function CashBill() {
             <div className="font-bold border border-black px-6 py-1 text-lg mb-1">
               CASH MEMO
             </div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold uppercase text-xs">CASH MEMO NO:</span>
-              <input value={memoNo} onChange={e => setMemoNo(e.target.value)} className="outline-none w-48 bg-transparent text-right text-xs" placeholder="CSH-178..." />
+            <div className="flex items-center gap-1 justify-end w-48">
+              <span className="font-semibold uppercase text-xs mr-2">CASH MEMO NO:</span>
+              <span className="text-xs">CSH-</span>
+              <input value={memoNo.replace(/^CSH-/, '')} onChange={e => setMemoNo('CSH-' + e.target.value.replace(/^CSH-/, ''))} className="outline-none w-16 bg-transparent text-left font-bold text-xs" placeholder="178..." />
             </div>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-xs">Date :</span>
-              <input value={billDate} onChange={e => setBillDate(e.target.value)} className="outline-none w-24 bg-transparent text-right font-bold text-xs" placeholder="7/8/2026" />
+              <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="outline-none w-24 bg-transparent text-right font-bold text-xs" />
             </div>
           </div>
         </div>
 
         {/* Line Items Table wrapper */}
         <div className="flex-1 border border-black border-b-0 relative z-10 flex flex-col mt-2">
-          <BillEngine 
-            items={items} 
-            onChange={setItems} 
+          <BillEngine
+            items={items}
+            onChange={setItems}
             columns={['sno', 'qty', 'name', 'mrp', 'discount', 'amount']}
           />
         </div>
@@ -139,23 +182,18 @@ export default function CashBill() {
           <div className="w-[60%] border-r border-black p-3 flex flex-col justify-between">
             <div>
               <p className="font-bold underline mb-1 text-xs">Bank Details:</p>
-              <div className="flex items-center gap-2 text-xs mb-1"><span className="font-semibold whitespace-nowrap flex-shrink-0">Bank Name:</span><input value={settings.bankName} onChange={e => updateSettings({bankName: e.target.value})} className="outline-none bg-transparent w-full" placeholder="Bank Name" /></div>
-              <div className="flex items-center gap-2 text-xs"><span className="font-semibold whitespace-nowrap flex-shrink-0">A/c No:</span><input value={settings.bankAccountNo} onChange={e => updateSettings({bankAccountNo: e.target.value})} className="outline-none bg-transparent w-full" placeholder="A/c No" /> <span className="font-semibold whitespace-nowrap flex-shrink-0">IFSC Code:</span><input value={settings.bankIfsc} onChange={e => updateSettings({bankIfsc: e.target.value})} className="outline-none bg-transparent w-full" placeholder="IFSC Code" /></div>
+              <div className="flex items-center gap-2 text-xs mb-1"><span className="font-semibold whitespace-nowrap flex-shrink-0">Bank Name:</span><input value={settings.bankName} onChange={e => updateSettings({ bankName: e.target.value })} className="outline-none bg-transparent w-full" placeholder="Bank Name" /></div>
+              <div className="flex items-center gap-2 text-xs"><span className="font-semibold whitespace-nowrap flex-shrink-0">A/c No:</span><input value={settings.bankAccountNo} onChange={e => updateSettings({ bankAccountNo: e.target.value })} className="outline-none bg-transparent w-full" placeholder="A/c No" /> <span className="font-semibold whitespace-nowrap flex-shrink-0">IFSC Code:</span><input value={settings.bankIfsc} onChange={e => updateSettings({ bankIfsc: e.target.value })} className="outline-none bg-transparent w-full" placeholder="IFSC Code" /></div>
             </div>
-            
+
             <div className="mt-8">
               <p className="font-bold text-xs">**THANKING YOU VISIT AGAIN**</p>
               <p className="italic text-xs mt-2">*Rupees {numberToWords(grandTotal)} Only*</p>
             </div>
           </div>
-          
+
           {/* Right Half */}
           <div className="w-[40%] flex flex-col relative">
-            {showPaidStamp && (
-              <div className="absolute top-1/2 left-1/4 -translate-y-1/2 -rotate-12 text-red-500 border-4 border-red-500 rounded-full w-32 h-32 flex items-center justify-center opacity-30 pointer-events-none z-50">
-                <span className="text-3xl font-bold uppercase tracking-widest">PAID</span>
-              </div>
-            )}
             <div className="flex justify-between border-b border-black p-2 font-bold text-xs">
               <span>MRP TOTAL</span>
               <span>{mrpTotal.toFixed(2)}</span>
@@ -172,7 +210,7 @@ export default function CashBill() {
               <span>GRAND TOTAL</span>
               <span>{grandTotal.toFixed(2)}</span>
             </div>
-            
+
             <div className="flex-1 p-2 flex flex-col items-end justify-between min-h-[80px]">
               <div className="flex gap-1 text-xs justify-end w-full"><span>For</span><input value={settings.companyName} readOnly className="font-bold outline-none bg-transparent flex-1 text-right" /></div>
               <div className="text-xs">Authorised Signatory</div>

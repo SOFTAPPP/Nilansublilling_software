@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { Sun, Moon, Receipt, FileText, FileClock, RotateCcw, Truck, BookOpen, UserSquare2, LayoutDashboard } from 'lucide-react';
+import { Sun, Moon, Receipt, FileText, FileClock, RotateCcw, Truck, BookOpen, UserSquare2, LayoutDashboard, History } from 'lucide-react';
 
 export const Layout = () => {
   const { theme, toggleTheme } = useStore();
@@ -14,7 +14,9 @@ export const Layout = () => {
     { name: 'Return Bill', path: '/return-bill', icon: <RotateCcw size={20} /> },
     { name: 'Transport Bill', path: '/transport-bill', icon: <Truck size={20} /> },
     { name: 'Customers', path: '/customers', icon: <UserSquare2 size={20} /> },
+    { name: 'Transporters', path: '/transporters', icon: <Truck size={20} /> },
     { name: 'Party Statements', path: '/party-statements', icon: <FileText size={20} /> },
+    { name: 'Bill History', path: '/bill-history', icon: <History size={20} /> },
     { name: 'Stock Management', path: '/stock', icon: <BookOpen size={20} /> },
   ];
 

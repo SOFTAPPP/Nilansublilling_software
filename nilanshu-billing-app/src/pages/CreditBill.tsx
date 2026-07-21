@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
 
-export default function CreditBill({ type = 'credit' }: { type?: 'credit' | 'return' }) {
+export default function CreditBill({ type = 'credit', viewBill }: { type?: 'credit' | 'return', viewBill?: any }) {
   const { parties, settings, updateSettings, createBill, showDialog } = useStore();
   const [items, setItems] = useState<BillLineItem[]>([]);
   
@@ -23,8 +23,40 @@ export default function CreditBill({ type = 'credit' }: { type?: 'credit' | 'ret
   const [buyerAddress, setBuyerAddress] = useState('');
   const [buyerState, setBuyerState] = useState('');
   const [invoiceNo, setInvoiceNo] = useState('');
+  const [billDate, setBillDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [partyDiscount, setPartyDiscount] = useState(0);
   const [partyId, setPartyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (viewBill) {
+      setInvoiceNo(viewBill.billNumber || '');
+      setBillDate(new Date(viewBill.date).toISOString().split('T')[0]);
+      if (viewBill.partyId) {
+        setPartyId(viewBill.partyId);
+        const p = parties.find(p => p.id === viewBill.partyId);
+        if (p) {
+          setBuyerName(p.name);
+          setBuyerPhone(p.phone);
+          setBuyerAddress(p.address);
+          setPartyDiscount(p.discountPercentage || 0);
+        }
+      }
+      if (viewBill.lineItems) {
+        setItems(viewBill.lineItems.map((li: any) => ({
+          ...li,
+          mrp: li.mrp || li.rate,
+          amount: li.amount,
+          discountPercent: li.discountPercent || 0,
+        })));
+      }
+      setInvoiceMeta({
+        deliveryNote: viewBill.lrNo || '',
+        destination: viewBill.destination || '',
+        dispatchedThrough: viewBill.driverName || '',
+        termsOfPayment: '', refNo: '', otherRef: '', dispatchDocNo: '', deliveryNoteDate: '', termsOfDelivery: ''
+      });
+    }
+  }, [viewBill, parties]);
 
   // Search Party by Phone or Name
   const handlePartyLookup = (val: string, field: 'phone' | 'name') => {
@@ -56,7 +88,8 @@ export default function CreditBill({ type = 'credit' }: { type?: 'credit' | 'ret
   // Calculates
   const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
-  // Calculate CGST and SGST (assuming 9% each for this example)
+  const mrpTotal = items.reduce((sum, item) => sum + (item.mrp * item.quantity), 0);
+  const discountTotal = mrpTotal - totalAmount;
   const cgstRate = 9;
   const sgstRate = 9;
   const cgstAmount = (totalAmount * cgstRate) / 100;
@@ -64,7 +97,11 @@ export default function CreditBill({ type = 'credit' }: { type?: 'credit' | 'ret
   const grandTotal = totalAmount + cgstAmount + sgstAmount;
 
   const handlePrint = () => {
-    window.print();
+    try {
+      window.print();
+    } catch (err) {
+      showDialog({ title: 'Print Error', message: 'Some technical error happened or your printer is having an issue. Please fix it.', type: 'alert' });
+    }
   };
 
   const handleSave = async () => {
@@ -86,15 +123,21 @@ export default function CreditBill({ type = 'credit' }: { type?: 'credit' | 'ret
         type: type,
         billNumber: invoiceNo,
         partyId: partyId,
+        date: billDate,
         subtotal: totalAmount,
-        discount: 0, // Discount is applied per item mostly or not stored globally
+        discount: discountTotal,
+        cgst: cgstAmount,
+        sgst: sgstAmount,
         total: grandTotal,
         lineItems: items.map(i => ({
           productId: i.productId,
+          productName: i.productName,
           quantity: i.quantity,
           mrp: i.mrp,
           discountPercent: i.discountPercent,
           amount: i.amount,
+          rate: i.rate,
+          hsn: i.hsn,
         }))
       });
       showDialog({ title: 'Success', message: `${type === 'return' ? 'Return' : 'Credit'} Bill saved successfully!`, type: 'alert' });
@@ -103,10 +146,9 @@ export default function CreditBill({ type = 'credit' }: { type?: 'credit' | 'ret
         await handleSendSMS();
       }
       
-      setItems([]);
-      setInvoiceNo('');
-    } catch (err) {
-      showDialog({ title: 'Save Failed', message: 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
+    } catch (err: any) {
+      const msg = typeof err === 'string' ? err : err.message;
+      showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
     }
   };
 
@@ -141,7 +183,11 @@ export default function CreditBill({ type = 'credit' }: { type?: 'credit' | 'ret
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">{type === 'return' ? 'Sales Return Bill' : 'Chalan / Credit Bill (Tax Invoice)'}</h2>
         <div className="flex gap-4">
-          <button onClick={handleSave} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Save to Database</button>
+          {!viewBill && (
+            <button onClick={handleSave} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+              Save to Database
+            </button>
+          )}
           <button 
             onClick={() => setShowPaidStamp(!showPaidStamp)}
             className="border border-green-600 text-green-600 px-4 py-2 rounded-md hover:bg-green-50"
@@ -154,307 +200,219 @@ export default function CreditBill({ type = 'credit' }: { type?: 'credit' | 'ret
           >
             Toggle DELETE Stamp
           </button>
-          <button 
-            onClick={handleSendSMS}
-            className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/90"
-          >
-            Send SMS
-          </button>
-          <button 
-            onClick={handlePrint}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
-          >
+          {!viewBill && (
+            <button onClick={handleSendSMS} className="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600">
+              Send SMS
+            </button>
+          )}
+          <button onClick={handlePrint} className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90">
             Print Invoice
           </button>
         </div>
       </div>
 
       {/* Bill Canvas */}
-      <div className="a4-page border border-black relative flex flex-col">
+      <div className="a4-page border-2 border-black relative flex flex-col bg-white">
         
         {/* Stamps overlay */}
         {showPaidStamp && (
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-green-600 border-4 border-green-600 rounded-full w-64 h-64 flex items-center justify-center opacity-40 pointer-events-none z-50">
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-green-600 border-4 border-green-600 rounded-full w-64 h-64 flex items-center justify-center opacity-30 pointer-events-none z-0">
             <span className="text-6xl font-bold uppercase tracking-widest">PAID</span>
           </div>
         )}
         {showCancelStamp && (
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-12 text-red-600 border-4 border-red-600 rounded-full w-64 h-64 flex items-center justify-center opacity-40 pointer-events-none z-50">
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-12 text-red-600 border-4 border-red-600 rounded-full w-64 h-64 flex items-center justify-center opacity-30 pointer-events-none z-0">
             <span className="text-5xl font-bold uppercase tracking-widest text-center">CANCELLED</span>
           </div>
         )}
 
         {/* Header */}
-        <div className="text-center py-2 border-b border-black font-semibold text-lg flex justify-between px-4">
-          <span className="w-1/3"></span>
-          <span className="w-1/3">{type === 'return' ? 'SALES RETURN' : 'TAX INVOICE'}</span>
-          <span className="w-1/3 text-right text-xs font-normal mt-1">(ORIGINAL FOR RECIPIENT)</span>
+        <div className="text-center py-2 font-bold text-lg border-b-2 border-black tracking-wide">
+          {type === 'return' ? 'RETURN CUM CHALLAN' : 'INVOICE CUM CHALLAN'}
         </div>
 
         {/* Top Details Grid */}
-        <div className="grid grid-cols-2 text-sm border-b border-black">
-          {/* Left Column (Seller, Consignee, Buyer) */}
-          <div className="border-r border-black flex flex-col">
+        <div className="grid grid-cols-2 text-sm border-b-2 border-black min-h-[220px]">
+          {/* Left Column (Seller & Buyer) */}
+          <div className="border-r-2 border-black flex flex-col">
             {/* Seller Details */}
-            <div className="p-2 flex flex-col gap-1 flex-1">
-              <input value={settings.companyName} onChange={e => updateSettings({companyName: e.target.value})} placeholder="Company Name" className="font-bold text-lg w-full outline-none bg-transparent" />
-              <input value={settings.companyAddress} onChange={e => updateSettings({companyAddress: e.target.value})} placeholder="Address Line 1" className="w-full outline-none bg-transparent" />
-              <input value={settings.companyCity} onChange={e => updateSettings({companyCity: e.target.value})} placeholder="City & Pin" className="w-full outline-none bg-transparent" />
-              <div className="flex gap-2"><span className="whitespace-nowrap">GSTIN/UIN:</span><input value={settings.companyGstin} onChange={e => updateSettings({companyGstin: e.target.value})} className="w-full outline-none bg-transparent" /></div>
-              <div className="flex gap-2"><span className="whitespace-nowrap">State Name:</span><input value={settings.companyState} onChange={e => updateSettings({companyState: e.target.value})} className="w-full outline-none bg-transparent" /></div>
-              <div className="flex gap-2"><span className="whitespace-nowrap">Contact:</span><input value={settings.companyContact} onChange={e => updateSettings({companyContact: e.target.value})} className="w-full outline-none bg-transparent" /></div>
-              <div className="flex gap-2"><span className="whitespace-nowrap">E-Mail:</span><input value={settings.companyEmail} onChange={e => updateSettings({companyEmail: e.target.value})} className="w-full outline-none bg-transparent" /></div>
+            <div className="p-2 border-b-2 border-black flex flex-col justify-center min-h-[140px]">
+              <input value={settings.companyName} onChange={e => updateSettings({companyName: e.target.value})} placeholder="Company Name" className="font-bold text-2xl uppercase w-full outline-none bg-transparent" />
+              <input value="Publishers and Book Sellers" readOnly className="font-bold text-sm w-full outline-none bg-transparent" />
+              <input value={settings.companyAddress} onChange={e => updateSettings({companyAddress: e.target.value})} placeholder="Address" className="w-full text-sm outline-none bg-transparent" />
+              <input value={settings.companyCity} onChange={e => updateSettings({companyCity: e.target.value})} placeholder="City & Pin" className="w-full text-sm outline-none bg-transparent" />
+              <div className="flex gap-2 text-sm"><span className="whitespace-nowrap">IT PAN -</span><input value={settings.companyPan} onChange={e => updateSettings({companyPan: e.target.value})} className="w-full outline-none bg-transparent uppercase" /></div>
+              <div className="flex gap-2 text-sm"><span className="whitespace-nowrap">Phone No.-</span><input value={settings.companyContact} onChange={e => updateSettings({companyContact: e.target.value})} className="w-full outline-none bg-transparent" /></div>
             </div>
             
-            {/* Consignee (Ship to) */}
-            <div className="border-t border-black p-2 flex-1">
-              <p className="font-semibold text-xs text-gray-500 mb-1">Consignee (Ship to)</p>
-              <input value={consigneeName} onChange={e => setConsigneeName(e.target.value)} placeholder="Consignee Name" className="font-bold w-full outline-none bg-transparent" />
-              <input value={consigneeAddress} onChange={e => setConsigneeAddress(e.target.value)} placeholder="Consignee Address" className="w-full outline-none bg-transparent" />
-              <div className="flex gap-2 mt-1"><span>State:</span><input value={consigneeState} onChange={e => setConsigneeState(e.target.value)} className="w-full outline-none bg-transparent" /></div>
-            </div>
-
-            {/* Buyer (Bill to) */}
-            <div className="border-t border-black p-2 flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <p className="font-semibold text-xs text-gray-500">Buyer (Bill to)</p>
-                <div className="flex items-center gap-1 ml-auto">
-                  <span className="text-xs text-green-600 font-bold">Discount %:</span>
-                  <input
-                    type="number"
-                    value={partyDiscount}
-                    onChange={e => setPartyDiscount(parseFloat(e.target.value) || 0)}
-                    className="w-12 border border-gray-400 p-1 text-xs text-right rounded outline-none bg-transparent"
-                  />
+            {/* Buyer Details */}
+            <div className="p-2 flex flex-col flex-1">
+              <div className="flex items-start gap-1">
+                <span className="text-sm">Buyer:-</span>
+                <div className="flex-1 flex flex-col">
+                  {/* Hidden lookups for UI convenience (won't print border) */}
+                  <div className="flex items-center gap-1 no-print mb-1">
+                     <input list="party-phones" value={buyerPhone} onChange={e => handlePartyLookup(e.target.value, 'phone')} placeholder="Lookup Phone" className="w-1/2 text-xs border p-1" />
+                     <input list="party-names" value={buyerName} onChange={e => handlePartyLookup(e.target.value, 'name')} placeholder="Lookup Name" className="w-1/2 text-xs border p-1" />
+                     <datalist id="party-phones">{parties.map(p => <option key={p.id} value={p.phone}>{p.name}</option>)}</datalist>
+                     <datalist id="party-names">{parties.map(p => <option key={p.id} value={p.name}>{p.phone}</option>)}</datalist>
+                  </div>
+                  <input value={buyerName} onChange={e => setBuyerName(e.target.value)} placeholder="Buyer Name" className="font-bold w-full outline-none bg-transparent" />
+                  <input value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} placeholder="Buyer Address" className="w-full outline-none bg-transparent" />
                 </div>
-              </div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="w-16">Phone:</span>
-                <input 
-                  list="party-phones"
-                  value={buyerPhone} onChange={e => handlePartyLookup(e.target.value, 'phone')}
-                  placeholder="Lookup by Phone"
-                  className="flex-1 outline-none bg-transparent border-b border-gray-400"
-                />
-                <datalist id="party-phones">
-                  {parties.map(p => <option key={p.id} value={p.phone}>{p.name}</option>)}
-                </datalist>
-              </div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="w-16">Name:</span>
-                <input 
-                  list="party-names"
-                  value={buyerName} onChange={e => handlePartyLookup(e.target.value, 'name')}
-                  placeholder="Lookup by Name"
-                  className="font-bold flex-1 outline-none bg-transparent border-b border-gray-400"
-                />
-                <datalist id="party-names">
-                  {parties.map(p => <option key={p.id} value={p.name}>{p.phone}</option>)}
-                </datalist>
-              </div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="w-16">Address:</span>
-                <input 
-                  value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)}
-                  className="flex-1 outline-none bg-transparent border-b border-gray-400"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-16">State:</span>
-                <input 
-                  value={buyerState} onChange={e => setBuyerState(e.target.value)}
-                  className="flex-1 outline-none bg-transparent"
-                />
               </div>
             </div>
           </div>
           
-          {/* Invoice Meta */}
-          <div className="grid grid-cols-2">
-            <div className="border-r border-b border-black p-2 flex flex-col justify-center">
-              <p className="text-xs text-gray-500">Invoice No.</p>
-              <input 
-                value={invoiceNo} 
-                onChange={e => setInvoiceNo(e.target.value)}
-                className="font-bold w-full outline-none bg-transparent"
-              />
+          {/* Right Column (Invoice Meta) */}
+          <div className="flex flex-col text-[13px]">
+            <div className="flex border-b border-black">
+              <div className="w-1/2 border-r border-black p-1 flex flex-col">
+                <span className="text-[11px] text-gray-600">Invoice No.</span>
+                <input value={invoiceNo} onChange={e => setInvoiceNo(e.target.value)} className="font-bold w-full outline-none bg-transparent" />
+              </div>
+              <div className="w-1/2 p-1 flex flex-col">
+                <span className="text-[11px] text-gray-600">Date:-</span>
+                <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="font-bold w-full outline-none bg-transparent" />
+              </div>
             </div>
-            <div className="border-b border-black p-2 flex flex-col justify-center">
-              <p className="text-xs text-gray-500">Dated</p>
-              <p className="font-bold">{new Date().toLocaleDateString('en-GB')}</p>
+            <div className="flex border-b border-black">
+              <div className="w-1/2 border-r border-black p-1 flex flex-col">
+                <span className="text-[11px] text-gray-600">Delivery at</span>
+                <input value={invoiceMeta.destination} onChange={e => setInvoiceMeta({...invoiceMeta, destination: e.target.value})} className="font-bold w-full outline-none bg-transparent" />
+              </div>
+              <div className="w-1/2 p-1 flex flex-col">
+                <span className="text-[11px] text-gray-600">Transport no:</span>
+                <input value={invoiceMeta.dispatchedThrough} onChange={e => setInvoiceMeta({...invoiceMeta, dispatchedThrough: e.target.value})} className="font-bold w-full outline-none bg-transparent" />
+              </div>
             </div>
-            <div className="border-r border-b border-black p-2 flex flex-col justify-center">
-              <p className="text-xs text-gray-500">Delivery Note</p>
-              <input value={invoiceMeta.deliveryNote} onChange={e => setInvoiceMeta({...invoiceMeta, deliveryNote: e.target.value})} className="w-full outline-none bg-transparent font-bold" />
+            <div className="flex border-b border-black">
+              <div className="w-1/2 border-r border-black p-1 flex flex-col">
+                <span className="text-[11px] text-gray-600">Suppliers Ref</span>
+                <input value={invoiceMeta.refNo} onChange={e => setInvoiceMeta({...invoiceMeta, refNo: e.target.value})} className="font-bold w-full outline-none bg-transparent" />
+              </div>
+              <div className="w-1/2 p-1 flex flex-col">
+                <div className="flex"><span className="text-[11px] text-gray-600 w-16">CITY:</span><input value={buyerState} onChange={e => setBuyerState(e.target.value)} className="font-bold w-full outline-none bg-transparent" /></div>
+                <div className="flex"><span className="text-[11px] text-gray-600 w-16">DISTRICT:</span><input className="font-bold w-full outline-none bg-transparent" /></div>
+              </div>
             </div>
-            <div className="border-b border-black p-2 flex flex-col justify-center">
-              <p className="text-xs text-gray-500">Mode/Terms of Payment</p>
-              <input value={invoiceMeta.termsOfPayment} onChange={e => setInvoiceMeta({...invoiceMeta, termsOfPayment: e.target.value})} className="w-full outline-none bg-transparent font-bold" />
+            <div className="flex border-b border-black">
+              <div className="w-1/2 border-r border-black p-1 flex flex-col">
+                <span className="text-[11px] text-gray-600">Buyer's Order</span>
+                <input value={invoiceMeta.deliveryNote} onChange={e => setInvoiceMeta({...invoiceMeta, deliveryNote: e.target.value})} className="font-bold w-full outline-none bg-transparent" />
+              </div>
+              <div className="w-1/2 p-1 flex flex-col">
+                <span className="text-[11px] text-gray-600">Date:-</span>
+                <input type="text" value={invoiceMeta.deliveryNoteDate} onChange={e => setInvoiceMeta({...invoiceMeta, deliveryNoteDate: e.target.value})} className="font-bold w-full outline-none bg-transparent" />
+              </div>
             </div>
-            <div className="border-r border-b border-black p-2 flex flex-col justify-center">
-              <p className="text-xs text-gray-500">Reference No. & Date.</p>
-              <input value={invoiceMeta.refNo} onChange={e => setInvoiceMeta({...invoiceMeta, refNo: e.target.value})} className="w-full outline-none bg-transparent font-bold" />
+            <div className="flex border-b border-black">
+              <div className="w-1/2 border-r border-black p-1 flex flex-col">
+                <span className="text-[11px] text-gray-600">Despatch Document No.</span>
+                <input value={invoiceMeta.dispatchDocNo} onChange={e => setInvoiceMeta({...invoiceMeta, dispatchDocNo: e.target.value})} className="font-bold w-full outline-none bg-transparent" />
+              </div>
+              <div className="w-1/2 p-1 flex flex-col">
+                <span className="text-[11px] text-gray-600">Delivery Note Date</span>
+                <input type="date" value={invoiceMeta.deliveryNoteDate} onChange={e => setInvoiceMeta({...invoiceMeta, deliveryNoteDate: e.target.value})} className="font-bold w-full outline-none bg-transparent text-[11px]" />
+              </div>
             </div>
-            <div className="border-b border-black p-2 flex flex-col justify-center">
-              <p className="text-xs text-gray-500">Other References</p>
-              <input value={invoiceMeta.otherRef} onChange={e => setInvoiceMeta({...invoiceMeta, otherRef: e.target.value})} className="w-full outline-none bg-transparent font-bold" />
-            </div>
-            <div className="border-r border-b border-black p-2 flex flex-col justify-center">
-              <p className="text-xs text-gray-500">Buyer's Order No.</p>
-              <input value={invoiceMeta.dispatchDocNo} onChange={e => setInvoiceMeta({...invoiceMeta, dispatchDocNo: e.target.value})} className="w-full outline-none bg-transparent font-bold" />
-            </div>
-            <div className="border-b border-black p-2 flex flex-col justify-center">
-              <p className="text-xs text-gray-500">Dated</p>
-              <input type="date" value={invoiceMeta.deliveryNoteDate} onChange={e => setInvoiceMeta({...invoiceMeta, deliveryNoteDate: e.target.value})} className="w-full outline-none bg-transparent font-bold text-xs" />
-            </div>
-            <div className="border-r border-b border-black p-2 flex flex-col justify-center">
-              <p className="text-xs text-gray-500">Dispatch Doc No.</p>
-              <input value={invoiceMeta.dispatchedThrough} onChange={e => setInvoiceMeta({...invoiceMeta, dispatchedThrough: e.target.value})} className="w-full outline-none bg-transparent font-bold" />
-            </div>
-            <div className="border-b border-black p-2 flex flex-col justify-center">
-              <p className="text-xs text-gray-500">Delivery Note Date</p>
-              <input type="date" value={invoiceMeta.deliveryNoteDate} onChange={e => setInvoiceMeta({...invoiceMeta, deliveryNoteDate: e.target.value})} className="w-full outline-none bg-transparent font-bold text-xs" />
-            </div>
-            <div className="border-r border-b border-black p-2 flex flex-col justify-center">
-              <p className="text-xs text-gray-500">Dispatched through</p>
-              <input value={invoiceMeta.dispatchedThrough} onChange={e => setInvoiceMeta({...invoiceMeta, dispatchedThrough: e.target.value})} className="w-full outline-none bg-transparent font-bold" />
-            </div>
-            <div className="border-b border-black p-2 flex flex-col justify-center">
-              <p className="text-xs text-gray-500">Destination</p>
-              <input value={invoiceMeta.destination} onChange={e => setInvoiceMeta({...invoiceMeta, destination: e.target.value})} className="w-full outline-none bg-transparent font-bold" />
-            </div>
-            <div className="col-span-2 p-2 flex flex-col">
-              <p className="text-xs text-gray-500">Terms of Delivery</p>
-              <textarea value={invoiceMeta.termsOfDelivery} onChange={e => setInvoiceMeta({...invoiceMeta, termsOfDelivery: e.target.value})} className="w-full outline-none bg-transparent resize-none flex-1 font-bold" />
+            <div className="flex flex-1">
+              <div className="w-1/2 border-r border-black p-1 flex flex-col">
+                <span className="text-[11px] text-gray-600">Despatched through</span>
+                <input value="ROAD" readOnly className="font-bold w-full outline-none bg-transparent" />
+              </div>
+              <div className="w-1/2 p-1 flex flex-col">
+                <span className="text-[11px] text-gray-600">Destination</span>
+                <input value={invoiceMeta.destination} onChange={e => setInvoiceMeta({...invoiceMeta, destination: e.target.value})} className="font-bold w-full outline-none bg-transparent" />
+              </div>
             </div>
           </div>
         </div>
 
         {/* Line Items */}
-        <div className="flex-1 flex flex-col border-b border-black border-t-0">
+        <div className="flex-1 flex flex-col border-b-2 border-black min-h-[350px]">
           <div className="flex-1">
             <BillEngine 
               items={items} 
               onChange={setItems} 
               columns={['sno', 'name', 'hsn', 'qty', 'rate', 'per', 'amount']}
               globalDiscount={partyDiscount}
-              maxItems={20}
+              maxItems={10}
             />
           </div>
           
-          {/* Tax rows added below items inside the table container visually */}
-          {items.length > 0 && (
-             <div className="flex border-b border-black border-x">
-               <div className="w-[58%] border-r border-black flex flex-col items-end pr-4 py-2">
-                 <p>CGST</p>
-                 <p>SGST</p>
-               </div>
-               <div className="w-[12%] border-r border-black flex flex-col items-end pr-2 py-2">
-                 <p>{cgstRate} %</p>
-                 <p>{sgstRate} %</p>
-               </div>
-               <div className="w-[30%] flex flex-col items-end pr-2 py-2">
-                 <p>{cgstAmount.toFixed(2)}</p>
-                 <p>{sgstAmount.toFixed(2)}</p>
-               </div>
+           {/* Discount and Total Rows */}
+           <div className="flex border-t border-black text-sm border-r-0">
+             <div className="w-[85%] text-right pr-4 py-1 border-r border-black flex justify-end items-center gap-2">
+               <span className="no-print text-xs text-muted-foreground">Party Discount:</span>
+               <input type="number" value={partyDiscount} onChange={e => setPartyDiscount(parseFloat(e.target.value) || 0)} className="w-16 border text-right no-print" />
+               Less: Discount
              </div>
-          )}
-          
-          {/* Total Row */}
-          <div className="flex font-bold border-t border-b border-black bg-muted/20">
-            <div className="w-[48%] border-r border-l border-black text-right pr-4 py-1">Total</div>
-            <div className="w-[10%] border-r border-black text-center py-1">{totalQuantity}</div>
-            <div className="w-[12%] border-r border-black"></div>
-            <div className="w-[30%] text-right pr-2 py-1 border-r border-black">₹ {grandTotal.toFixed(2)}</div>
-          </div>
+             <div className="w-[15%] text-right pr-2 py-1">
+               {discountTotal.toFixed(2)}
+             </div>
+           </div>
+           <div className="flex border-t border-black text-sm font-bold">
+             <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
+               CGST @ 9%
+             </div>
+             <div className="w-[15%] text-right pr-2 py-1">
+               {cgstAmount.toFixed(2)}
+             </div>
+           </div>
+           <div className="flex border-t border-black text-sm font-bold">
+             <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
+               SGST @ 9%
+             </div>
+             <div className="w-[15%] text-right pr-2 py-1">
+               {sgstAmount.toFixed(2)}
+             </div>
+           </div>
+           <div className="flex border-t-2 border-black text-sm font-bold text-lg">
+             <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
+               Grand Total
+             </div>
+             <div className="w-[15%] text-right pr-2 py-1">
+               {grandTotal.toFixed(2)}
+             </div>
+           </div>
         </div>
 
         {/* Amount in words */}
-        <div className="border-x border-b border-black p-2 text-sm flex gap-2">
-          <span>Amount Chargeable (in words)</span>
-          <span className="font-bold">Indian Rupees {numberToWords(grandTotal)}</span>
-          <span className="ml-auto italic">E. & O.E</span>
-        </div>
-
-        {/* Tax Breakdown table */}
-        <table className="w-full text-xs text-center border-collapse border border-black border-x">
-          <thead>
-            <tr className="border-b border-black">
-              <th className="border-r border-black font-normal" rowSpan={2}>HSN/SAC</th>
-              <th className="border-r border-black font-normal" rowSpan={2}>Taxable Value</th>
-              <th className="border-r border-black font-normal" colSpan={2}>CGST</th>
-              <th className="border-r border-black font-normal" colSpan={2}>SGST/UTGST</th>
-              <th className="font-normal" rowSpan={2}>Total Tax Amount</th>
-            </tr>
-            <tr className="border-b border-black">
-              <th className="border-r border-t border-black font-normal">Rate</th>
-              <th className="border-r border-t border-black font-normal">Amount</th>
-              <th className="border-r border-t border-black font-normal">Rate</th>
-              <th className="border-r border-t border-black font-normal">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map(item => (
-              <tr key={item.id}>
-                <td className="border-r border-black">{item.hsn}</td>
-                <td className="border-r border-black">{item.amount.toFixed(2)}</td>
-                <td className="border-r border-black">{cgstRate}%</td>
-                <td className="border-r border-black">{((item.amount * cgstRate) / 100).toFixed(2)}</td>
-                <td className="border-r border-black">{sgstRate}%</td>
-                <td className="border-r border-black">{((item.amount * sgstRate) / 100).toFixed(2)}</td>
-                <td>{(((item.amount * cgstRate) / 100) + ((item.amount * sgstRate) / 100)).toFixed(2)}</td>
-              </tr>
-            ))}
-            <tr className="border-t border-black font-bold bg-gray-50">
-              <td className="border-r border-black text-right pr-2">Total</td>
-              <td className="border-r border-black">{totalAmount.toFixed(2)}</td>
-              <td className="border-r border-black"></td>
-              <td className="border-r border-black">{cgstAmount.toFixed(2)}</td>
-              <td className="border-r border-black"></td>
-              <td className="border-r border-black">{sgstAmount.toFixed(2)}</td>
-              <td>{(cgstAmount + sgstAmount).toFixed(2)}</td>
-            </tr>
-          </tbody>
-        </table>
-        
-        {/* Tax Amount in words */}
-        <div className="border-x border-b border-black p-2 text-sm flex gap-2">
-          <span>Tax Amount (in words) :</span>
-          <span className="font-bold">Indian Rupees {numberToWords(cgstAmount + sgstAmount)}</span>
+        <div className="border-b-2 border-black p-2 text-sm flex gap-4 items-center">
+          <span className="text-[13px]">Amount Chargeable (in words)</span>
+          <span className="font-bold text-[13px]">{numberToWords(Math.round(grandTotal))} only.</span>
         </div>
 
         {/* Footer info */}
-        <div className="flex border-x border-b border-black text-sm">
-          <div className="w-1/2 border-r border-black p-2">
-            <div className="flex gap-2 mb-4">
-              <span>Company's PAN:</span>
-              <input value={settings.companyPan} onChange={e => updateSettings({companyPan: e.target.value})} className="font-bold outline-none bg-transparent w-full" />
+        <div className="flex flex-col border-b-2 border-black text-[13px]">
+          <div className="p-2 border-b border-black">
+            <p className="underline mb-1">Company's Bank Details :-</p>
+            <div className="flex flex-wrap gap-x-6 gap-y-1 font-bold">
+              <div className="flex gap-2"><span>Bank Name :-</span><input value={settings.bankName} onChange={e => updateSettings({bankName: e.target.value})} className="outline-none bg-transparent" /></div>
+              <div className="flex gap-2"><span>A/c. No.</span><input value={settings.bankAccountNo} onChange={e => updateSettings({bankAccountNo: e.target.value})} className="outline-none bg-transparent" /></div>
+              <div className="flex gap-2"><input value={settings.companyCity + " Br.,"} onChange={e => updateSettings({companyCity: e.target.value.replace(' Br.,', '')})} className="outline-none bg-transparent text-right" /></div>
+              <div className="flex gap-2"><span>IFS -</span><input value={settings.bankIfsc} onChange={e => updateSettings({bankIfsc: e.target.value})} className="outline-none bg-transparent" /></div>
             </div>
-            <p className="underline mb-1">Declaration</p>
-            <p className="text-xs">We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</p>
           </div>
-          <div className="w-1/2 p-2 relative">
-            <p className="underline mb-1">Company's Bank Details</p>
-            <div className="grid grid-cols-[110px_1fr] gap-x-2 text-xs mb-4">
-              <span>A/c Holder's Name</span>
-              <div className="flex gap-1"><span>:</span><input value={settings.bankAccountName} onChange={e => updateSettings({bankAccountName: e.target.value})} className="font-bold outline-none bg-transparent w-full" /></div>
-              <span>Bank Name</span>
-              <div className="flex gap-1"><span>:</span><input value={settings.bankName} onChange={e => updateSettings({bankName: e.target.value})} className="font-bold outline-none bg-transparent w-full" /></div>
-              <span>A/c No.</span>
-              <div className="flex gap-1"><span>:</span><input value={settings.bankAccountNo} onChange={e => updateSettings({bankAccountNo: e.target.value})} className="font-bold outline-none bg-transparent w-full" /></div>
-              <span>Branch & IFS Code</span>
-              <div className="flex gap-1"><span>:</span><input value={settings.bankIfsc} onChange={e => updateSettings({bankIfsc: e.target.value})} className="font-bold outline-none bg-transparent w-full" /></div>
+          <div className="flex">
+            <div className="w-1/2 border-r border-black p-2">
+              <p>We declare that this Invoice shows the actual</p>
+              <p>price of the goods described and that all</p>
+              <p>particulars are true and correct</p>
             </div>
-            <div className="absolute bottom-2 right-2 text-center flex flex-col items-center">
-              <div className="flex text-xs mb-8">
-                <span>for </span><input value={settings.companyName} readOnly className="font-bold outline-none bg-transparent w-32 text-center" />
+            <div className="w-1/2 p-2 relative min-h-[80px]">
+              <div className="flex text-sm justify-end absolute top-2 right-4">
+                <span>For </span><input value={settings.companyName} readOnly className="font-bold outline-none bg-transparent ml-1 text-right w-48" />
               </div>
-              <p className="text-xs border-t border-black pt-1 px-4">Authorised Signatory</p>
+              <div className="absolute bottom-2 right-4 text-sm">
+                Authorised Signatory
+              </div>
             </div>
           </div>
         </div>
         
-        <div className="text-center text-xs py-1 border-x border-b border-black">
+        <div className="text-center text-[11px] py-1">
           <p>SUBJECT TO KOLKATA JURISDICTION</p>
           <p>This is a Computer Generated Invoice</p>
         </div>

@@ -1,11 +1,17 @@
 import Database from '@tauri-apps/plugin-sql';
 
-// Connect to the PostgreSQL database directly via Tauri
+const DB_URL = import.meta.env.VITE_DATABASE_URL || 'postgres://postgres:postgres@localhost/npsoftwaredatabase';
+
 let dbInstance: Database | null = null;
 
 export const getDb = async () => {
   if (!dbInstance) {
-    dbInstance = await Database.load('postgres://postgres:Aritradutta%402005@localhost/npsoftwaredatabase');
+    try {
+      dbInstance = await Database.load(DB_URL);
+    } catch (err) {
+      console.error('Database connection failed:', err);
+      throw new Error('Failed to connect to database. Please check your database configuration.');
+    }
   }
   return dbInstance;
 };

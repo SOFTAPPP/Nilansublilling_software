@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 
 export default function PartyStatement() {
-  const { parties, bills, fetchParties, fetchBills } = useStore();
+  const { parties, bills, settings, updateSettings, fetchParties, fetchBills, showDialog } = useStore();
   const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
   const [partySearch, setPartySearch] = useState('');
   
@@ -17,6 +17,14 @@ export default function PartyStatement() {
     fetchParties();
     fetchBills();
   }, [fetchParties, fetchBills]);
+
+  const handlePrint = () => {
+    try {
+      window.print();
+    } catch (err) {
+      showDialog({ title: 'Print Error', message: 'Some technical error happened or your printer is having an issue. Please fix it.', type: 'alert' });
+    }
+  };
 
   const handlePartyLookup = (val: string) => {
     setPartySearch(val);
@@ -133,7 +141,7 @@ export default function PartyStatement() {
           </datalist>
           <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="border p-2 rounded text-sm" />
           <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="border p-2 rounded text-sm" />
-          <button onClick={() => window.print()} className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 font-sans text-sm">Print Statement</button>
+          <button onClick={handlePrint} className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 font-sans text-sm">Print Statement</button>
         </div>
       </div>
 
@@ -141,10 +149,13 @@ export default function PartyStatement() {
       <div className="a4-page border border-black p-6 relative bg-white mx-auto font-mono text-sm">
         
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-xl font-bold tracking-wider">B.B. KUNDU & COMPANY</h1>
-          <p>8B/1, TAMER LANE, KOLKATA-700009</p>
-          <p>Phone : 7003157291/9163970125 E-Mail : bbkunduco@gmail.com</p>
+        <div className="text-center mb-8 flex flex-col items-center">
+          <input value={settings.companyName} onChange={e => updateSettings({companyName: e.target.value})} placeholder="Company Name" className="text-xl font-bold tracking-wider text-center w-full outline-none bg-transparent uppercase" />
+          <input value={settings.companyAddress} onChange={e => updateSettings({companyAddress: e.target.value})} placeholder="Company Address" className="text-center w-full outline-none bg-transparent" />
+          <div className="flex justify-center gap-4 w-full">
+            <div className="flex gap-2"><span>Phone :</span><input value={settings.companyContact} onChange={e => updateSettings({companyContact: e.target.value})} placeholder="Phone" className="outline-none bg-transparent w-48" /></div>
+            <div className="flex gap-2"><span>E-Mail :</span><input value={settings.companyEmail} onChange={e => updateSettings({companyEmail: e.target.value})} placeholder="Email" className="outline-none bg-transparent w-64" /></div>
+          </div>
         </div>
 
         {/* Ledger Info */}
@@ -161,6 +172,22 @@ export default function PartyStatement() {
             <div>Page No.: 1</div>
           </div>
         </div>
+
+        {/* Period Summary */}
+        {selectedPartyId && (
+          <div className="flex justify-between border-b border-black border-dashed pb-4 mb-4">
+            <div>
+              <p className="font-bold underline mb-1">Period Summary</p>
+              <p>Total Sales (Debit): <span className="font-bold">₹ {filteredHistory.reduce((sum, h) => sum + (h.debit || 0), 0).toFixed(2)}</span></p>
+              <p>Total Business/Receipts (Credit): <span className="font-bold">₹ {filteredHistory.reduce((sum, h) => sum + (h.credit || 0), 0).toFixed(2)}</span></p>
+            </div>
+            <div className="text-right">
+              <p className="font-bold underline mb-1">Balance Summary</p>
+              <p>Opening Balance: <span className="font-bold">₹ {Math.abs(balanceBeforePeriod).toFixed(2)} {balanceBeforePeriod >= 0 ? 'Dr' : 'Cr'}</span></p>
+              <p>Closing Balance: <span className="font-bold">₹ {Math.abs(finalBalance).toFixed(2)} {finalBalance >= 0 ? 'Dr' : 'Cr'}</span></p>
+            </div>
+          </div>
+        )}
 
         {/* Table */}
         <table className="w-full text-left whitespace-pre">

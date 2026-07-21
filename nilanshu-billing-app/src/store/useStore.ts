@@ -10,6 +10,7 @@ export interface Product {
   lowStockThreshold: number;
   bindingVariant?: string;
   hsn?: string;
+  barcode?: string;
 }
 
 export interface Party {
@@ -23,13 +24,23 @@ export interface Party {
   outstandingBalance: number;
 }
 
+export interface Transporter {
+  id: string;
+  name: string;
+  phone: string;
+  address: string;
+}
+
 export interface Bill {
   id: string;
   type: string;
   billNumber: string;
   partyId?: string;
+  transporterId?: string;
   subtotal: number;
   discount: number;
+  cgst: number;
+  sgst: number;
   total: number;
   status: string;
   date: string;
@@ -74,6 +85,7 @@ export interface Settings {
 interface AppState {
   products: Product[];
   parties: Party[];
+  transporters: Transporter[];
   bills: Bill[];
   settings: Settings;
   theme: 'light' | 'dark';
@@ -87,6 +99,7 @@ interface AppState {
   toggleTheme: () => void;
   fetchProducts: () => Promise<void>;
   fetchParties: () => Promise<void>;
+  fetchTransporters: () => Promise<void>;
   fetchBills: () => Promise<void>;
   fetchSettings: () => Promise<void>;
   addProduct: (product: Partial<Product>) => Promise<void>;
@@ -95,15 +108,21 @@ interface AppState {
   addParty: (party: Partial<Party>) => Promise<void>;
   updateParty: (id: string, party: Partial<Party>) => Promise<void>;
   deleteParty: (id: string) => Promise<void>;
+  addTransporter: (transporter: Partial<Transporter>) => Promise<void>;
+  updateTransporter: (id: string, transporter: Partial<Transporter>) => Promise<void>;
+  deleteTransporter: (id: string) => Promise<void>;
   createBill: (billData: any) => Promise<void>;
+  deleteBill: (id: string) => Promise<void>;
+  addProductsBulk: (products: Partial<Product>[]) => Promise<void>;
 }
 
 export const useStore = create<AppState>((set) => ({
   products: [],
   parties: [],
+  transporters: [],
   bills: [],
   settings: {
-    companyName: '',
+    companyName: 'NILANSU PUBLICATION',
     companyAddress: '',
     companyCity: '',
     companyGstin: '',
@@ -131,9 +150,13 @@ export const useStore = create<AppState>((set) => ({
   setParties: (parties) => set({ parties }),
   updateSettings: async (newSettings) => {
     try {
-      const db = await getDb();
       const current = useStore.getState().settings;
       const updated = { ...current, ...newSettings };
+      
+      // Update UI state immediately to prevent React input cursor jumping
+      set({ settings: updated });
+      
+      const db = await getDb();
       
       const res = await db.select('SELECT * FROM "Settings" WHERE id = 1');
       if (Array.isArray(res) && res.length > 0) {
@@ -163,7 +186,7 @@ export const useStore = create<AppState>((set) => ({
           ]
         );
       }
-      set({ settings: updated });
+      // DB updated successfully in background
     } catch (error) {
       console.error('Failed to update settings in database', error);
       // Fallback to local state if database fails
@@ -197,6 +220,15 @@ export const useStore = create<AppState>((set) => ({
       console.error('Failed to fetch parties', error);
     }
   },
+  fetchTransporters: async () => {
+    try {
+      const db = await getDb();
+      const transporters = await db.select('SELECT * FROM "Transporter"');
+      set({ transporters: transporters as Transporter[] });
+    } catch (error) {
+      console.error('Failed to fetch transporters', error);
+    }
+  },
   fetchBills: async () => {
     try {
       const db = await getDb();
@@ -211,11 +243,16 @@ export const useStore = create<AppState>((set) => ({
       const db = await getDb();
       let res = await db.select('SELECT * FROM "Settings" WHERE id = 1');
       if (!Array.isArray(res) || res.length === 0) {
-        await db.execute('INSERT INTO "Settings" (id) VALUES (1)');
+        await db.execute('INSERT INTO "Settings" (id, "companyName") VALUES (1, $1)', ['NILANSU PUBLICATION']);
         res = await db.select('SELECT * FROM "Settings" WHERE id = 1');
       }
       if (Array.isArray(res) && res.length > 0) {
-        set({ settings: res[0] as Settings });
+        const dbSettings = res[0] as Settings;
+        if (!dbSettings.companyName) {
+          dbSettings.companyName = 'NILANSU PUBLICATION';
+          await db.execute('UPDATE "Settings" SET "companyName" = $1 WHERE id = 1', ['NILANSU PUBLICATION']);
+        }
+        set({ settings: dbSettings });
       }
     } catch (error) {
       console.error('Failed to fetch settings', error);
@@ -225,18 +262,43 @@ export const useStore = create<AppState>((set) => ({
     const db = await getDb();
     const id = product.id || crypto.randomUUID();
     await db.execute(
-      'INSERT INTO "Product" (id, name, category, price, stock, "lowStockThreshold", "bindingVariant", hsn, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())',
-      [id, product.name, product.category, product.price || 0, product.stock || 0, product.lowStockThreshold || 10, product.bindingVariant || null, product.hsn || null]
+      'INSERT INTO "Product" (id, name, category, price, stock, "lowStockThreshold", "bindingVariant", hsn, barcode, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())',
+      [id, product.name, product.category, product.price || 0, product.stock || 0, product.lowStockThreshold || 10, product.bindingVariant || null, product.hsn || null, product.barcode || null]
     );
     await useStore.getState().fetchProducts();
   },
-  updateProduct: async (id, product) => {
+  addProductsBulk: async (productsList) => {
     const db = await getDb();
-    await db.execute(
-      'UPDATE "Product" SET name=$1, category=$2, price=$3, stock=$4, "lowStockThreshold"=$5, "bindingVariant"=$6, hsn=$7, "updatedAt"=NOW() WHERE id=$8',
-      [product.name, product.category, product.price, product.stock, product.lowStockThreshold, product.bindingVariant || null, product.hsn || null, id]
-    );
+    // Use a transaction or sequential inserts
+    for (const product of productsList) {
+      const id = product.id || crypto.randomUUID();
+      try {
+        await db.execute(
+          'INSERT INTO "Product" (id, name, category, price, stock, "lowStockThreshold", "bindingVariant", hsn, barcode, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())',
+          [id, product.name, product.category, product.price || 0, product.stock || 0, product.lowStockThreshold || 10, product.bindingVariant || null, product.hsn || null, product.barcode || null]
+        );
+      } catch (err) {
+        console.error('Failed to insert product bulk', product.name, err);
+      }
+    }
     await useStore.getState().fetchProducts();
+  },
+  updateProduct: async (id, product) => {
+    try {
+      const db = await getDb();
+      await db.execute(
+        'UPDATE "Product" SET name=$1, category=$2, price=$3, stock=$4, "lowStockThreshold"=$5, "bindingVariant"=$6, hsn=$7, barcode=$8, "updatedAt"=NOW() WHERE id=$9',
+        [product.name, product.category, product.price || 0, product.stock || 0, product.lowStockThreshold || 10, product.bindingVariant || null, product.hsn || null, product.barcode || null, id]
+      );
+      await useStore.getState().fetchProducts();
+    } catch (err: any) {
+      console.error('Update Product Error:', err);
+      useStore.getState().showDialog({
+        title: 'Update Error',
+        message: err.message || 'Failed to update product',
+        type: 'alert'
+      });
+    }
   },
   deleteProduct: async (id) => {
     try {
@@ -281,52 +343,190 @@ export const useStore = create<AppState>((set) => ({
       });
     }
   },
+  addTransporter: async (transporter) => {
+    const db = await getDb();
+    const id = transporter.id || crypto.randomUUID();
+    await db.execute(
+      'INSERT INTO "Transporter" (id, name, address, phone, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW())',
+      [id, transporter.name, transporter.address, transporter.phone]
+    );
+    await useStore.getState().fetchTransporters();
+  },
+  updateTransporter: async (id, transporter) => {
+    const db = await getDb();
+    await db.execute(
+      'UPDATE "Transporter" SET name=$1, address=$2, phone=$3, "updatedAt"=NOW() WHERE id=$4',
+      [transporter.name, transporter.address, transporter.phone, id]
+    );
+    await useStore.getState().fetchTransporters();
+  },
+  deleteTransporter: async (id) => {
+    try {
+      const db = await getDb();
+      await db.execute('DELETE FROM "Transporter" WHERE id=$1', [id]);
+      await useStore.getState().fetchTransporters();
+    } catch (err) {
+      useStore.getState().showDialog({
+        title: 'Delete Failed',
+        message: 'Cannot delete this transporter because they have existing bills or records.',
+        type: 'alert'
+      });
+    }
+  },
   createBill: async (billData) => {
     const db = await getDb();
     const id = crypto.randomUUID();
-    await db.execute(
-      `INSERT INTO "Bill" (
-        id, type, "billNumber", "partyId", subtotal, discount, total, status, date, 
-        "vehicleNo", destination, "driverName", "lrNo", "createdAt", "updatedAt"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9, $10, $11, $12, NOW(), NOW())`,
-      [
-        id, 
-        billData.type || 'cash', 
-        billData.billNumber || `BILL-${Date.now()}`, 
-        billData.partyId || null, 
-        billData.subtotal, 
-        billData.discount, 
-        billData.total, 
-        billData.status || 'completed',
-        billData.vehicleNo || null,
-        billData.destination || null,
-        billData.driverName || null,
-        billData.lrNo || null
-      ]
-    );
-    for (const item of (billData.lineItems || [])) {
-        const itemId = crypto.randomUUID();
-        await db.execute(
-            'INSERT INTO "BillLineItem" (id, "billId", "productId", quantity, mrp, "discountPercent", amount, rate, hsn) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-            [itemId, id, item.productId, item.quantity, item.mrp, item.discountPercent, item.amount, item.rate || null, item.hsn || null]
-        );
-        // adjust stock
-        if (billData.type === 'return') {
-          await db.execute('UPDATE "Product" SET stock = stock + $1 WHERE id = $2', [item.quantity, item.productId]);
-        } else {
-          await db.execute('UPDATE "Product" SET stock = stock - $1 WHERE id = $2', [item.quantity, item.productId]);
-        }
+
+    if (!billData.lineItems || billData.lineItems.length === 0) {
+      throw new Error('Bill must have at least one line item.');
     }
-    // adjust party outstanding balance
+
+    // Validate and auto-create products for manually typed line items
+    for (let i = 0; i < billData.lineItems.length; i++) {
+      if (!billData.lineItems[i].productId) {
+        if (!billData.lineItems[i].productName?.trim()) {
+          throw new Error(`Item ${i + 1} is empty. Please enter a product name.`);
+        }
+        
+        const existingProd = useStore.getState().products.find(p => p.name.toLowerCase() === billData.lineItems[i].productName.trim().toLowerCase());
+        
+        if (existingProd) {
+          billData.lineItems[i].productId = existingProd.id;
+        } else {
+          const newProdId = crypto.randomUUID();
+          await db.execute(
+            'INSERT INTO "Product" (id, name, category, price, stock, "lowStockThreshold", "bindingVariant", hsn, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())',
+            [newProdId, billData.lineItems[i].productName.trim(), 'Miscellaneous', billData.lineItems[i].mrp || 0, 0, 10, null, billData.lineItems[i].hsn || null]
+          );
+          billData.lineItems[i].productId = newProdId;
+        }
+      }
+    }
+
+    // Pre-flight: check stock availability for non-return bills
+    const type = billData.type || 'cash';
+    if (type !== 'return') {
+      for (const item of billData.lineItems) {
+        if (!item.productId) continue;
+        const stockRows = await db.select<{ stock: number; name: string; category: string }[]>(
+          'SELECT stock, name, category FROM "Product" WHERE id = $1', [item.productId]
+        );
+        if (!stockRows || stockRows.length === 0) continue;
+        const currentStock = Number(stockRows[0].stock) || 0;
+        const needed = Number(item.quantity) || 0;
+        if (currentStock < needed && stockRows[0].category !== 'Miscellaneous') {
+          throw new Error(`Insufficient stock for "${stockRows[0].name}". Available: ${currentStock}, Needed: ${needed}`);
+        }
+      }
+    }
+
+    // Begin pseudo-transaction: insert bill first, then items sequentially
+    try {
+      await db.execute(
+        `INSERT INTO "Bill" (
+          id, type, "billNumber", "partyId", "transporterId", subtotal, discount, cgst, sgst, total, status, date, 
+          "vehicleNo", destination, "driverName", "lrNo", "createdAt", "updatedAt"
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CAST($12 AS TIMESTAMP), $13, $14, $15, $16, NOW(), NOW())`,
+        [
+          id, 
+          type,
+          billData.billNumber || `BILL-${Date.now()}`, 
+          billData.partyId || null, 
+          billData.transporterId || null,
+          billData.subtotal, 
+          billData.discount,
+          billData.cgst || 0,
+          billData.sgst || 0,
+          billData.total, 
+          billData.status || 'completed',
+          billData.date ? new Date(billData.date).toISOString() : new Date().toISOString(),
+          billData.vehicleNo || null,
+          billData.destination || null,
+          billData.driverName || null,
+          billData.lrNo || null
+        ]
+      );
+    } catch (err: any) {
+      const errMsg = typeof err === 'string' ? err : err.message;
+      if (errMsg && errMsg.includes('duplicate key')) {
+        throw new Error('Bill number already exists. Please use a different bill number.');
+      }
+      throw new Error(errMsg || 'Failed to save bill to database.');
+    }
+
+    // Insert line items and update stock
+    for (const item of (billData.lineItems || [])) {
+      const itemId = crypto.randomUUID();
+      await db.execute(
+        'INSERT INTO "BillLineItem" (id, "billId", "productId", quantity, mrp, "discountPercent", amount, rate, hsn) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+        [itemId, id, item.productId, item.quantity, item.mrp, item.discountPercent, item.amount, item.rate || 0, item.hsn || '']
+      );
+
+      if (item.productId) {
+        if (type === 'return') {
+          await db.execute('UPDATE "Product" SET stock = stock + $1, "updatedAt" = NOW() WHERE id = $2', [item.quantity, item.productId]);
+        } else {
+          await db.execute('UPDATE "Product" SET stock = stock - $1, "updatedAt" = NOW() WHERE id = $2', [item.quantity, item.productId]);
+        }
+      }
+    }
+
+    // Adjust party outstanding balance
     if (billData.partyId) {
-      if (billData.type === 'credit') {
+      if (type === 'credit') {
         await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [billData.total, billData.partyId]);
-      } else if (billData.type === 'return') {
+      } else if (type === 'return') {
         await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [billData.total, billData.partyId]);
       }
     }
+
     await useStore.getState().fetchProducts();
     await useStore.getState().fetchParties();
     await useStore.getState().fetchBills();
+  },
+  deleteBill: async (id) => {
+    try {
+      const db = await getDb();
+      
+      const billRows = await db.select<{ type: string, total: number, partyId: string | null }[]>('SELECT type, total, "partyId" FROM "Bill" WHERE id = $1', [id]);
+      if (!billRows || billRows.length === 0) throw new Error("Bill not found");
+      const bill = billRows[0];
+      
+      const items = await db.select<{ productId: string, quantity: number }[]>('SELECT "productId", quantity FROM "BillLineItem" WHERE "billId" = $1', [id]);
+      
+      // Revert stock
+      for (const item of items) {
+        if (item.productId) {
+          if (bill.type === 'return') {
+            await db.execute('UPDATE "Product" SET stock = stock - $1, "updatedAt" = NOW() WHERE id = $2', [item.quantity, item.productId]);
+          } else {
+            await db.execute('UPDATE "Product" SET stock = stock + $1, "updatedAt" = NOW() WHERE id = $2', [item.quantity, item.productId]);
+          }
+        }
+      }
+      
+      // Revert party balance
+      if (bill.partyId) {
+        if (bill.type === 'credit') {
+          await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [bill.total, bill.partyId]);
+        } else if (bill.type === 'return') {
+          await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [bill.total, bill.partyId]);
+        }
+      }
+      
+      // Delete the bill (cascades to BillLineItem)
+      await db.execute('DELETE FROM "Bill" WHERE id = $1', [id]);
+      
+      await useStore.getState().fetchBills();
+      await useStore.getState().fetchProducts();
+      await useStore.getState().fetchParties();
+    } catch (err: any) {
+      console.error("Delete Bill Error", err);
+      useStore.getState().showDialog({
+        title: 'Delete Failed',
+        message: err.message || 'Failed to delete bill.',
+        type: 'alert'
+      });
+    }
   },
 }));

@@ -1,13 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
 
-export default function QuickBill() {
+export default function QuickBill({ viewBill }: { viewBill?: any }) {
   const { settings, updateSettings, createBill, showDialog } = useStore();
   const [items, setItems] = useState<BillLineItem[]>([]);
   const [billNo, setBillNo] = useState('');
-  const [billDate, setBillDate] = useState(() => new Date().toLocaleDateString('en-GB'));
+  const [billDate, setBillDate] = useState(() => new Date().toISOString().split('T')[0]);
+
+  useEffect(() => {
+    if (viewBill) {
+      setBillNo(viewBill.billNumber || '');
+      setBillDate(new Date(viewBill.date).toISOString().split('T')[0]);
+      if (viewBill.lineItems) {
+        setItems(viewBill.lineItems.map((li: any) => ({
+          ...li,
+          mrp: li.mrp || li.rate,
+          amount: li.amount,
+        })));
+      }
+    }
+  }, [viewBill]);
 
   const handleSave = async () => {
     if (items.length === 0) {
@@ -27,17 +41,21 @@ export default function QuickBill() {
         total: grandTotal,
         lineItems: items.map(i => ({
           productId: i.productId,
+          productName: i.productName,
           quantity: i.quantity,
           mrp: i.mrp,
           discountPercent: i.discountPercent,
           amount: i.amount,
+          rate: i.rate,
+          hsn: i.hsn,
         }))
       });
       showDialog({ title: 'Success', message: 'Quick Bill saved successfully!', type: 'alert' });
       setItems([]);
       setBillNo('');
-    } catch (err) {
-      showDialog({ title: 'Save Failed', message: 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
+    } catch (err: any) {
+      const msg = typeof err === 'string' ? err : err.message;
+      showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
     }
   };
 
@@ -47,7 +65,11 @@ export default function QuickBill() {
   const grandTotal = Math.round(totalAmount);
 
   const handlePrint = () => {
-    window.print();
+    try {
+      window.print();
+    } catch (err) {
+      showDialog({ title: 'Print Error', message: 'Some technical error happened or your printer is having an issue. Please fix it.', type: 'alert' });
+    }
   };
 
   return (
@@ -55,15 +77,17 @@ export default function QuickBill() {
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">Quick Bill</h2>
         <div className="flex gap-4">
-          <button 
-            onClick={handleSave} 
-            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
-          >
-            Save to Database
-          </button>
+          {!viewBill && (
+            <button 
+              onClick={handleSave} 
+              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+            >
+              Save to Database
+            </button>
+          )}
           <button 
             onClick={handlePrint}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
           >
             Print Bill
           </button>

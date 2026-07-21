@@ -4,9 +4,27 @@ import { Upload, Plus, Trash2, Edit2 } from 'lucide-react';
 import { parseCustomersFile } from '../utils/dataImport';
 
 export default function CustomerManagement() {
-  const { parties, addParty, deleteParty, setParties, showDialog } = useStore();
-  const [isAdding, setIsAdding] = useState(false);
+  const { parties, addParty, deleteParty, setParties, updateParty, showDialog } = useStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingParty, setEditingParty] = useState<Party | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Party>>({});
+
+  const handleEditClick = (party: Party) => {
+    setEditingParty(party);
+    setEditForm({ ...party });
+  };
+
+  const handleEditSave = async () => {
+    if (!editingParty) return;
+    if (!editForm.name) {
+      showDialog({ title: 'Validation Error', message: 'Name is required', type: 'alert' });
+      return;
+    }
+    await updateParty(editingParty.id, editForm);
+    setEditingParty(null);
+    setEditForm({});
+  };
 
   const [newParty, setNewParty] = useState<Partial<Party>>({
     name: '',
@@ -129,6 +147,33 @@ export default function CustomerManagement() {
         </div>
       )}
 
+      {editingParty && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card p-6 rounded-xl w-full max-w-lg shadow-2xl border border-border">
+            <h2 className="text-xl font-bold mb-4">Edit Customer: {editingParty.name}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input type="text" placeholder="Name *" value={editForm.name || ''} onChange={e => setEditForm({...editForm, name: e.target.value})} className="border border-border p-2 rounded bg-background" />
+              <input type="text" placeholder="Phone" value={editForm.phone || ''} onChange={e => setEditForm({...editForm, phone: e.target.value})} className="border border-border p-2 rounded bg-background" />
+              <input type="text" placeholder="Email" value={editForm.email || ''} onChange={e => setEditForm({...editForm, email: e.target.value})} className="border border-border p-2 rounded bg-background" />
+              <input type="text" placeholder="GSTIN" value={editForm.gstin || ''} onChange={e => setEditForm({...editForm, gstin: e.target.value})} className="border border-border p-2 rounded bg-background" />
+              <input type="text" placeholder="Address" value={editForm.address || ''} onChange={e => setEditForm({...editForm, address: e.target.value})} className="border border-border p-2 rounded bg-background md:col-span-2" />
+              <div className="flex flex-col">
+                <label className="text-xs text-muted-foreground mb-1">Default Discount %</label>
+                <input type="number" value={editForm.discountPercentage || 0} onChange={e => setEditForm({...editForm, discountPercentage: parseFloat(e.target.value) || 0})} className="border border-border p-2 rounded bg-background" />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-xs text-muted-foreground mb-1">Outstanding Balance (₹)</label>
+                <input type="number" value={editForm.outstandingBalance || 0} onChange={e => setEditForm({...editForm, outstandingBalance: parseFloat(e.target.value) || 0})} className="border border-border p-2 rounded bg-background" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <button onClick={() => { setEditingParty(null); setEditForm({}); }} className="px-4 py-2 border rounded-md hover:bg-muted">Cancel</button>
+              <button onClick={handleEditSave} className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">Update</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         <table className="w-full text-left text-sm">
           <thead className="bg-muted text-muted-foreground">
@@ -161,7 +206,7 @@ export default function CustomerManagement() {
                 </td>
                 <td className="p-4 text-center">
                   <div className="flex justify-center gap-2">
-                    <button className="text-muted-foreground hover:text-primary transition-colors">
+                    <button onClick={() => handleEditClick(party)} className="text-muted-foreground hover:text-primary transition-colors">
                       <Edit2 size={16} />
                     </button>
                     <button onClick={() => removeParty(party.id)} className="text-muted-foreground hover:text-destructive transition-colors">

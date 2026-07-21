@@ -23,7 +23,7 @@ app.use('/api/products', authenticate, productRoutes);
 app.use('/api/parties', authenticate, partyRoutes);
 app.use('/api/bills', authenticate, billRoutes);
 app.use('/api/settings', authenticate, settingRoutes);
-app.use('/api/sms', smsRoutes);
+app.use('/api/sms', smsRoutes); // Local SMS simulator - no auth needed
 
 // Health check
 app.get('/health', (req, res) => {

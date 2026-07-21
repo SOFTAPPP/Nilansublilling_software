@@ -12,13 +12,15 @@ import PartyStatement from './pages/PartyStatement';
 import Dashboard from './pages/Dashboard';
 import StockManagement from './pages/StockManagement';
 import CustomerManagement from './pages/CustomerManagement';
+import TransporterManagement from './pages/TransporterManagement';
 import QuickBill from './pages/QuickBill';
 import ReturnBill from './pages/ReturnBill';
 import TransportBill from './pages/TransportBill';
+import BillHistory from './pages/BillHistory';
 import GlobalDialog from './components/GlobalDialog';
 
 function App() {
-  const { fetchProducts, fetchParties, fetchSettings, fetchBills, token } = useStore();
+  const { fetchProducts, fetchParties, fetchSettings, fetchBills, fetchTransporters, token } = useStore();
 
   useEffect(() => {
     const isToken = sessionStorage.getItem('token');
@@ -27,6 +29,7 @@ function App() {
       fetchParties();
       fetchSettings();
       fetchBills();
+      fetchTransporters();
     }
 
     const handleKeyDown = async (e: KeyboardEvent) => {
@@ -43,7 +46,7 @@ function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [fetchProducts, fetchParties, fetchSettings, fetchBills, token]);
+  }, [fetchProducts, fetchParties, fetchSettings, fetchBills, fetchTransporters, token]);
 
   return (
     <BrowserRouter>
@@ -59,7 +62,9 @@ function App() {
           <Route path="return-bill" element={<ReturnBill />} />
           <Route path="transport-bill" element={<TransportBill />} />
           <Route path="customers" element={<CustomerManagement />} />
+          <Route path="transporters" element={<TransporterManagement />} />
           <Route path="party-statements" element={<PartyStatement />} />
+          <Route path="bill-history" element={<BillHistory />} />
           <Route path="stock" element={<StockManagement />} />
         </Route>
       </Routes>

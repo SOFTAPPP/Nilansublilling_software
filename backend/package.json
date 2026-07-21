@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "bin": "dist/index.js",
   "scripts": {
-    "dev": "nodemon src/index.ts",
+    "dev": "npx tsx src/index.ts",
+    "dev:watch": "nodemon --exec npx tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"

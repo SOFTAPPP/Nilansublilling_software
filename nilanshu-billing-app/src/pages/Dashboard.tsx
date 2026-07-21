@@ -1,13 +1,19 @@
 import React from 'react';
 import { useStore } from '../store/useStore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { AlertTriangle, IndianRupee, TrendingUp, Package } from 'lucide-react';
+import { AlertTriangle, IndianRupee, TrendingUp, Package, FileText } from 'lucide-react';
 
 export default function Dashboard() {
   const { products, parties, bills } = useStore();
 
   const lowStockProducts = products.filter(p => p.stock <= p.lowStockThreshold);
   const totalOutstanding = parties.reduce((sum, p) => sum + p.outstandingBalance, 0);
+  const todayBills = bills.filter(b => {
+    const today = new Date();
+    const bd = new Date(b.date);
+    return bd.toDateString() === today.toDateString();
+  });
+  const todaySales = todayBills.reduce((sum, b) => sum + Number(b.total || 0), 0);
 
   // Calculate dynamic sales data for the last 6 months
   const now = new Date();
@@ -43,48 +49,59 @@ export default function Dashboard() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric Cards */}
-        <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-red-100 text-red-600 rounded-lg dark:bg-red-900/30 dark:text-red-400">
-            <AlertTriangle size={24} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Metric Cards */}
+          <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-red-100 text-red-600 rounded-lg dark:bg-red-900/30 dark:text-red-400">
+              <AlertTriangle size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground font-medium">Low Stock Items</p>
+              <h3 className="text-2xl font-bold">{lowStockProducts.length}</h3>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground font-medium">Low Stock Items</p>
-            <h3 className="text-2xl font-bold">{lowStockProducts.length}</h3>
-          </div>
-        </div>
 
-        <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-blue-100 text-blue-600 rounded-lg dark:bg-blue-900/30 dark:text-blue-400">
-            <IndianRupee size={24} />
+          <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-blue-100 text-blue-600 rounded-lg dark:bg-blue-900/30 dark:text-blue-400">
+              <IndianRupee size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground font-medium">Outstanding Dues</p>
+              <h3 className="text-2xl font-bold">₹{totalOutstanding.toLocaleString()}</h3>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground font-medium">Outstanding Dues</p>
-            <h3 className="text-2xl font-bold">₹{totalOutstanding.toLocaleString()}</h3>
-          </div>
-        </div>
 
-        <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-green-100 text-green-600 rounded-lg dark:bg-green-900/30 dark:text-green-400">
-            <TrendingUp size={24} />
+          <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-green-100 text-green-600 rounded-lg dark:bg-green-900/30 dark:text-green-400">
+              <TrendingUp size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground font-medium">Monthly Sales</p>
+              <h3 className="text-2xl font-bold">{formatAmount(currentMonthSales)}</h3>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground font-medium">Monthly Sales</p>
-            <h3 className="text-2xl font-bold">{formatAmount(currentMonthSales)}</h3>
-          </div>
-        </div>
 
-        <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-purple-100 text-purple-600 rounded-lg dark:bg-purple-900/30 dark:text-purple-400">
-            <Package size={24} />
+          <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-purple-100 text-purple-600 rounded-lg dark:bg-purple-900/30 dark:text-purple-400">
+              <Package size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground font-medium">Total Products</p>
+              <h3 className="text-2xl font-bold">{products.length}</h3>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground font-medium">Total Products</p>
-            <h3 className="text-2xl font-bold">{products.length}</h3>
+
+          <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-orange-100 text-orange-600 rounded-lg dark:bg-orange-900/30 dark:text-orange-400">
+              <FileText size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground font-medium">Today's Bills</p>
+              <h3 className="text-2xl font-bold">{todayBills.length}</h3>
+              <p className="text-xs text-muted-foreground">₹{todaySales.toLocaleString()}</p>
+            </div>
           </div>
         </div>
-      </div>
 
       <div className="grid grid-cols-1 gap-6">
         {/* Chart */}
