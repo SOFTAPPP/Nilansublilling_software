@@ -182,30 +182,30 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
       {/* Header Controls (No Print) */}
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">{type === 'return' ? 'Sales Return Bill' : 'Chalan / Credit Bill (Tax Invoice)'}</h2>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-2 md:gap-3 justify-end flex-1">
           {!viewBill && (
-            <button onClick={handleSave} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+            <button onClick={handleSave} className="whitespace-nowrap bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium shadow-sm transition-colors text-sm">
               Save to Database
             </button>
           )}
           <button 
             onClick={() => setShowPaidStamp(!showPaidStamp)}
-            className="border border-green-600 text-green-600 px-4 py-2 rounded-md hover:bg-green-50"
+            className="whitespace-nowrap border border-green-600 text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 font-medium shadow-sm transition-colors text-sm bg-white"
           >
             Toggle PAID Stamp
           </button>
           <button 
             onClick={() => setShowCancelStamp(!showCancelStamp)}
-            className="border border-red-600 text-red-600 px-4 py-2 rounded-md hover:bg-red-50"
+            className="whitespace-nowrap border border-red-600 text-red-700 px-4 py-2 rounded-lg hover:bg-red-50 font-medium shadow-sm transition-colors text-sm bg-white"
           >
             Toggle DELETE Stamp
           </button>
           {!viewBill && (
-            <button onClick={handleSendSMS} className="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600">
+            <button onClick={handleSendSMS} className="whitespace-nowrap bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 font-medium shadow-sm transition-colors text-sm">
               Send SMS
             </button>
           )}
-          <button onClick={handlePrint} className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90">
+          <button onClick={handlePrint} className="whitespace-nowrap bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors text-sm">
             Print Invoice
           </button>
         </div>
@@ -216,12 +216,12 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
         
         {/* Stamps overlay */}
         {showPaidStamp && (
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-green-600 border-4 border-green-600 rounded-full w-64 h-64 flex items-center justify-center opacity-30 pointer-events-none z-0">
+          <div className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-green-600 border-4 border-green-600 rounded-full w-64 h-64 flex items-center justify-center opacity-30 pointer-events-none z-0">
             <span className="text-6xl font-bold uppercase tracking-widest">PAID</span>
           </div>
         )}
         {showCancelStamp && (
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-12 text-red-600 border-4 border-red-600 rounded-full w-64 h-64 flex items-center justify-center opacity-30 pointer-events-none z-0">
+          <div className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-12 text-red-600 border-4 border-red-600 rounded-full w-64 h-64 flex items-center justify-center opacity-30 pointer-events-none z-0">
             <span className="text-5xl font-bold uppercase tracking-widest text-center">CANCELLED</span>
           </div>
         )}

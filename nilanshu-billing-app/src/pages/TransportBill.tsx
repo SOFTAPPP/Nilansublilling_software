@@ -110,18 +110,18 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
     <div className="bg-gray-100 text-black p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full relative">
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">Transport / Dispatch Bill</h2>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-2 md:gap-3 justify-end flex-1">
           {!viewBill && (
             <button 
               onClick={handleSave} 
-              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 font-sans"
+              className="whitespace-nowrap bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium shadow-sm transition-colors text-sm"
             >
               Save to Database
             </button>
           )}
           <button 
             onClick={handlePrint}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
+            className="whitespace-nowrap bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors text-sm"
           >
             Print Transport Bill
           </button>

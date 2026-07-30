@@ -128,20 +128,22 @@ export default function PartyStatement() {
     <div className="bg-gray-100 text-black p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full">
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">Party Statement / Ledger</h2>
-        <div className="flex gap-4 items-center">
+        <div className="flex flex-wrap gap-2 md:gap-3 items-center justify-end flex-1">
           <input 
             list="party-names"
             value={partySearch} 
             onChange={e => handlePartyLookup(e.target.value)} 
-            className="border p-2 rounded text-sm w-48"
+            className="border border-gray-300 p-2 rounded-lg text-sm w-48 outline-none focus:border-blue-500 shadow-sm"
             placeholder="Select Customer..." 
           />
           <datalist id="party-names">
             {parties.map(p => <option key={p.id} value={p.name}>{p.phone}</option>)}
           </datalist>
-          <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="border p-2 rounded text-sm" />
-          <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="border p-2 rounded text-sm" />
-          <button onClick={handlePrint} className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 font-sans text-sm">Print Statement</button>
+          <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="border border-gray-300 p-2 rounded-lg text-sm outline-none focus:border-blue-500 shadow-sm" />
+          <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="border border-gray-300 p-2 rounded-lg text-sm outline-none focus:border-blue-500 shadow-sm" />
+          <button onClick={handlePrint} className="whitespace-nowrap bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors text-sm">
+            Print Statement
+          </button>
         </div>
       </div>
 

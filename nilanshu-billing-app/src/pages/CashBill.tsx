@@ -101,12 +101,18 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
     <div className="bg-gray-100 text-black p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full">
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">Cash Memo</h2>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-2 md:gap-3 justify-end flex-1">
           {!viewBill && (
-            <button onClick={handleSave} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Save to Database</button>
+            <button onClick={handleSave} className="whitespace-nowrap bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium shadow-sm transition-colors text-sm">
+              Save to Database
+            </button>
           )}
-          <button onClick={() => setShowPaidStamp(!showPaidStamp)} className="border border-red-500 text-red-500 px-4 py-2 rounded hover:bg-red-50">Toggle Stamp</button>
-          <button onClick={handlePrint} className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90">Print Bill</button>
+          <button onClick={() => setShowPaidStamp(!showPaidStamp)} className="whitespace-nowrap border border-green-600 text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 font-medium shadow-sm transition-colors text-sm bg-white">
+            Toggle Stamp
+          </button>
+          <button onClick={handlePrint} className="whitespace-nowrap bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors text-sm">
+            Print Bill
+          </button>
         </div>
       </div>
 
@@ -115,7 +121,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         
         {/* Stamps overlay */}
         {showPaidStamp && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-green-600 border-4 border-green-600 rounded-full w-48 h-48 flex items-center justify-center opacity-30 pointer-events-none z-0">
+          <div className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-green-600 border-4 border-green-600 rounded-full w-48 h-48 flex items-center justify-center opacity-30 pointer-events-none z-0">
             <span className="text-5xl font-bold uppercase tracking-widest">PAID</span>
           </div>
         )}
