@@ -237,12 +237,12 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           <div className="border-r-2 border-black flex flex-col">
             {/* Seller Details */}
             <div className="p-2 border-b-2 border-black flex flex-col justify-center min-h-[140px]">
-              <input value={settings.companyName} onChange={e => updateSettings({companyName: e.target.value})} placeholder="Company Name" className="font-bold text-2xl uppercase w-full outline-none bg-transparent" />
-              <input value="Publishers and Book Sellers" readOnly className="font-bold text-sm w-full outline-none bg-transparent" />
-              <input value={settings.companyAddress} onChange={e => updateSettings({companyAddress: e.target.value})} placeholder="Address" className="w-full text-sm outline-none bg-transparent" />
-              <input value={settings.companyCity} onChange={e => updateSettings({companyCity: e.target.value})} placeholder="City & Pin" className="w-full text-sm outline-none bg-transparent" />
-              <div className="flex gap-2 text-sm"><span className="whitespace-nowrap">IT PAN -</span><input value={settings.companyPan} onChange={e => updateSettings({companyPan: e.target.value})} className="w-full outline-none bg-transparent uppercase" /></div>
-              <div className="flex gap-2 text-sm"><span className="whitespace-nowrap">Phone No.-</span><input value={settings.companyContact} onChange={e => updateSettings({companyContact: e.target.value})} className="w-full outline-none bg-transparent" /></div>
+              <div className="font-bold text-2xl uppercase w-full">{settings.companyName}</div>
+              <div className="font-bold text-sm w-full">Publishers and Book Sellers</div>
+              <div className="w-full text-sm mt-1">{settings.companyAddress}</div>
+              <div className="w-full text-sm">{settings.companyCity}</div>
+              <div className="flex gap-2 text-sm mt-1"><span className="whitespace-nowrap">IT PAN -</span><span className="w-full uppercase">{settings.companyPan}</span></div>
+              <div className="flex gap-2 text-sm"><span className="whitespace-nowrap">Phone No.-</span><span className="w-full">{settings.companyContact}</span></div>
             </div>
             
             {/* Buyer Details */}
@@ -267,63 +267,49 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           {/* Right Column (Invoice Meta) */}
           <div className="flex flex-col text-[13px]">
             <div className="flex border-b border-black">
-              <div className="w-1/2 border-r border-black p-1 flex flex-col">
-                <span className="text-[11px] text-gray-600">Invoice No.</span>
-                <input value={invoiceNo} onChange={e => setInvoiceNo(e.target.value)} className="font-bold w-full outline-none bg-transparent" />
+              <div className="w-1/2 border-r border-black p-2 flex flex-col justify-center">
+                <span className="text-[11px] text-gray-600 font-medium">Invoice No.</span>
+                <input value={invoiceNo} onChange={e => setInvoiceNo(e.target.value)} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
               </div>
-              <div className="w-1/2 p-1 flex flex-col">
-                <span className="text-[11px] text-gray-600">Date:-</span>
-                <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="font-bold w-full outline-none bg-transparent" />
-              </div>
-            </div>
-            <div className="flex border-b border-black">
-              <div className="w-1/2 border-r border-black p-1 flex flex-col">
-                <span className="text-[11px] text-gray-600">Delivery at</span>
-                <input value={invoiceMeta.destination} onChange={e => setInvoiceMeta({...invoiceMeta, destination: e.target.value})} className="font-bold w-full outline-none bg-transparent" />
-              </div>
-              <div className="w-1/2 p-1 flex flex-col">
-                <span className="text-[11px] text-gray-600">Transport no:</span>
-                <input value={invoiceMeta.dispatchedThrough} onChange={e => setInvoiceMeta({...invoiceMeta, dispatchedThrough: e.target.value})} className="font-bold w-full outline-none bg-transparent" />
+              <div className="w-1/2 p-2 flex flex-col justify-center">
+                <span className="text-[11px] text-gray-600 font-medium">Date:-</span>
+                <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
               </div>
             </div>
             <div className="flex border-b border-black">
-              <div className="w-1/2 border-r border-black p-1 flex flex-col">
-                <span className="text-[11px] text-gray-600">Suppliers Ref</span>
-                <input value={invoiceMeta.refNo} onChange={e => setInvoiceMeta({...invoiceMeta, refNo: e.target.value})} className="font-bold w-full outline-none bg-transparent" />
+              <div className="w-1/2 border-r border-black p-2 flex flex-col justify-center">
+                <span className="text-[11px] text-gray-600 font-medium">Transport no:</span>
+                <input value={invoiceMeta.dispatchedThrough} onChange={e => setInvoiceMeta({...invoiceMeta, dispatchedThrough: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
               </div>
-              <div className="w-1/2 p-1 flex flex-col">
-                <div className="flex"><span className="text-[11px] text-gray-600 w-16">CITY:</span><input value={buyerState} onChange={e => setBuyerState(e.target.value)} className="font-bold w-full outline-none bg-transparent" /></div>
-                <div className="flex"><span className="text-[11px] text-gray-600 w-16">DISTRICT:</span><input className="font-bold w-full outline-none bg-transparent" /></div>
-              </div>
-            </div>
-            <div className="flex border-b border-black">
-              <div className="w-1/2 border-r border-black p-1 flex flex-col">
-                <span className="text-[11px] text-gray-600">Buyer's Order</span>
-                <input value={invoiceMeta.deliveryNote} onChange={e => setInvoiceMeta({...invoiceMeta, deliveryNote: e.target.value})} className="font-bold w-full outline-none bg-transparent" />
-              </div>
-              <div className="w-1/2 p-1 flex flex-col">
-                <span className="text-[11px] text-gray-600">Date:-</span>
-                <input type="text" value={invoiceMeta.deliveryNoteDate} onChange={e => setInvoiceMeta({...invoiceMeta, deliveryNoteDate: e.target.value})} className="font-bold w-full outline-none bg-transparent" />
-              </div>
-            </div>
-            <div className="flex border-b border-black">
-              <div className="w-1/2 border-r border-black p-1 flex flex-col">
-                <span className="text-[11px] text-gray-600">Despatch Document No.</span>
-                <input value={invoiceMeta.dispatchDocNo} onChange={e => setInvoiceMeta({...invoiceMeta, dispatchDocNo: e.target.value})} className="font-bold w-full outline-none bg-transparent" />
-              </div>
-              <div className="w-1/2 p-1 flex flex-col">
-                <span className="text-[11px] text-gray-600">Delivery Note Date</span>
-                <input type="date" value={invoiceMeta.deliveryNoteDate} onChange={e => setInvoiceMeta({...invoiceMeta, deliveryNoteDate: e.target.value})} className="font-bold w-full outline-none bg-transparent text-[11px]" />
+              <div className="w-1/2 p-2 flex flex-col justify-center">
+                <span className="text-[11px] text-gray-600 font-medium">Delivery Note Date</span>
+                <input type="date" value={invoiceMeta.deliveryNoteDate} onChange={e => setInvoiceMeta({...invoiceMeta, deliveryNoteDate: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
               </div>
             </div>
             <div className="flex flex-1">
-              <div className="w-1/2 border-r border-black p-1 flex flex-col">
-                <span className="text-[11px] text-gray-600">Despatched through</span>
-                <input value="ROAD" readOnly className="font-bold w-full outline-none bg-transparent" />
+              <div className="w-1/2 border-r border-black p-2 flex flex-col justify-center">
+                <span className="text-[11px] text-gray-600 font-medium">Despatched through</span>
+                <div className="relative w-full mt-1 print:hidden">
+                  <select 
+                    value={invoiceMeta.termsOfPayment || 'ROAD'} 
+                    onChange={e => setInvoiceMeta({...invoiceMeta, termsOfPayment: e.target.value})} 
+                    className="font-bold w-full outline-none bg-white appearance-none cursor-pointer border border-gray-300 rounded px-2 py-1.5 text-[12px] hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm"
+                  >
+                    <option value="ROAD">ROAD</option>
+                    <option value="TRAIN">TRAIN</option>
+                    <option value="AIR">AIR</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                  </div>
+                </div>
+                <div className="hidden print:block font-bold w-full outline-none bg-transparent mt-1">
+                  {invoiceMeta.termsOfPayment || 'ROAD'}
+                </div>
               </div>
-              <div className="w-1/2 p-1 flex flex-col">
-                <span className="text-[11px] text-gray-600">Destination</span>
-                <input value={invoiceMeta.destination} onChange={e => setInvoiceMeta({...invoiceMeta, destination: e.target.value})} className="font-bold w-full outline-none bg-transparent" />
+              <div className="w-1/2 p-2 flex flex-col justify-center">
+                <span className="text-[11px] text-gray-600 font-medium">Destination</span>
+                <input value={invoiceMeta.destination} onChange={e => setInvoiceMeta({...invoiceMeta, destination: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
               </div>
             </div>
           </div>
@@ -403,7 +389,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
             </div>
             <div className="w-1/2 p-2 relative min-h-[80px]">
               <div className="flex text-sm justify-end absolute top-2 right-4">
-                <span>For </span><input value={settings.companyName} readOnly className="font-bold outline-none bg-transparent ml-1 text-right w-48" />
+                <span>For </span><div className="font-bold ml-1 text-right w-48 truncate">{settings.companyName}</div>
               </div>
               <div className="absolute bottom-2 right-4 text-sm">
                 Authorised Signatory

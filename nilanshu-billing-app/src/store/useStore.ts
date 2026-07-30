@@ -123,13 +123,13 @@ export const useStore = create<AppState>((set) => ({
   bills: [],
   settings: {
     companyName: 'NILANSU PUBLICATION',
-    companyAddress: '',
-    companyCity: '',
+    companyAddress: '34, BENIATOLA LANE',
+    companyCity: 'KOLKATA - 700009',
     companyGstin: '',
     companyState: '',
-    companyContact: '',
-    companyEmail: '',
-    companyPan: '',
+    companyContact: '+91 8240160147',
+    companyEmail: 'nilansupublication@gmail.com',
+    companyPan: 'CJZPP7439N',
     bankAccountName: '',
     bankName: '',
     bankAccountNo: '',
@@ -152,12 +152,12 @@ export const useStore = create<AppState>((set) => ({
     try {
       const current = useStore.getState().settings;
       const updated = { ...current, ...newSettings };
-      
+
       // Update UI state immediately to prevent React input cursor jumping
       set({ settings: updated });
-      
+
       const db = await getDb();
-      
+
       const res = await db.select('SELECT * FROM "Settings" WHERE id = 1');
       if (Array.isArray(res) && res.length > 0) {
         await db.execute(
@@ -248,9 +248,19 @@ export const useStore = create<AppState>((set) => ({
       }
       if (Array.isArray(res) && res.length > 0) {
         const dbSettings = res[0] as Settings;
-        if (!dbSettings.companyName) {
-          dbSettings.companyName = 'NILANSU PUBLICATION';
-          await db.execute('UPDATE "Settings" SET "companyName" = $1 WHERE id = 1', ['NILANSU PUBLICATION']);
+        let needsUpdate = false;
+        if (!dbSettings.companyName) { dbSettings.companyName = 'NILANSU PUBLICATION'; needsUpdate = true; }
+        if (!dbSettings.companyAddress) { dbSettings.companyAddress = '34, BENIATOLA LANE'; needsUpdate = true; }
+        if (!dbSettings.companyCity) { dbSettings.companyCity = 'KOLKATA - 700009'; needsUpdate = true; }
+        if (!dbSettings.companyContact) { dbSettings.companyContact = '+91 8240160147'; needsUpdate = true; }
+        if (!dbSettings.companyEmail) { dbSettings.companyEmail = 'nilansupublication@gmail.com'; needsUpdate = true; }
+        if (!dbSettings.companyPan) { dbSettings.companyPan = 'CJZPP7439N'; needsUpdate = true; }
+
+        if (needsUpdate) {
+          await db.execute(
+            'UPDATE "Settings" SET "companyName"=$1, "companyAddress"=$2, "companyCity"=$3, "companyContact"=$4, "companyEmail"=$5, "companyPan"=$6 WHERE id = 1',
+            [dbSettings.companyName, dbSettings.companyAddress, dbSettings.companyCity, dbSettings.companyContact, dbSettings.companyEmail, dbSettings.companyPan]
+          );
         }
         set({ settings: dbSettings });
       }
@@ -387,9 +397,9 @@ export const useStore = create<AppState>((set) => ({
         if (!billData.lineItems[i].productName?.trim()) {
           throw new Error(`Item ${i + 1} is empty. Please enter a product name.`);
         }
-        
+
         const existingProd = useStore.getState().products.find(p => p.name.toLowerCase() === billData.lineItems[i].productName.trim().toLowerCase());
-        
+
         if (existingProd) {
           billData.lineItems[i].productId = existingProd.id;
         } else {
@@ -428,16 +438,16 @@ export const useStore = create<AppState>((set) => ({
           "vehicleNo", destination, "driverName", "lrNo", "createdAt", "updatedAt"
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CAST($12 AS TIMESTAMP), $13, $14, $15, $16, NOW(), NOW())`,
         [
-          id, 
+          id,
           type,
-          billData.billNumber || `BILL-${Date.now()}`, 
-          billData.partyId || null, 
+          billData.billNumber || `BILL-${Date.now()}`,
+          billData.partyId || null,
           billData.transporterId || null,
-          billData.subtotal, 
+          billData.subtotal,
           billData.discount,
           billData.cgst || 0,
           billData.sgst || 0,
-          billData.total, 
+          billData.total,
           billData.status || 'completed',
           billData.date ? new Date(billData.date).toISOString() : new Date().toISOString(),
           billData.vehicleNo || null,
@@ -487,13 +497,13 @@ export const useStore = create<AppState>((set) => ({
   deleteBill: async (id) => {
     try {
       const db = await getDb();
-      
+
       const billRows = await db.select<{ type: string, total: number, partyId: string | null }[]>('SELECT type, total, "partyId" FROM "Bill" WHERE id = $1', [id]);
       if (!billRows || billRows.length === 0) throw new Error("Bill not found");
       const bill = billRows[0];
-      
+
       const items = await db.select<{ productId: string, quantity: number }[]>('SELECT "productId", quantity FROM "BillLineItem" WHERE "billId" = $1', [id]);
-      
+
       // Revert stock
       for (const item of items) {
         if (item.productId) {
@@ -504,7 +514,7 @@ export const useStore = create<AppState>((set) => ({
           }
         }
       }
-      
+
       // Revert party balance
       if (bill.partyId) {
         if (bill.type === 'credit') {
@@ -513,10 +523,10 @@ export const useStore = create<AppState>((set) => ({
           await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [bill.total, bill.partyId]);
         }
       }
-      
+
       // Delete the bill (cascades to BillLineItem)
       await db.execute('DELETE FROM "Bill" WHERE id = $1', [id]);
-      
+
       await useStore.getState().fetchBills();
       await useStore.getState().fetchProducts();
       await useStore.getState().fetchParties();

@@ -150,11 +150,13 @@ export default function PartyStatement() {
         
         {/* Header */}
         <div className="text-center mb-8 flex flex-col items-center">
-          <input value={settings.companyName} onChange={e => updateSettings({companyName: e.target.value})} placeholder="Company Name" className="text-xl font-bold tracking-wider text-center w-full outline-none bg-transparent uppercase" />
-          <input value={settings.companyAddress} onChange={e => updateSettings({companyAddress: e.target.value})} placeholder="Company Address" className="text-center w-full outline-none bg-transparent" />
-          <div className="flex justify-center gap-4 w-full">
-            <div className="flex gap-2"><span>Phone :</span><input value={settings.companyContact} onChange={e => updateSettings({companyContact: e.target.value})} placeholder="Phone" className="outline-none bg-transparent w-48" /></div>
-            <div className="flex gap-2"><span>E-Mail :</span><input value={settings.companyEmail} onChange={e => updateSettings({companyEmail: e.target.value})} placeholder="Email" className="outline-none bg-transparent w-64" /></div>
+          <div className="text-xl font-bold tracking-wider text-center w-full uppercase">{settings.companyName}</div>
+          <div className="text-center w-full mt-1">{settings.companyAddress}</div>
+          <div className="text-center w-full">{settings.companyCity}</div>
+          <div className="flex justify-center gap-4 w-full mt-1">
+            <div className="flex gap-2 font-semibold"><span>IT PAN :</span><span className="font-normal">{settings.companyPan}</span></div>
+            <div className="flex gap-2 font-semibold"><span>Phone :</span><span className="font-normal">{settings.companyContact}</span></div>
+            <div className="flex gap-2 font-semibold"><span>E-Mail :</span><span className="font-normal">{settings.companyEmail}</span></div>
           </div>
         </div>
 

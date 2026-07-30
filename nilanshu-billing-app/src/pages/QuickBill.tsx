@@ -98,9 +98,9 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
       <div className="half-a4-page border border-black p-6 relative flex flex-col">
         
         <div className="text-center mb-6 flex flex-col items-center">
-          <input value={settings.companyName} onChange={e => updateSettings({companyName: e.target.value})} placeholder="Company Name" className="text-2xl font-bold font-serif uppercase tracking-widest w-full text-center outline-none bg-transparent" />
-          <input value={settings.companyAddress} onChange={e => updateSettings({companyAddress: e.target.value})} placeholder="Address Line 1" className="text-sm w-full text-center outline-none bg-transparent" />
-          <input value={settings.companyCity} onChange={e => updateSettings({companyCity: e.target.value})} placeholder="City & Pin" className="text-sm w-full text-center outline-none bg-transparent" />
+          <div className="text-2xl font-bold font-serif uppercase tracking-widest w-full text-center">{settings.companyName}</div>
+          <div className="text-sm w-full text-center mt-1">{settings.companyAddress}</div>
+          <div className="text-sm w-full text-center">{settings.companyCity}</div>
           <div className="mt-2 font-bold border border-black inline-block px-4 py-1">
             QUICK BILL / CASH MEMO
           </div>

@@ -122,13 +122,15 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
 
         {/* Header */}
         <div className="text-center flex flex-col items-center">
-          <input value={settings.companyName} onChange={e => updateSettings({ companyName: e.target.value })} placeholder="Company Name" className="text-3xl font-bold uppercase tracking-wide text-center w-full outline-none bg-transparent" />
-          <input value={settings.companyAddress} onChange={e => updateSettings({ companyAddress: e.target.value })} placeholder="Address Line 1" className="text-sm mt-1 text-center w-full outline-none bg-transparent" />
-          <input value={settings.companyCity} onChange={e => updateSettings({ companyCity: e.target.value })} placeholder="City & Pin" className="text-sm text-center w-full outline-none bg-transparent" />
-          <div className="flex gap-2 text-sm justify-center w-full">
-            <span className="flex items-center justify-end w-1/2 pr-1">Phone: <input value={settings.companyContact} onChange={e => updateSettings({ companyContact: e.target.value })} className="outline-none bg-transparent w-[90px] ml-1" placeholder="Phone" /></span>
-            <span>|</span>
-            <span className="flex items-center justify-start w-1/2 pl-4">Email: <input value={settings.companyEmail} onChange={e => updateSettings({ companyEmail: e.target.value })} className="outline-none bg-transparent flex-1 ml-1" placeholder="Email" /></span>
+          <div className="text-3xl font-bold uppercase tracking-wide text-center w-full">{settings.companyName}</div>
+          <div className="text-sm mt-1 text-center w-full">{settings.companyAddress}</div>
+          <div className="text-sm text-center w-full">{settings.companyCity}</div>
+          <div className="flex gap-2 text-sm justify-center w-full items-center mt-1">
+            <span className="flex items-center whitespace-nowrap font-semibold">IT PAN: <span className="ml-1 uppercase font-normal">{settings.companyPan}</span></span>
+            <span className="text-gray-400">|</span>
+            <span className="flex items-center whitespace-nowrap font-semibold">Phone: <span className="ml-1 font-normal">{settings.companyContact}</span></span>
+            <span className="text-gray-400">|</span>
+            <span className="flex items-center whitespace-nowrap font-semibold">Email: <span className="ml-1 font-normal">{settings.companyEmail}</span></span>
           </div>
         </div>
 
@@ -212,7 +214,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
             </div>
 
             <div className="flex-1 p-2 flex flex-col items-end justify-between min-h-[80px]">
-              <div className="flex gap-1 text-xs justify-end w-full"><span>For</span><input value={settings.companyName} readOnly className="font-bold outline-none bg-transparent flex-1 text-right" /></div>
+              <div className="flex gap-1 text-xs justify-end w-full"><span>For</span><div className="font-bold flex-1 text-right truncate">{settings.companyName}</div></div>
               <div className="text-xs">Authorised Signatory</div>
             </div>
           </div>
