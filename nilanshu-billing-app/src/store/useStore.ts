@@ -114,6 +114,7 @@ interface AppState {
   createBill: (billData: any) => Promise<void>;
   deleteBill: (id: string) => Promise<void>;
   addProductsBulk: (products: Partial<Product>[]) => Promise<void>;
+  findProductByBarcode: (barcode: string) => Product | undefined;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -538,5 +539,13 @@ export const useStore = create<AppState>((set) => ({
         type: 'alert'
       });
     }
+  },
+  findProductByBarcode: (barcode: string) => {
+    const cleanBarcode = barcode.trim();
+    if (!cleanBarcode) return undefined;
+    const state = useStore.getState();
+    return state.products.find(p => 
+      (p.barcode && p.barcode === cleanBarcode) || p.id === cleanBarcode
+    );
   },
 }));

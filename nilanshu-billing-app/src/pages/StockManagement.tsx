@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore, Product } from '../store/useStore';
-import { Search, Plus, Edit2, Trash2, Upload } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Upload, ScanBarcode } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function StockManagement() {
@@ -14,6 +14,52 @@ export default function StockManagement() {
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '', category: '', price: 0, stock: 0, lowStockThreshold: 10, bindingVariant: '', hsn: '', barcode: ''
   });
+  const [barcodeScanActive, setBarcodeScanActive] = useState(false);
+
+  // Barcode scanner detection for the modal
+  const lastKeyTime = useRef<number>(0);
+  const barcodeBuffer = useRef<string>('');
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+
+  const handleModalBarcodeScan = useCallback((scannedBarcode: string) => {
+    setFormData(prev => ({ ...prev, barcode: scannedBarcode.trim() }));
+    setBarcodeScanActive(true);
+    setTimeout(() => setBarcodeScanActive(false), 1500);
+  }, []);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept if user is typing in a text input (except the barcode field)
+      const target = e.target as HTMLElement;
+      const isBarcodeFocused = barcodeInputRef.current === target;
+      const isTextInput = target.tagName === 'INPUT' && (target as HTMLInputElement).type === 'text';
+      
+      // If focused on a text input that's NOT the barcode field, let normal typing happen
+      if (isTextInput && !isBarcodeFocused) return;
+
+      const currentTime = Date.now();
+      
+      // If time between keys is > 50ms, probably human typing, reset buffer
+      if (currentTime - lastKeyTime.current > 50) {
+        barcodeBuffer.current = '';
+      }
+
+      if (e.key === 'Enter' && barcodeBuffer.current.length > 3) {
+        e.preventDefault();
+        handleModalBarcodeScan(barcodeBuffer.current);
+        barcodeBuffer.current = '';
+      } else if (e.key.length === 1) {
+        barcodeBuffer.current += e.key;
+      }
+      
+      lastKeyTime.current = currentTime;
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen, handleModalBarcodeScan]);
 
   // Get unique categories
   const categories = ['ALL', ...Array.from(new Set(products.map(p => p.category)))];
@@ -248,8 +294,27 @@ export default function StockManagement() {
                   <input value={formData.hsn || ''} onChange={e => setFormData({...formData, hsn: e.target.value})} className="w-full border p-2 rounded bg-background" />
                 </div>
                 <div>
-                  <label className="block text-sm mb-1">Barcode</label>
-                  <input value={formData.barcode || ''} onChange={e => setFormData({...formData, barcode: e.target.value})} className="w-full border p-2 rounded bg-background" />
+                  <label className="block text-sm mb-1 flex items-center gap-1.5">
+                    <ScanBarcode size={14} className={barcodeScanActive ? 'text-emerald-500' : 'text-muted-foreground'} />
+                    Barcode
+                    <span className="text-xs text-muted-foreground font-normal">(scan or type)</span>
+                  </label>
+                  <div className="relative">
+                    <input 
+                      ref={barcodeInputRef}
+                      value={formData.barcode || ''} 
+                      onChange={e => setFormData({...formData, barcode: e.target.value})} 
+                      className={`w-full border p-2 rounded bg-background transition-colors ${
+                        barcodeScanActive ? 'border-emerald-500 ring-2 ring-emerald-200' : ''
+                      }`}
+                      placeholder="Scan barcode here..."
+                    />
+                    {barcodeScanActive && (
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-500 text-xs font-medium animate-pulse">
+                        ✓ Scanned!
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm mb-1">Variant / Binding</label>

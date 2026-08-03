@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Trash2, ChevronDown } from 'lucide-react';
 import { useStore, BillLineItem, Product } from '../../store/useStore';
+import { BarcodeScanIndicator } from '../BarcodeScanIndicator';
 
 interface BillEngineProps {
   items: BillLineItem[];
@@ -92,11 +93,16 @@ export const BillEngine: React.FC<BillEngineProps> = ({
   const handleBarcodeScan = (barcode: string) => {
     const cleanBarcode = barcode.trim();
     const product = products.find(p => 
-      p.barcode === cleanBarcode ||
+      (p.barcode && p.barcode === cleanBarcode) ||
       p.id === cleanBarcode
     );
     
     if (product) {
+      // Dispatch success event for the indicator
+      window.dispatchEvent(new CustomEvent('barcode-scan-result', { 
+        detail: { barcode: cleanBarcode, found: true, productName: product.name } 
+      }));
+
       // Check if item is already in the bill
       const existingItemIndex = items.findIndex(item => item.productId === product.id);
       
@@ -108,21 +114,18 @@ export const BillEngine: React.FC<BillEngineProps> = ({
         // Check if there is an empty row we can populate
         const emptyRowIndex = items.findIndex(item => !item.productId);
         if (emptyRowIndex >= 0) {
-          // Populate the empty row
           updateLineItem(emptyRowIndex, 'productId', product.id);
-          // If we have room, add a new empty row to maintain the 'ready to type' state
-          if (items.length < maxItems) {
-            // Note: updateLineItem above already calls onChange, but addLineItem uses the old items state.
-            // Actually, we don't need to explicitly add an empty row because the user might just scan again.
-            // If they scan again, emptyRowIndex will find another one or create one.
-          }
         } else {
           // Add a new row
           addLineItem(product);
         }
       }
     } else {
-      showDialog({ title: 'Barcode Not Found', message: `No product found for barcode: ${cleanBarcode}`, type: 'alert' });
+      // Dispatch error event for the indicator
+      window.dispatchEvent(new CustomEvent('barcode-scan-result', { 
+        detail: { barcode: cleanBarcode, found: false } 
+      }));
+      showDialog({ title: 'Barcode Not Found', message: `No product found for barcode: ${cleanBarcode}. Please assign this barcode to a product in Stock Management.`, type: 'alert' });
     }
   };
 
@@ -192,17 +195,22 @@ export const BillEngine: React.FC<BillEngineProps> = ({
     onChange(newItems);
   };
 
-  // Render product search suggestions
+  // Render product search suggestions — also matches by barcode
   const renderProductSuggestions = (index: number, currentName: string) => {
     if (activeRow !== index) return null;
+    const query = currentName?.toLowerCase() || '';
     const suggestions = products
-      .filter(p => !currentName || p.name.toLowerCase().includes(currentName.toLowerCase()) || p.category.toLowerCase().includes(currentName.toLowerCase()))
+      .filter(p => !query || 
+        p.name.toLowerCase().includes(query) || 
+        p.category.toLowerCase().includes(query) ||
+        (p.barcode && p.barcode.toLowerCase().includes(query))
+      )
       .slice(0, 20);
     
     if (suggestions.length === 0) return null;
 
     return (
-      <div className="absolute z-10 w-[400px] bg-card border border-border mt-1 rounded-md shadow-lg max-h-60 overflow-y-auto">
+      <div className="absolute z-10 w-[450px] bg-card border border-border mt-1 rounded-md shadow-lg max-h-60 overflow-y-auto">
         {suggestions.map(p => (
           <div 
             key={p.id} 
@@ -213,7 +221,9 @@ export const BillEngine: React.FC<BillEngineProps> = ({
             }}
           >
             <span className="flex-1 truncate">{p.name}</span>
-            <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">{p.category} | Stock: {p.stock} | ₹{p.price}</span>
+            <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
+              {p.barcode ? `🏷${p.barcode} | ` : ''}{p.category} | Stock: {p.stock} | ₹{p.price}
+            </span>
           </div>
         ))}
       </div>
@@ -358,12 +368,15 @@ export const BillEngine: React.FC<BillEngineProps> = ({
       </table>
       
       {!readOnly && (
-        <button 
-          onClick={() => addLineItem()}
-          className="mt-4 flex items-center gap-2 text-primary hover:text-primary/80 font-medium no-print text-sm px-4 py-2 bg-primary/10 rounded-md"
-        >
-          <Plus size={16} /> Add Row
-        </button>
+        <div className="mt-4 flex items-center justify-between no-print">
+          <button 
+            onClick={() => addLineItem()}
+            className="flex items-center gap-2 text-primary hover:text-primary/80 font-medium text-sm px-4 py-2 bg-primary/10 rounded-md"
+          >
+            <Plus size={16} /> Add Row
+          </button>
+          <BarcodeScanIndicator active={!readOnly} />
+        </div>
       )}
     </div>
   );
