@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore, Product } from '../store/useStore';
-import { Search, Plus, Edit2, Trash2, Upload, ScanBarcode } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Upload, ScanBarcode, ChevronDown } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function StockManagement() {
@@ -89,12 +89,14 @@ export default function StockManagement() {
       showDialog({ title: 'Validation Error', message: 'Name and Category are required', type: 'alert' });
       return;
     }
+    
+    setIsModalOpen(false);
+
     if (editingId) {
       await updateProduct(editingId, formData);
     } else {
       await addProduct(formData);
     }
-    setIsModalOpen(false);
   };
 
   const handleDelete = (id: string) => {
@@ -191,15 +193,20 @@ export default function StockManagement() {
             className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-md outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
-        <select 
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          className="bg-background border border-border px-4 py-2 rounded-md outline-none focus:ring-2 focus:ring-primary/50"
-        >
-          {categories.map((c: string) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
+        <div className="relative min-w-[180px]">
+          <select 
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="w-full appearance-none bg-background border border-border px-4 py-2 pr-10 rounded-lg outline-none focus:ring-2 focus:ring-primary/50 hover:border-primary/50 transition-all cursor-pointer shadow-sm font-medium text-foreground"
+          >
+            {categories.map((c: string) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground">
+            <ChevronDown size={16} />
+          </div>
+        </div>
       </div>
 
       {/* Product Table */}

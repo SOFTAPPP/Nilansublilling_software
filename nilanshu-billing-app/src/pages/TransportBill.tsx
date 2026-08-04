@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
@@ -7,6 +7,19 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
   const { transporters, createBill, showDialog } = useStore();
   const [items, setItems] = useState<BillLineItem[]>([]);
   const [transporterPhone, setTransporterPhone] = useState('');
+  const [transporterDropdownOpen, setTransporterDropdownOpen] = useState(false);
+  const transporterDropdownRef = useRef<HTMLDivElement>(null);
+  const [transporterSearch, setTransporterSearch] = useState('');
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (transporterDropdownRef.current && !transporterDropdownRef.current.contains(event.target as Node)) {
+        setTransporterDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   const [transporterName, setTransporterName] = useState('');
   const [billNo, setBillNo] = useState('');
 
@@ -138,29 +151,43 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         <div className="grid grid-cols-2 text-sm border-b border-black">
           <div className="border-r border-black p-4">
             <h2 className="font-bold text-lg mb-2">Consignee Details</h2>
-            <div className="flex gap-2 mb-2 items-center">
-              <span className="w-16">Phone:</span>
-              <input 
-                list="transporter-phones"
-                value={transporterPhone} onChange={e => handleTransporterLookup(e.target.value, 'phone')} 
-                className="font-bold w-full outline-none bg-transparent border-b border-gray-300"
-                placeholder="Lookup Transporter by Phone"
-              />
-              <datalist id="transporter-phones">
-                {transporters.map(t => <option key={t.id} value={t.phone}>{t.name}</option>)}
-              </datalist>
-            </div>
-            <div className="flex gap-2 items-center">
-              <span className="w-16">Name:</span>
-              <input 
-                list="transporter-names"
-                value={transporterName} onChange={e => handleTransporterLookup(e.target.value, 'name')} 
-                className="font-bold w-full outline-none bg-transparent border-b border-gray-300"
-                placeholder="Enter Transporter Name"
-              />
-              <datalist id="transporter-names">
-                {transporters.map(t => <option key={t.id} value={t.name}>{t.phone}</option>)}
-              </datalist>
+            <div className="flex-1 flex flex-col gap-2">
+              <div className="relative no-print" ref={transporterDropdownRef}>
+                <div className="flex items-center border border-gray-300 bg-white rounded-lg px-2 text-sm w-full shadow-sm">
+                  <input 
+                    type="text"
+                    value={transporterSearch} 
+                    onChange={e => { setTransporterSearch(e.target.value); setTransporterDropdownOpen(true); }} 
+                    onFocus={() => setTransporterDropdownOpen(true)}
+                    className="w-full py-1.5 outline-none text-xs"
+                    placeholder="Search Transporter by Name or Phone..." 
+                  />
+                  <svg onClick={() => setTransporterDropdownOpen(!transporterDropdownOpen)} className="w-4 h-4 cursor-pointer text-gray-500 ml-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </div>
+                
+                {transporterDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
+                    {transporters.filter(t => t.name.toLowerCase().includes(transporterSearch.toLowerCase()) || t.phone.includes(transporterSearch)).map(t => (
+                      <div
+                        key={t.id}
+                        className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-gray-100 last:border-0"
+                        onClick={() => {
+                          handleTransporterLookup(t.phone, 'phone');
+                          setTransporterSearch('');
+                          setTransporterDropdownOpen(false);
+                        }}
+                      >
+                        <div className="font-bold">{t.name}</div>
+                        <div className="text-xs opacity-90">{t.phone}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col gap-1 mt-1">
+                <input value={transporterName} onChange={e => setTransporterName(e.target.value)} placeholder="Transporter Name" className="font-bold w-full outline-none bg-transparent border-b border-gray-200 text-sm" />
+                <input value={transporterPhone} onChange={e => setTransporterPhone(e.target.value)} placeholder="Phone Number" className="w-full outline-none bg-transparent border-b border-gray-200 text-sm" />
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-2 p-4 gap-2 text-xs">

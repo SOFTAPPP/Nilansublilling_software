@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { getDb } from '../utils/api';
 import { Download, Printer } from 'lucide-react';
@@ -8,6 +8,18 @@ export default function PartyStatement() {
   const { parties, bills, settings, updateSettings, fetchParties, fetchBills, showDialog } = useStore();
   const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
   const [partySearch, setPartySearch] = useState('');
+  const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
+  const partyDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (partyDropdownRef.current && !partyDropdownRef.current.contains(event.target as Node)) {
+        setPartyDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
@@ -132,16 +144,37 @@ export default function PartyStatement() {
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">Party Statement / Ledger</h2>
         <div className="flex flex-wrap gap-2 md:gap-3 items-center justify-end flex-1">
-          <input 
-            list="party-names"
-            value={partySearch} 
-            onChange={e => handlePartyLookup(e.target.value)} 
-            className="border border-gray-300 p-2 rounded-lg text-sm w-48 outline-none focus:border-blue-500 shadow-sm"
-            placeholder="Select Customer..." 
-          />
-          <datalist id="party-names">
-            {parties.map(p => <option key={p.id} value={p.name}>{p.phone}</option>)}
-          </datalist>
+          <div className="relative" ref={partyDropdownRef}>
+            <div className="flex items-center border border-gray-300 bg-white rounded-lg px-2 text-sm w-48 shadow-sm">
+              <input 
+                type="text"
+                value={partySearch} 
+                onChange={e => { handlePartyLookup(e.target.value); setPartyDropdownOpen(true); }} 
+                onFocus={() => setPartyDropdownOpen(true)}
+                className="w-full py-2 outline-none"
+                placeholder="Select Customer..." 
+              />
+              <svg onClick={() => setPartyDropdownOpen(!partyDropdownOpen)} className="w-4 h-4 cursor-pointer text-gray-500 ml-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </div>
+            
+            {partyDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
+                {parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).map(p => (
+                  <div
+                    key={p.id}
+                    className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-gray-100 last:border-0"
+                    onClick={() => {
+                      handlePartyLookup(p.name);
+                      setPartyDropdownOpen(false);
+                    }}
+                  >
+                    <div className="font-bold">{p.name}</div>
+                    <div className="text-xs opacity-90">{p.phone}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="border border-gray-300 p-2 rounded-lg text-sm outline-none focus:border-blue-500 shadow-sm" />
           <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="border border-gray-300 p-2 rounded-lg text-sm outline-none focus:border-blue-500 shadow-sm" />
           <button onClick={handlePrint} className="whitespace-nowrap bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors text-sm">

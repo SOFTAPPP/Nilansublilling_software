@@ -38,12 +38,13 @@ export default function TransporterManagement() {
       return;
     }
     
+    setIsModalOpen(false);
+
     if (editingId) {
       await updateTransporter(editingId, formData);
     } else {
       await addTransporter(formData);
     }
-    setIsModalOpen(false);
   };
 
   const handleDelete = (id: string) => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
@@ -12,6 +12,18 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
   const [memoNo, setMemoNo] = useState('CSH-');
   const [billDate, setBillDate] = useState(() => getLocalDateString());
   const [showPaidStamp, setShowPaidStamp] = useState(true);
+  const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
+  const partyDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (partyDropdownRef.current && !partyDropdownRef.current.contains(event.target as Node)) {
+        setPartyDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (viewBill) {
@@ -94,7 +106,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
     try {
       window.print();
     } catch (err) {
-      showDialog({ title: 'Print Error', message: 'Some technical error happened or your printer is having an issue. Please fix it.', type: 'alert' });
+      showDialog({ title: 'Error', message: 'Some technical error happened or your printer is having an issue. Please fix it.', type: 'alert' });
     }
   };
 
@@ -146,19 +158,38 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
 
         {/* Bill Meta */}
         <div className="flex justify-between items-start mb-4 text-sm">
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2 relative" ref={partyDropdownRef}>
             <span className="font-semibold whitespace-nowrap">Party Name :</span>
-            <input
-              list="party-names"
-              type="text"
-              value={partyName}
-              onChange={e => handlePartyLookup(e.target.value)}
-              className="outline-none w-64 bg-transparent font-bold uppercase"
-              placeholder="CASH CUSTOMER"
-            />
-            <datalist id="party-names">
-              {parties.map(p => <option key={p.id} value={p.name}>{p.phone}</option>)}
-            </datalist>
+            <div className="flex items-center border-b border-gray-300 w-64 pr-2">
+              <input
+                type="text"
+                value={partyName}
+                onChange={e => { handlePartyLookup(e.target.value); setPartyDropdownOpen(true); }}
+                onFocus={() => setPartyDropdownOpen(true)}
+                className="outline-none w-full bg-transparent font-bold uppercase pb-1"
+                placeholder="CASH CUSTOMER"
+              />
+              <svg onClick={() => setPartyDropdownOpen(!partyDropdownOpen)} className="w-4 h-4 cursor-pointer text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </div>
+            
+            {partyDropdownOpen && (
+              <div className="absolute top-full left-[90px] mt-1 w-64 bg-white border border-gray-200 shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm">
+                {parties.filter(p => p.name.toLowerCase().includes(partyName.toLowerCase()) || p.phone.includes(partyName)).map(p => (
+                  <div
+                    key={p.id}
+                    className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-gray-100 last:border-0"
+                    onClick={() => {
+                      setPartyName(p.name);
+                      setPartyId(p.id);
+                      setPartyDropdownOpen(false);
+                    }}
+                  >
+                    <div className="font-bold">{p.name}</div>
+                    <div className="text-xs opacity-90">{p.phone}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex flex-col items-end gap-1">
             <div className="font-bold border border-black px-6 py-1 text-lg mb-1">

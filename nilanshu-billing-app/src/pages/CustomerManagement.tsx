@@ -21,9 +21,12 @@ export default function CustomerManagement() {
       showDialog({ title: 'Validation Error', message: 'Name is required', type: 'alert' });
       return;
     }
-    await updateParty(editingParty.id, editForm);
+    const currentId = editingParty.id;
+    const currentForm = editForm;
     setEditingParty(null);
     setEditForm({});
+    
+    await updateParty(currentId, currentForm);
   };
 
   const [newParty, setNewParty] = useState<Partial<Party>>({

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
@@ -84,6 +84,19 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   
   // Paid and Cancelled stamps
   const [showPaidStamp, setShowPaidStamp] = useState(false);
+  const [partySearch, setPartySearch] = useState('');
+  const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
+  const partyDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (partyDropdownRef.current && !partyDropdownRef.current.contains(event.target as Node)) {
+        setPartyDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   const [showCancelStamp, setShowCancelStamp] = useState(false);
 
   // Calculates
@@ -251,12 +264,37 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
               <div className="flex items-start gap-1">
                 <span className="text-sm">Buyer:-</span>
                 <div className="flex-1 flex flex-col">
-                  {/* Hidden lookups for UI convenience (won't print border) */}
-                  <div className="flex items-center gap-1 no-print mb-1">
-                     <input list="party-phones" value={buyerPhone} onChange={e => handlePartyLookup(e.target.value, 'phone')} placeholder="Lookup Phone" className="w-1/2 text-xs border p-1" />
-                     <input list="party-names" value={buyerName} onChange={e => handlePartyLookup(e.target.value, 'name')} placeholder="Lookup Name" className="w-1/2 text-xs border p-1" />
-                     <datalist id="party-phones">{parties.map(p => <option key={p.id} value={p.phone}>{p.name}</option>)}</datalist>
-                     <datalist id="party-names">{parties.map(p => <option key={p.id} value={p.name}>{p.phone}</option>)}</datalist>
+                  <div className="relative no-print mb-1" ref={partyDropdownRef}>
+                    <div className="flex items-center border border-gray-300 bg-white rounded-lg px-2 text-sm w-full shadow-sm">
+                      <input 
+                        type="text"
+                        value={partySearch} 
+                        onChange={e => { setPartySearch(e.target.value); setPartyDropdownOpen(true); }} 
+                        onFocus={() => setPartyDropdownOpen(true)}
+                        className="w-full py-1.5 outline-none text-xs"
+                        placeholder="Search Customer by Name or Phone..." 
+                      />
+                      <svg onClick={() => setPartyDropdownOpen(!partyDropdownOpen)} className="w-4 h-4 cursor-pointer text-gray-500 ml-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                    
+                    {partyDropdownOpen && (
+                      <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
+                        {parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).map(p => (
+                          <div
+                            key={p.id}
+                            className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-gray-100 last:border-0"
+                            onClick={() => {
+                              handlePartyLookup(p.phone, 'phone');
+                              setPartySearch('');
+                              setPartyDropdownOpen(false);
+                            }}
+                          >
+                            <div className="font-bold">{p.name}</div>
+                            <div className="text-xs opacity-90">{p.phone}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <input value={buyerName} onChange={e => setBuyerName(e.target.value)} placeholder="Buyer Name" className="font-bold w-full outline-none bg-transparent" />
                   <input value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} placeholder="Buyer Address" className="w-full outline-none bg-transparent" />

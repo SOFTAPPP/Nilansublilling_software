@@ -116,6 +116,10 @@ interface AppState {
   deleteBill: (id: string) => Promise<void>;
   addProductsBulk: (products: Partial<Product>[]) => Promise<void>;
   findProductByBarcode: (barcode: string) => Product | undefined;
+  
+  _syncQueue: { task: () => Promise<void>; resolve: () => void; reject: (err: any) => void }[];
+  _isSyncing: boolean;
+  enqueueSync: (task: () => Promise<void>) => Promise<void>;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -146,6 +150,32 @@ export const useStore = create<AppState>((set) => ({
     message: '',
     type: 'alert'
   },
+  
+  _syncQueue: [],
+  _isSyncing: false,
+  enqueueSync: (task) => {
+    return new Promise((resolve, reject) => {
+      set((state) => ({ _syncQueue: [...state._syncQueue, { task, resolve, reject }] }));
+      const processQueue = async () => {
+        if (useStore.getState()._isSyncing) return;
+        useStore.setState({ _isSyncing: true });
+        while (useStore.getState()._syncQueue.length > 0) {
+          const { task: nextTask, resolve: res, reject: rej } = useStore.getState()._syncQueue[0];
+          try {
+            await nextTask();
+            res();
+          } catch (err) {
+            console.error("Queue Task Failed", err);
+            rej(err);
+          }
+          set((state) => ({ _syncQueue: state._syncQueue.slice(1) }));
+        }
+        useStore.setState({ _isSyncing: false });
+      };
+      processQueue();
+    });
+  },
+
   showDialog: (options) => set({ dialog: { ...options, isOpen: true } }),
   closeDialog: () => set((state) => ({ dialog: { ...state.dialog, isOpen: false } })),
   setProducts: (products) => set({ products }),
@@ -235,21 +265,23 @@ export const useStore = create<AppState>((set) => ({
     }
   },
   fetchBills: async () => {
-    try {
-      const db = await getDb();
-      const bills = await db.select('SELECT id, type, "billNumber", "partyId", "transporterId", subtotal, discount, cgst, sgst, total, status, CAST(date AS TEXT) as date FROM "Bill" ORDER BY date DESC');
-      const normalizedBills = (bills as any[]).map(b => {
-        let dateStr = String(b.date);
-        if (dateStr.includes(' ') && !dateStr.includes('T')) {
-          dateStr = dateStr.replace(' ', 'T') + 'Z';
-        }
-        return { ...b, date: dateStr };
-      });
-      set({ bills: normalizedBills as Bill[] });
-    } catch (error: any) {
-      console.error('Failed to fetch bills', error);
-      useStore.getState().showDialog({ title: 'Fetch Error', message: 'Failed to load bills: ' + (error.message || String(error)), type: 'alert' });
-    }
+    return useStore.getState().enqueueSync(async () => {
+      try {
+        const db = await getDb();
+        const bills = await db.select('SELECT id, type, "billNumber", "partyId", "transporterId", subtotal, discount, cgst, sgst, total, status, CAST(date AS TEXT) as date FROM "Bill" ORDER BY date DESC');
+        const normalizedBills = (bills as any[]).map(b => {
+          let dateStr = String(b.date);
+          if (dateStr.includes(' ') && !dateStr.includes('T')) {
+            dateStr = dateStr.replace(' ', 'T') + 'Z';
+          }
+          return { ...b, date: dateStr };
+        });
+        set({ bills: normalizedBills as Bill[] });
+      } catch (error: any) {
+        console.error('Failed to fetch bills', error);
+        useStore.getState().showDialog({ title: 'Fetch Error', message: 'Failed to load bills: ' + (error.message || String(error)), type: 'alert' });
+      }
+    });
   },
   fetchSettings: async () => {
     try {
@@ -299,7 +331,7 @@ export const useStore = create<AppState>((set) => ({
       );
     } catch (err: any) {
       console.error('Add Product DB Error:', err);
-      useStore.getState().showDialog({ title: 'Add Product Failed', message: err.message || 'Database error', type: 'alert' });
+      useStore.getState().showDialog({ title: 'Add Party Failed', message: err.message || 'Database error', type: 'alert' });
       useStore.getState().fetchProducts(); // Rollback
     }
   },
@@ -378,7 +410,7 @@ export const useStore = create<AppState>((set) => ({
       );
     } catch (err: any) {
       console.error('Update Party Error:', err);
-      useStore.getState().showDialog({ title: 'Update Party Failed', message: err.message || 'Database error', type: 'alert' });
+      useStore.getState().showDialog({ title: 'Add Party Failed', message: err.message || 'Database error', type: 'alert' });
       useStore.getState().fetchParties(); // Rollback
     }
   },
@@ -506,7 +538,7 @@ export const useStore = create<AppState>((set) => ({
     });
 
     // Background DB sync
-    (async () => {
+    useStore.getState().enqueueSync(async () => {
       try {
         const db = await getDb();
 
@@ -562,7 +594,7 @@ export const useStore = create<AppState>((set) => ({
         await useStore.getState().fetchParties();
         await useStore.getState().fetchBills();
       }
-    })();
+    });
   },
   deleteBill: async (id) => {
     try {
@@ -583,7 +615,7 @@ export const useStore = create<AppState>((set) => ({
       });
 
       // Background process: fetch items, revert stock in UI, then sync with DB
-      (async () => {
+      useStore.getState().enqueueSync(async () => {
         try {
           const db = await getDb();
           const items = await db.select<{ productId: string, quantity: number }[]>('SELECT "productId", quantity FROM "BillLineItem" WHERE "billId" = $1', [id]);
@@ -619,25 +651,25 @@ export const useStore = create<AppState>((set) => ({
             }
           }
 
+          // EXPLICITLY delete line items first to prevent any missing ON DELETE CASCADE constraint errors
+          await db.execute('DELETE FROM "BillLineItem" WHERE "billId" = $1', [id]);
           await db.execute('DELETE FROM "Bill" WHERE id = $1', [id]);
 
         } catch (bgErr: any) {
           console.error("Delete Bill Background Error", bgErr);
           useStore.getState().showDialog({
-            title: 'Delete Sync Failed',
-            message: bgErr.message || 'Failed to sync deletion with server. Reverting.',
+            title: 'Delete Sync Failed', message: bgErr.message || 'Failed to sync deletion with server. Reverting.',
             type: 'alert'
           });
           await useStore.getState().fetchBills();
           await useStore.getState().fetchProducts();
           await useStore.getState().fetchParties();
         }
-      })();
+      });
     } catch (err: any) {
       console.error("Delete Bill Error", err);
       useStore.getState().showDialog({
-        title: 'Delete Failed',
-        message: err.message || 'Failed to delete bill.',
+        title: 'Delete Failed', message: err.message || 'Failed to delete bill.',
         type: 'alert'
       });
     }
