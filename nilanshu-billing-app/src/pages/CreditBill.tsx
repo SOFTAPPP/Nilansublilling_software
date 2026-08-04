@@ -192,7 +192,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   };
 
   return (
-    <div className="bg-gray-100 text-black p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full relative">
+    <div className="p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full relative">
       {/* Header Controls (No Print) */}
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">{type === 'return' ? 'Sales Return Bill' : 'Chalan / Credit Bill (Tax Invoice)'}</h2>
@@ -226,7 +226,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
       </div>
 
       {/* Bill Canvas */}
-      <div className="a4-page border-2 border-black relative flex flex-col bg-white">
+      <div className="a4-page border-2 border-border relative flex flex-col">
         
         {/* Stamps overlay */}
         {showPaidStamp && (
@@ -265,7 +265,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                 <span className="text-sm">Buyer:-</span>
                 <div className="flex-1 flex flex-col">
                   <div className="relative no-print mb-1" ref={partyDropdownRef}>
-                    <div className="flex items-center border border-gray-300 bg-white rounded-lg px-2 text-sm w-full shadow-sm">
+                    <div className="flex items-center border border-border bg-background rounded-lg px-2 text-sm w-full shadow-sm">
                       <input 
                         type="text"
                         value={partySearch} 
@@ -278,7 +278,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                     </div>
                     
                     {partyDropdownOpen && (
-                      <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
+                      <div className="absolute top-full left-0 mt-1 w-full bg-background border border-border shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
                         {parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).map(p => (
                           <div
                             key={p.id}
@@ -308,21 +308,21 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
             <div className="flex border-b border-black">
               <div className="w-1/2 border-r border-black p-2 flex flex-col justify-center">
                 <span className="text-[11px] text-gray-600 font-medium">Invoice No.</span>
-                <input value={invoiceNo} onChange={e => setInvoiceNo(e.target.value)} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                <input value={invoiceNo} onChange={e => setInvoiceNo(e.target.value)} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
               </div>
               <div className="w-1/2 p-2 flex flex-col justify-center">
                 <span className="text-[11px] text-gray-600 font-medium">Date:-</span>
-                <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
               </div>
             </div>
             <div className="flex border-b border-black">
               <div className="w-1/2 border-r border-black p-2 flex flex-col justify-center">
                 <span className="text-[11px] text-gray-600 font-medium">Transport no:</span>
-                <input value={invoiceMeta.dispatchedThrough} onChange={e => setInvoiceMeta({...invoiceMeta, dispatchedThrough: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                <input value={invoiceMeta.dispatchedThrough} onChange={e => setInvoiceMeta({...invoiceMeta, dispatchedThrough: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
               </div>
               <div className="w-1/2 p-2 flex flex-col justify-center">
                 <span className="text-[11px] text-gray-600 font-medium">Delivery Note Date</span>
-                <input type="date" value={invoiceMeta.deliveryNoteDate} onChange={e => setInvoiceMeta({...invoiceMeta, deliveryNoteDate: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                <input type="date" value={invoiceMeta.deliveryNoteDate} onChange={e => setInvoiceMeta({...invoiceMeta, deliveryNoteDate: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
               </div>
             </div>
             <div className="flex flex-1">
@@ -332,7 +332,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                   <select 
                     value={invoiceMeta.termsOfPayment || 'ROAD'} 
                     onChange={e => setInvoiceMeta({...invoiceMeta, termsOfPayment: e.target.value})} 
-                    className="font-bold w-full outline-none bg-white appearance-none cursor-pointer border border-gray-300 rounded px-2 py-1.5 text-[12px] hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm"
+                    className="font-bold w-full outline-none bg-background appearance-none cursor-pointer border border-border rounded px-2 py-1.5 text-[12px] hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm"
                   >
                     <option value="ROAD">ROAD</option>
                     <option value="TRAIN">TRAIN</option>
@@ -348,7 +348,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
               </div>
               <div className="w-1/2 p-2 flex flex-col justify-center">
                 <span className="text-[11px] text-gray-600 font-medium">Destination</span>
-                <input value={invoiceMeta.destination} onChange={e => setInvoiceMeta({...invoiceMeta, destination: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                <input value={invoiceMeta.destination} onChange={e => setInvoiceMeta({...invoiceMeta, destination: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
               </div>
             </div>
           </div>

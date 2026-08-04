@@ -75,7 +75,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
   };
 
   return (
-    <div className="bg-gray-100 text-black p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full">
+    <div className="p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full">
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">Quick Bill</h2>
         <div className="flex flex-wrap gap-2 md:gap-3 justify-end flex-1">
@@ -97,7 +97,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
       </div>
 
       {/* Bill Canvas */}
-      <div className="half-a4-page border border-black p-6 relative flex flex-col">
+      <div className="half-a4-page border border-border p-6 relative flex flex-col">
         
         <div className="text-center mb-6 flex flex-col items-center">
           <div className="text-2xl font-bold font-serif uppercase tracking-widest w-full text-center">{settings.companyName}</div>
@@ -128,7 +128,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
           />
         </div>
 
-        <div className="flex justify-end border border-black bg-white z-10 relative">
+        <div className="flex justify-end border border-black z-10 relative">
           <div className="w-48 border-l border-black p-2">
             <div className="flex justify-between font-bold text-lg">
               <span>TOTAL</span>

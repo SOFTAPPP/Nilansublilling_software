@@ -140,12 +140,12 @@ export default function PartyStatement() {
   const finalBalance = balanceBeforePeriod + entries.slice(1).reduce((sum, e) => sum + e.debit - e.credit, 0);
 
   return (
-    <div className="bg-gray-100 text-black p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full">
+    <div className="p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full">
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">Party Statement / Ledger</h2>
         <div className="flex flex-wrap gap-2 md:gap-3 items-center justify-end flex-1">
           <div className="relative" ref={partyDropdownRef}>
-            <div className="flex items-center border border-gray-300 bg-white rounded-lg px-2 text-sm w-48 shadow-sm">
+            <div className="flex items-center border border-border bg-background rounded-lg px-2 text-sm w-48 shadow-sm">
               <input 
                 type="text"
                 value={partySearch} 
@@ -158,7 +158,7 @@ export default function PartyStatement() {
             </div>
             
             {partyDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
+              <div className="absolute top-full left-0 mt-1 w-64 bg-background border border-border shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
                 {parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).map(p => (
                   <div
                     key={p.id}
@@ -184,7 +184,7 @@ export default function PartyStatement() {
       </div>
 
       {/* Ledger Canvas */}
-      <div className="a4-page border border-black p-6 relative bg-white mx-auto font-mono text-sm">
+      <div className="a4-page border border-border p-6 relative mx-auto font-mono text-sm">
         
         {/* Header */}
         <div className="text-center mb-8 flex flex-col items-center">

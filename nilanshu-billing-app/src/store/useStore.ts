@@ -314,7 +314,7 @@ export const useStore = create<AppState>((set) => ({
     }
   },
   addProduct: async (product) => {
-    const id = product.id || crypto.randomUUID();
+    const id = product.id || `PROD-${Math.floor(1000 + Math.random() * 9000)}`;
     const newProduct: Product = {
       id, name: product.name || '', category: product.category || '', price: product.price || 0,
       stock: product.stock || 0, lowStockThreshold: product.lowStockThreshold || 10,
@@ -339,7 +339,7 @@ export const useStore = create<AppState>((set) => ({
     const db = await getDb();
     // Use a transaction or sequential inserts
     for (const product of productsList) {
-      const id = product.id || crypto.randomUUID();
+      const id = product.id || `PROD-${Math.floor(1000 + Math.random() * 9000)}`;
       try {
         await db.execute(
           'INSERT INTO "Product" (id, name, category, price, stock, "lowStockThreshold", "bindingVariant", hsn, barcode, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())',
@@ -472,7 +472,7 @@ export const useStore = create<AppState>((set) => ({
         if (existingProd) {
           billData.lineItems[i].productId = existingProd.id;
         } else {
-          const newProdId = crypto.randomUUID();
+          const newProdId = `PROD-${Math.floor(1000 + Math.random() * 9000)}`;
           newProductsToCreate.push({
             id: newProdId,
             name: billData.lineItems[i].productName.trim(),

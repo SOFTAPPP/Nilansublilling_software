@@ -8,6 +8,20 @@ export default function StockManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
+  // Custom Dropdown State
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        setIsCategoryDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -79,7 +93,7 @@ export default function StockManagement() {
       setFormData(product);
     } else {
       setEditingId(null);
-      setFormData({ name: '', category: '', price: 0, stock: 0, lowStockThreshold: 10, bindingVariant: '', hsn: '', barcode: '' });
+      setFormData({ id: '', name: '', category: '', price: 0, stock: 0, lowStockThreshold: 10, bindingVariant: '', hsn: '', barcode: '' });
     }
     setIsModalOpen(true);
   };
@@ -166,15 +180,6 @@ export default function StockManagement() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Stock Management</h1>
         <div className="flex gap-2">
-          <label className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/90 flex items-center gap-2 cursor-pointer transition-colors border border-border shadow-sm">
-            <Upload size={18} /> Import Stock
-            <input 
-              type="file" 
-              accept=".json,.csv,.xlsx,.xls" 
-              className="hidden" 
-              onChange={handleFileUpload} 
-            />
-          </label>
           <button onClick={() => handleOpenModal()} className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2">
             <Plus size={18} /> Add Product
           </button>
@@ -193,19 +198,37 @@ export default function StockManagement() {
             className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-md outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
-        <div className="relative min-w-[180px]">
-          <select 
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full appearance-none bg-background border border-border px-4 py-2 pr-10 rounded-lg outline-none focus:ring-2 focus:ring-primary/50 hover:border-primary/50 transition-all cursor-pointer shadow-sm font-medium text-foreground"
+        <div className="relative min-w-[180px]" ref={categoryDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+            className="w-full flex items-center justify-between bg-background border border-border px-4 py-2 rounded-lg outline-none focus:ring-2 focus:ring-primary/50 hover:border-primary/50 transition-all cursor-pointer shadow-sm font-medium text-foreground"
           >
-            {categories.map((c: string) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground">
-            <ChevronDown size={16} />
-          </div>
+            <span className="truncate">{selectedCategory}</span>
+            <ChevronDown size={16} className={`text-muted-foreground transition-transform duration-200 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {isCategoryDropdownOpen && (
+            <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-xl overflow-hidden py-1 max-h-60 overflow-y-auto">
+              {categories.map((c: string) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory(c);
+                    setIsCategoryDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                    selectedCategory === c 
+                      ? 'bg-primary text-primary-foreground font-medium' 
+                      : 'text-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -214,6 +237,7 @@ export default function StockManagement() {
         <table className="w-full text-left text-sm">
           <thead className="bg-muted text-muted-foreground">
             <tr>
+              <th className="p-4 font-medium">Product ID</th>
               <th className="p-4 font-medium">Product Name</th>
               <th className="p-4 font-medium">Category</th>
               <th className="p-4 font-medium">Barcode</th>
@@ -227,6 +251,7 @@ export default function StockManagement() {
           <tbody className="divide-y divide-border">
             {filteredProducts.map(product => (
               <tr key={product.id} className="hover:bg-muted/50 transition-colors">
+                <td className="p-4 text-muted-foreground font-medium">{product.id}</td>
                 <td className="p-4 font-medium">{product.name}</td>
                 <td className="p-4">
                   <span className="bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-xs font-medium">
@@ -260,7 +285,7 @@ export default function StockManagement() {
             ))}
             {filteredProducts.length === 0 && (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                <td colSpan={9} className="p-8 text-center text-muted-foreground">
                   No products found.
                 </td>
               </tr>
@@ -275,6 +300,16 @@ export default function StockManagement() {
           <div className="bg-card p-6 rounded-xl w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">{editingId ? 'Edit Product' : 'Add Product'}</h2>
             <div className="space-y-4">
+              <div>
+                <label className="block text-sm mb-1">Product ID <span className="text-muted-foreground text-xs font-normal">(Leave blank to auto-generate)</span></label>
+                <input 
+                  value={formData.id || ''} 
+                  onChange={e => setFormData({...formData, id: e.target.value})} 
+                  className="w-full border p-2 rounded bg-background" 
+                  disabled={!!editingId} // ID cannot be changed once created
+                  placeholder="e.g. PROD-123"
+                />
+              </div>
               <div>
                 <label className="block text-sm mb-1">Name *</label>
                 <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border p-2 rounded bg-background" />

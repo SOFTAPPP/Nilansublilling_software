@@ -120,7 +120,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
   };
 
   return (
-    <div className="bg-gray-100 text-black p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full relative">
+    <div className="p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full relative">
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">Transport / Dispatch Bill</h2>
         <div className="flex flex-wrap gap-2 md:gap-3 justify-end flex-1">
@@ -141,7 +141,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         </div>
       </div>
 
-      <div className="a4-page border border-black relative">
+      <div className="a4-page border border-border relative">
         <div className="text-center py-2 border-b border-black font-semibold text-lg flex justify-between px-4">
           <span className="w-1/3"></span>
           <span className="w-1/3">TRANSPORT BILL</span>
@@ -153,7 +153,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
             <h2 className="font-bold text-lg mb-2">Consignee Details</h2>
             <div className="flex-1 flex flex-col gap-2">
               <div className="relative no-print" ref={transporterDropdownRef}>
-                <div className="flex items-center border border-gray-300 bg-white rounded-lg px-2 text-sm w-full shadow-sm">
+                <div className="flex items-center border border-border bg-background rounded-lg px-2 text-sm w-full shadow-sm">
                   <input 
                     type="text"
                     value={transporterSearch} 
@@ -166,7 +166,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
                 </div>
                 
                 {transporterDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
+                  <div className="absolute top-full left-0 mt-1 w-full bg-background border border-border shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
                     {transporters.filter(t => t.name.toLowerCase().includes(transporterSearch.toLowerCase()) || t.phone.includes(transporterSearch)).map(t => (
                       <div
                         key={t.id}

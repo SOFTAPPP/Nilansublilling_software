@@ -49,58 +49,65 @@ export default function Dashboard() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
       
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
           {/* Metric Cards */}
-          <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-red-100 text-red-600 rounded-lg dark:bg-red-900/30 dark:text-red-400">
-              <AlertTriangle size={24} />
+          {[
+            { 
+              title: 'Low Stock Items', 
+              value: lowStockProducts.length, 
+              icon: AlertTriangle, 
+              color: { bg: 'bg-red-500/10', text: 'text-red-500', glow: 'bg-red-500' }, 
+              gradient: 'bg-gradient-to-r from-red-500 to-pink-500' 
+            },
+            { 
+              title: 'Outstanding Dues', 
+              value: `₹${totalOutstanding.toLocaleString()}`, 
+              icon: IndianRupee, 
+              color: { bg: 'bg-blue-500/10', text: 'text-blue-500', glow: 'bg-blue-500' }, 
+              gradient: 'bg-gradient-to-r from-blue-500 to-cyan-500' 
+            },
+            { 
+              title: 'Monthly Sales', 
+              value: formatAmount(currentMonthSales), 
+              icon: TrendingUp, 
+              color: { bg: 'bg-emerald-500/10', text: 'text-emerald-500', glow: 'bg-emerald-500' }, 
+              gradient: 'bg-gradient-to-r from-emerald-500 to-teal-500' 
+            },
+            { 
+              title: 'Total Products', 
+              value: products.length, 
+              icon: Package, 
+              color: { bg: 'bg-purple-500/10', text: 'text-purple-500', glow: 'bg-purple-500' }, 
+              gradient: 'bg-gradient-to-r from-purple-500 to-indigo-500' 
+            },
+            { 
+              title: "Today's Bills", 
+              value: todayBills.length, 
+              subValue: `₹${todaySales.toLocaleString()}`,
+              icon: FileText, 
+              color: { bg: 'bg-amber-500/10', text: 'text-amber-500', glow: 'bg-amber-500' }, 
+              gradient: 'bg-gradient-to-r from-amber-500 to-orange-500' 
+            }
+          ].map((card, idx) => (
+            <div key={idx} className="relative overflow-hidden bg-card p-6 rounded-2xl border border-border shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 group cursor-default">
+              {/* Background glow on hover */}
+              <div className={`absolute -right-8 -top-8 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 ${card.color.glow}`}></div>
+              
+              <div className="flex flex-col gap-4 relative z-10">
+                <div className={`w-14 h-14 flex items-center justify-center rounded-xl ${card.color.bg} ${card.color.text} transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3 shadow-sm`}>
+                  <card.icon size={26} strokeWidth={2.5} />
+                </div>
+                <div className="flex flex-col">
+                  <p className="text-sm text-muted-foreground font-medium mb-1 tracking-wide">{card.title}</p>
+                  <h3 className="text-3xl font-extrabold tracking-tight text-foreground transition-transform duration-300 group-hover:translate-x-1">{card.value}</h3>
+                  {card.subValue && <p className="text-xs text-muted-foreground mt-1.5 font-semibold bg-muted inline-block px-2 py-0.5 rounded-md w-max transition-transform duration-300 group-hover:translate-x-1">{card.subValue}</p>}
+                </div>
+              </div>
+              
+              {/* Animated bottom border accent */}
+              <div className={`absolute bottom-0 left-0 h-1 w-0 group-hover:w-full transition-all duration-500 ease-out ${card.gradient}`}></div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground font-medium">Low Stock Items</p>
-              <h3 className="text-2xl font-bold">{lowStockProducts.length}</h3>
-            </div>
-          </div>
-
-          <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-blue-100 text-blue-600 rounded-lg dark:bg-blue-900/30 dark:text-blue-400">
-              <IndianRupee size={24} />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground font-medium">Outstanding Dues</p>
-              <h3 className="text-2xl font-bold">₹{totalOutstanding.toLocaleString()}</h3>
-            </div>
-          </div>
-
-          <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-green-100 text-green-600 rounded-lg dark:bg-green-900/30 dark:text-green-400">
-              <TrendingUp size={24} />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground font-medium">Monthly Sales</p>
-              <h3 className="text-2xl font-bold">{formatAmount(currentMonthSales)}</h3>
-            </div>
-          </div>
-
-          <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-purple-100 text-purple-600 rounded-lg dark:bg-purple-900/30 dark:text-purple-400">
-              <Package size={24} />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground font-medium">Total Products</p>
-              <h3 className="text-2xl font-bold">{products.length}</h3>
-            </div>
-          </div>
-
-          <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-orange-100 text-orange-600 rounded-lg dark:bg-orange-900/30 dark:text-orange-400">
-              <FileText size={24} />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground font-medium">Today's Bills</p>
-              <h3 className="text-2xl font-bold">{todayBills.length}</h3>
-              <p className="text-xs text-muted-foreground">₹{todaySales.toLocaleString()}</p>
-            </div>
-          </div>
+          ))}
         </div>
 
       <div className="grid grid-cols-1 gap-6">

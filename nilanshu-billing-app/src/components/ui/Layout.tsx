@@ -1,23 +1,40 @@
 import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { Sun, Moon, Receipt, FileText, FileClock, RotateCcw, Truck, BookOpen, UserSquare2, LayoutDashboard, History } from 'lucide-react';
+import { Sun, Moon, Receipt, FileText, FileClock, RotateCcw, Truck, BookOpen, UserSquare2, LayoutDashboard, History, LogOut } from 'lucide-react';
 
 export const Layout = () => {
-  const { theme, toggleTheme } = useStore();
+  const { theme, toggleTheme, showDialog, closeDialog } = useStore();
+
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    showDialog({
+      title: 'Confirm Logout',
+      message: 'Are you sure you want to logout?',
+      type: 'confirm',
+      onConfirm: () => {
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('admin');
+        useStore.setState({ isAuthenticated: false, token: null });
+        navigate('/login');
+        closeDialog();
+      }
+    });
+  };
 
   const navItems = [
-    { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
-    { name: 'Cash Bill', path: '/cash-bill', icon: <Receipt size={20} /> },
-    { name: 'Credit Bill', path: '/credit-bill', icon: <FileText size={20} /> },
-    { name: 'Quick Bill', path: '/quick-bill', icon: <FileClock size={20} /> },
-    { name: 'Return Bill', path: '/return-bill', icon: <RotateCcw size={20} /> },
-    { name: 'Transport Bill', path: '/transport-bill', icon: <Truck size={20} /> },
-    { name: 'Customers', path: '/customers', icon: <UserSquare2 size={20} /> },
-    { name: 'Transporters', path: '/transporters', icon: <Truck size={20} /> },
-    { name: 'Party Statements', path: '/party-statements', icon: <FileText size={20} /> },
-    { name: 'Bill History', path: '/bill-history', icon: <History size={20} /> },
-    { name: 'Stock Management', path: '/stock', icon: <BookOpen size={20} /> },
+    { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} className="text-blue-500" /> },
+    { name: 'Cash Bill', path: '/cash-bill', icon: <Receipt size={20} className="text-green-500" /> },
+    { name: 'Credit Bill', path: '/credit-bill', icon: <FileText size={20} className="text-purple-500" /> },
+    { name: 'Quick Bill', path: '/quick-bill', icon: <FileClock size={20} className="text-orange-500" /> },
+    { name: 'Return Bill', path: '/return-bill', icon: <RotateCcw size={20} className="text-red-500" /> },
+    { name: 'Transport Bill', path: '/transport-bill', icon: <Truck size={20} className="text-amber-500" /> },
+    { name: 'Customers', path: '/customers', icon: <UserSquare2 size={20} className="text-indigo-500" /> },
+    { name: 'Transporters', path: '/transporters', icon: <Truck size={20} className="text-cyan-500" /> },
+    { name: 'Party Statements', path: '/party-statements', icon: <FileText size={20} className="text-pink-500" /> },
+    { name: 'Bill History', path: '/bill-history', icon: <History size={20} className="text-teal-500" /> },
+    { name: 'Stock Management', path: '/stock', icon: <BookOpen size={20} className="text-emerald-500" /> },
   ];
 
   return (
@@ -48,13 +65,21 @@ export const Layout = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border flex flex-col gap-2">
           <button
             onClick={toggleTheme}
             className="flex items-center gap-3 w-full px-3 py-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
           >
-            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} className="text-yellow-400" />}
             {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+          </button>
+          
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-md hover:bg-red-500/10 text-red-500 hover:text-red-600 transition-colors"
+          >
+            <LogOut size={20} />
+            Logout
           </button>
         </div>
       </aside>

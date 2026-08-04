@@ -111,7 +111,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
   };
 
   return (
-    <div className="bg-gray-100 text-black p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full">
+    <div className="p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full">
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">Cash Memo</h2>
         <div className="flex flex-wrap gap-2 md:gap-3 justify-end flex-1">
@@ -120,7 +120,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
               Save to Database
             </button>
           )}
-          <button onClick={() => setShowPaidStamp(!showPaidStamp)} className="whitespace-nowrap border border-green-600 text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 font-medium shadow-sm transition-colors text-sm bg-white">
+          <button onClick={() => setShowPaidStamp(!showPaidStamp)} className="whitespace-nowrap border border-green-600 text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 font-medium shadow-sm transition-colors text-sm bg-background">
             Toggle Stamp
           </button>
           <button onClick={handlePrint} className="whitespace-nowrap bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors text-sm">
@@ -130,7 +130,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
       </div>
 
       {/* Bill Canvas */}
-      <div className="a4-page relative flex flex-col p-4 print:p-2 bg-white">
+      <div className="a4-page relative flex flex-col p-4 print:p-2">
         
         {/* Stamps overlay */}
         {showPaidStamp && (
@@ -173,7 +173,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
             </div>
             
             {partyDropdownOpen && (
-              <div className="absolute top-full left-[90px] mt-1 w-64 bg-white border border-gray-200 shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm">
+              <div className="absolute top-full left-[90px] mt-1 w-64 bg-background border border-border shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm">
                 {parties.filter(p => p.name.toLowerCase().includes(partyName.toLowerCase()) || p.phone.includes(partyName)).map(p => (
                   <div
                     key={p.id}
@@ -217,7 +217,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         </div>
 
         {/* Bottom Section */}
-        <div className="flex border border-black text-sm z-10 bg-white relative">
+        <div className="flex border border-black text-sm z-10 relative">
           {/* Left Half */}
           <div className="w-[60%] border-r border-black p-3 flex flex-col justify-between">
             <div>
