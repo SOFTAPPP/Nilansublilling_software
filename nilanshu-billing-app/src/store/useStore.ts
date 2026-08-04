@@ -98,7 +98,6 @@ interface AppState {
   setParties: (parties: Party[]) => void;
   updateSettings: (settings: Partial<Settings>) => void;
   toggleTheme: () => void;
-  setToken: (token: string | null) => void;
   fetchProducts: () => Promise<void>;
   fetchParties: () => Promise<void>;
   fetchTransporters: () => Promise<void>;
@@ -140,8 +139,7 @@ export const useStore = create<AppState>((set) => ({
   },
   theme: 'light',
   token: sessionStorage.getItem('token'),
-  isAuthenticated: !!sessionStorage.getItem('token'),
-  setToken: (token) => set({ token, isAuthenticated: !!token }),
+  isAuthenticated: false,
   dialog: {
     isOpen: false,
     title: '',
@@ -211,8 +209,9 @@ export const useStore = create<AppState>((set) => ({
       const db = await getDb();
       const products = await db.select('SELECT id, name, category, price, stock, "lowStockThreshold", "bindingVariant", hsn, barcode FROM "Product"');
       set({ products: products as Product[] });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch products', error);
+      useStore.getState().showDialog({ title: 'Fetch Error', message: 'Failed to load products: ' + (error.message || String(error)), type: 'alert' });
     }
   },
   fetchParties: async () => {
@@ -220,8 +219,9 @@ export const useStore = create<AppState>((set) => ({
       const db = await getDb();
       const parties = await db.select('SELECT id, name, address, phone, email, gstin, "discountPercentage", "outstandingBalance" FROM "Party"');
       set({ parties: parties as Party[] });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch parties', error);
+      useStore.getState().showDialog({ title: 'Fetch Error', message: 'Failed to load customers: ' + (error.message || String(error)), type: 'alert' });
     }
   },
   fetchTransporters: async () => {
@@ -229,8 +229,9 @@ export const useStore = create<AppState>((set) => ({
       const db = await getDb();
       const transporters = await db.select('SELECT id, name, phone, address FROM "Transporter"');
       set({ transporters: transporters as Transporter[] });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch transporters', error);
+      useStore.getState().showDialog({ title: 'Fetch Error', message: 'Failed to load transporters: ' + (error.message || String(error)), type: 'alert' });
     }
   },
   fetchBills: async () => {
@@ -238,8 +239,9 @@ export const useStore = create<AppState>((set) => ({
       const db = await getDb();
       const bills = await db.select('SELECT id, type, "billNumber", "partyId", "transporterId", subtotal, discount, cgst, sgst, total, status, CAST(date AS TEXT) as date FROM "Bill" ORDER BY date DESC');
       set({ bills: bills as Bill[] });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch bills', error);
+      useStore.getState().showDialog({ title: 'Fetch Error', message: 'Failed to load bills: ' + (error.message || String(error)), type: 'alert' });
     }
   },
   fetchSettings: async () => {
@@ -282,11 +284,17 @@ export const useStore = create<AppState>((set) => ({
     // Optimistic: update UI instantly
     set((state) => ({ products: [...state.products, newProduct] }));
     // Background: persist to DB
-    const db = await getDb();
-    await db.execute(
-      'INSERT INTO "Product" (id, name, category, price, stock, "lowStockThreshold", "bindingVariant", hsn, barcode, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())',
-      [id, newProduct.name, newProduct.category, newProduct.price, newProduct.stock, newProduct.lowStockThreshold, newProduct.bindingVariant || null, newProduct.hsn || null, newProduct.barcode || null]
-    );
+    try {
+      const db = await getDb();
+      await db.execute(
+        'INSERT INTO "Product" (id, name, category, price, stock, "lowStockThreshold", "bindingVariant", hsn, barcode, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())',
+        [id, newProduct.name, newProduct.category, Number(newProduct.price) || 0, Number(newProduct.stock) || 0, Number(newProduct.lowStockThreshold) || 10, newProduct.bindingVariant || null, newProduct.hsn || null, newProduct.barcode || null]
+      );
+    } catch (err: any) {
+      console.error('Add Product DB Error:', err);
+      useStore.getState().showDialog({ title: 'Add Product Failed', message: err.message || 'Database error', type: 'alert' });
+      useStore.getState().fetchProducts(); // Rollback
+    }
   },
   addProductsBulk: async (productsList) => {
     const db = await getDb();
@@ -314,7 +322,7 @@ export const useStore = create<AppState>((set) => ({
       const db = await getDb();
       await db.execute(
         'UPDATE "Product" SET name=$1, category=$2, price=$3, stock=$4, "lowStockThreshold"=$5, "bindingVariant"=$6, hsn=$7, barcode=$8, "updatedAt"=NOW() WHERE id=$9',
-        [product.name, product.category, product.price || 0, product.stock || 0, product.lowStockThreshold || 10, product.bindingVariant || null, product.hsn || null, product.barcode || null, id]
+        [product.name, product.category, Number(product.price) || 0, Number(product.stock) || 0, Number(product.lowStockThreshold) || 10, product.bindingVariant || null, product.hsn || null, product.barcode || null, id]
       );
     } catch (err: any) {
       console.error('Update Product Error:', err);
@@ -341,19 +349,31 @@ export const useStore = create<AppState>((set) => ({
       discountPercentage: party.discountPercentage || 0, outstandingBalance: party.outstandingBalance || 0
     };
     set((state) => ({ parties: [...state.parties, newParty] }));
-    const db = await getDb();
-    await db.execute(
-      'INSERT INTO "Party" (id, name, address, phone, email, gstin, "discountPercentage", "outstandingBalance", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())',
-      [id, newParty.name, newParty.address, newParty.phone, newParty.email || null, newParty.gstin || null, newParty.discountPercentage, newParty.outstandingBalance]
-    );
+    try {
+      const db = await getDb();
+      await db.execute(
+        'INSERT INTO "Party" (id, name, address, phone, email, gstin, "discountPercentage", "outstandingBalance", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())',
+        [id, newParty.name, newParty.address, newParty.phone, newParty.email || null, newParty.gstin || null, Number(newParty.discountPercentage) || 0, Number(newParty.outstandingBalance) || 0]
+      );
+    } catch (err: any) {
+      console.error('Add Party DB Error:', err);
+      useStore.getState().showDialog({ title: 'Add Party Failed', message: err.message || 'Database error', type: 'alert' });
+      useStore.getState().fetchParties(); // Rollback
+    }
   },
   updateParty: async (id, party) => {
     set((state) => ({ parties: state.parties.map(p => p.id === id ? { ...p, ...party } : p) }));
-    const db = await getDb();
-    await db.execute(
-      'UPDATE "Party" SET name=$1, address=$2, phone=$3, email=$4, gstin=$5, "discountPercentage"=$6, "outstandingBalance"=$7, "updatedAt"=NOW() WHERE id=$8',
-      [party.name, party.address, party.phone, party.email || null, party.gstin || null, party.discountPercentage, party.outstandingBalance, id]
-    );
+    try {
+      const db = await getDb();
+      await db.execute(
+        'UPDATE "Party" SET name=$1, address=$2, phone=$3, email=$4, gstin=$5, "discountPercentage"=$6, "outstandingBalance"=$7, "updatedAt"=NOW() WHERE id=$8',
+        [party.name, party.address, party.phone, party.email || null, party.gstin || null, Number(party.discountPercentage) || 0, Number(party.outstandingBalance) || 0, id]
+      );
+    } catch (err: any) {
+      console.error('Update Party Error:', err);
+      useStore.getState().showDialog({ title: 'Update Party Failed', message: err.message || 'Database error', type: 'alert' });
+      useStore.getState().fetchParties(); // Rollback
+    }
   },
   deleteParty: async (id) => {
     try {
@@ -440,66 +460,6 @@ export const useStore = create<AppState>((set) => ({
       }
     }
 
-    // Begin pseudo-transaction: insert bill first, then items sequentially
-    try {
-      await db.execute(
-        `INSERT INTO "Bill" (
-          id, type, "billNumber", "partyId", "transporterId", subtotal, discount, cgst, sgst, total, status, date, 
-          "vehicleNo", destination, "driverName", "lrNo", "createdAt", "updatedAt"
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CAST($12 AS TIMESTAMP), $13, $14, $15, $16, NOW(), NOW())`,
-        [
-          id,
-          type,
-          billData.billNumber || `BILL-${Date.now()}`,
-          billData.partyId || null,
-          billData.transporterId || null,
-          billData.subtotal,
-          billData.discount,
-          billData.cgst || 0,
-          billData.sgst || 0,
-          billData.total,
-          billData.status || 'completed',
-          billData.date ? new Date(billData.date).toISOString() : new Date().toISOString(),
-          billData.vehicleNo || null,
-          billData.destination || null,
-          billData.driverName || null,
-          billData.lrNo || null
-        ]
-      );
-    } catch (err: any) {
-      const errMsg = typeof err === 'string' ? err : err.message;
-      if (errMsg && errMsg.includes('duplicate key')) {
-        throw new Error('Bill number already exists. Please use a different bill number.');
-      }
-      throw new Error(errMsg || 'Failed to save bill to database.');
-    }
-
-    // Insert line items and update stock
-    for (const item of (billData.lineItems || [])) {
-      const itemId = crypto.randomUUID();
-      await db.execute(
-        'INSERT INTO "BillLineItem" (id, "billId", "productId", quantity, mrp, "discountPercent", amount, rate, hsn) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-        [itemId, id, item.productId, item.quantity, item.mrp, item.discountPercent, item.amount, item.rate || 0, item.hsn || '']
-      );
-
-      if (item.productId) {
-        if (type === 'return') {
-          await db.execute('UPDATE "Product" SET stock = stock + $1, "updatedAt" = NOW() WHERE id = $2', [item.quantity, item.productId]);
-        } else {
-          await db.execute('UPDATE "Product" SET stock = stock - $1, "updatedAt" = NOW() WHERE id = $2', [item.quantity, item.productId]);
-        }
-      }
-    }
-
-    // Adjust party outstanding balance
-    if (billData.partyId) {
-      if (type === 'credit') {
-        await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [billData.total, billData.partyId]);
-      } else if (type === 'return') {
-        await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [billData.total, billData.partyId]);
-      }
-    }
-
     // Optimistic: update local state for stock changes instead of re-fetching
     set((state) => {
       const updatedProducts = state.products.map(p => {
@@ -526,6 +486,55 @@ export const useStore = create<AppState>((set) => ({
       }) : state.parties;
       return { products: updatedProducts, bills: [newBill, ...state.bills], parties: updatedParties };
     });
+
+    // Background DB sync
+    (async () => {
+      try {
+        await db.execute(
+          `INSERT INTO "Bill" (
+            id, type, "billNumber", "partyId", "transporterId", subtotal, discount, cgst, sgst, total, status, date, 
+            "vehicleNo", destination, "driverName", "lrNo", "createdAt", "updatedAt"
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CAST($12 AS TIMESTAMP), $13, $14, $15, $16, NOW(), NOW())`,
+          [
+            id, type, billData.billNumber || `BILL-${Date.now()}`, billData.partyId || null, billData.transporterId || null,
+            Number(billData.subtotal) || 0, Number(billData.discount) || 0, Number(billData.cgst) || 0, Number(billData.sgst) || 0, Number(billData.total) || 0,
+            billData.status || 'completed', billData.date ? new Date(billData.date).toISOString() : new Date().toISOString(),
+            billData.vehicleNo || null, billData.destination || null, billData.driverName || null, billData.lrNo || null
+          ]
+        );
+
+        for (const item of (billData.lineItems || [])) {
+          const itemId = crypto.randomUUID();
+          await db.execute(
+            'INSERT INTO "BillLineItem" (id, "billId", "productId", quantity, mrp, "discountPercent", amount, rate, hsn) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+            [itemId, id, item.productId, Number(item.quantity) || 0, Number(item.mrp) || 0, Number(item.discountPercent) || 0, Number(item.amount) || 0, Number(item.rate) || 0, item.hsn || '']
+          );
+
+          if (item.productId) {
+            if (type === 'return') {
+              await db.execute('UPDATE "Product" SET stock = stock + $1, "updatedAt" = NOW() WHERE id = $2', [Number(item.quantity) || 0, item.productId]);
+            } else {
+              await db.execute('UPDATE "Product" SET stock = stock - $1, "updatedAt" = NOW() WHERE id = $2', [Number(item.quantity) || 0, item.productId]);
+            }
+          }
+        }
+
+        if (billData.partyId) {
+          if (type === 'credit') {
+            await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [Number(billData.total) || 0, billData.partyId]);
+          } else if (type === 'return') {
+            await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [Number(billData.total) || 0, billData.partyId]);
+          }
+        }
+      } catch (err: any) {
+        console.error('Create Bill Background Error:', err);
+        useStore.getState().showDialog({ title: 'Bill Save Error', message: err.message || 'Background sync failed', type: 'alert' });
+        // Rollback
+        await useStore.getState().fetchProducts();
+        await useStore.getState().fetchParties();
+        await useStore.getState().fetchBills();
+      }
+    })();
   },
   deleteBill: async (id) => {
     try {
@@ -541,9 +550,9 @@ export const useStore = create<AppState>((set) => ({
       for (const item of items) {
         if (item.productId) {
           if (bill.type === 'return') {
-            await db.execute('UPDATE "Product" SET stock = stock - $1, "updatedAt" = NOW() WHERE id = $2', [item.quantity, item.productId]);
+            await db.execute('UPDATE "Product" SET stock = stock - $1, "updatedAt" = NOW() WHERE id = $2', [Number(item.quantity) || 0, item.productId]);
           } else {
-            await db.execute('UPDATE "Product" SET stock = stock + $1, "updatedAt" = NOW() WHERE id = $2', [item.quantity, item.productId]);
+            await db.execute('UPDATE "Product" SET stock = stock + $1, "updatedAt" = NOW() WHERE id = $2', [Number(item.quantity) || 0, item.productId]);
           }
         }
       }
@@ -551,9 +560,9 @@ export const useStore = create<AppState>((set) => ({
       // Revert party balance
       if (bill.partyId) {
         if (bill.type === 'credit') {
-          await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [bill.total, bill.partyId]);
+          await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [Number(bill.total) || 0, bill.partyId]);
         } else if (bill.type === 'return') {
-          await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [bill.total, bill.partyId]);
+          await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [Number(bill.total) || 0, bill.partyId]);
         }
       }
 

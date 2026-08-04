@@ -3,9 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import bcrypt from 'bcryptjs';
 import { getDb } from '../utils/api';
 import { Lock, User } from 'lucide-react';
-
 import { useStore } from '../store/useStore';
-
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -32,7 +30,16 @@ const Login: React.FC = () => {
           console.log('[LOGIN SUCCESS] Passwords matched. Redirecting...');
           sessionStorage.setItem('token', 'tauri-local-auth-token');
           sessionStorage.setItem('admin', JSON.stringify({ username: user.username, id: user.id }));
-          useStore.getState().setToken('tauri-local-auth-token');
+          
+          // CRITICAL: Update global store so App.tsx knows we are logged in, and fetch data!
+          const store = useStore.getState();
+          useStore.setState({ token: 'tauri-local-auth-token', isAuthenticated: true });
+          store.fetchProducts();
+          store.fetchParties();
+          store.fetchBills();
+          store.fetchTransporters();
+          store.fetchSettings();
+
           navigate('/');
           return;
         }
