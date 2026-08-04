@@ -13,6 +13,8 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
   const [billDate, setBillDate] = useState(() => getLocalDateString());
   const [showPaidStamp, setShowPaidStamp] = useState(true);
   const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
+  const [defaultDiscount, setDefaultDiscount] = useState<number>(0);
+  const [useOutstanding, setUseOutstanding] = useState(false);
   const partyDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,8 +55,22 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
     if (foundParty) {
       setPartyName(foundParty.name);
       setPartyId(foundParty.id);
+      const discount = foundParty.discountPercentage || 0;
+      setDefaultDiscount(discount);
+      
+      // Retroactively apply the default discount to all existing items
+      setItems(prevItems => prevItems.map(item => {
+        // If the item had no explicit discount set, apply the customer's default discount
+        if (!item.discountPercent || item.discountPercent === 0) {
+          const discountAmount = (item.mrp * discount) / 100;
+          const newAmount = (item.mrp - discountAmount) * item.quantity;
+          return { ...item, discountPercent: discount, amount: newAmount };
+        }
+        return item;
+      }));
     } else {
       setPartyId(null);
+      setDefaultDiscount(0);
     }
   };
 
@@ -65,7 +81,30 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
   const roundOff = Math.round(totalAmount) - totalAmount;
   const grandTotal = Math.round(totalAmount);
 
+  const partyOutstanding = parties.find(p => p.id === partyId)?.outstandingBalance || 0;
+  const deductedAmount = (useOutstanding && partyOutstanding > 0) ? Math.min(partyOutstanding, grandTotal) : 0;
+  const netPayable = grandTotal - deductedAmount;
+
   const handleSave = async () => {
+    const bankName = settings.bankName || '';
+    const acNo = settings.bankAccountNo || '';
+    const ifsc = settings.bankIfsc || '';
+    if (bankName.length > 0) {
+      const bLen = bankName.replace(/ /g, '').length;
+      if (bLen < 3 || bLen > 44) {
+        showDialog({ title: 'Validation Error', message: 'Bank Name must be between 3 and 44 characters (excluding spaces).', type: 'alert' });
+        return;
+      }
+    }
+    if (acNo.length > 0 && (acNo.length < 8 || acNo.length > 17)) {
+      showDialog({ title: 'Validation Error', message: 'Bank Account Number must be between 8 and 17 digits.', type: 'alert' });
+      return;
+    }
+    if (ifsc.length > 0 && !/^[A-Za-z]{4}\d{7}$/.test(ifsc)) {
+      showDialog({ title: 'Validation Error', message: 'IFSC Code must start with 4 letters followed by 7 numbers (e.g. SBIN0011372).', type: 'alert' });
+      return;
+    }
+
     if (items.length === 0) {
       showDialog({ title: 'Validation Error', message: 'Please add at least one item.', type: 'alert' });
       return;
@@ -84,6 +123,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         subtotal: mrpTotal,
         discount: discountTotal,
         total: grandTotal,
+        deductedAmount: deductedAmount,
         lineItems: items.map(i => ({
           productId: i.productId,
           productName: i.productName,
@@ -103,6 +143,25 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
   };
 
   const handlePrint = () => {
+    const bankName = settings.bankName || '';
+    const acNo = settings.bankAccountNo || '';
+    const ifsc = settings.bankIfsc || '';
+    if (bankName.length > 0) {
+      const bLen = bankName.replace(/ /g, '').length;
+      if (bLen < 3 || bLen > 44) {
+        showDialog({ title: 'Validation Error', message: 'Bank Name must be between 3 and 44 characters (excluding spaces).', type: 'alert' });
+        return;
+      }
+    }
+    if (acNo.length > 0 && (acNo.length < 8 || acNo.length > 17)) {
+      showDialog({ title: 'Validation Error', message: 'Bank Account Number must be between 8 and 17 digits.', type: 'alert' });
+      return;
+    }
+    if (ifsc.length > 0 && !/^[A-Za-z]{4}\d{7}$/.test(ifsc)) {
+      showDialog({ title: 'Validation Error', message: 'IFSC Code must start with 4 letters followed by 7 numbers (e.g. SBIN0011372).', type: 'alert' });
+      return;
+    }
+
     try {
       window.print();
     } catch (err) {
@@ -157,52 +216,69 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         <div className="h-1 bg-black w-full my-4"></div>
 
         {/* Bill Meta */}
-        <div className="flex justify-between items-start mb-4 text-sm">
-          <div className="flex items-center gap-2 mt-2 relative" ref={partyDropdownRef}>
-            <span className="font-semibold whitespace-nowrap">Party Name :</span>
-            <div className="flex items-center border-b border-gray-300 w-64 pr-2">
+        <div className="flex justify-between items-end mb-4 bg-muted/20 print:bg-transparent rounded-xl p-4 print:p-0 border border-border print:border-none">
+          <div className="flex flex-col gap-1.5 relative w-72" ref={partyDropdownRef}>
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider pl-1">Billed To</span>
+            <div className="flex items-center bg-background print:bg-transparent border border-border print:border-b-black print:border-t-0 print:border-l-0 print:border-r-0 rounded-lg print:rounded-none px-3 print:px-0 py-2 shadow-sm print:shadow-none transition-all focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary">
               <input
                 type="text"
                 value={partyName}
                 onChange={e => { handlePartyLookup(e.target.value); setPartyDropdownOpen(true); }}
                 onFocus={() => setPartyDropdownOpen(true)}
-                className="outline-none w-full bg-transparent font-bold uppercase pb-1"
+                className="outline-none w-full bg-transparent font-bold text-sm uppercase text-foreground"
                 placeholder="CASH CUSTOMER"
               />
-              <svg onClick={() => setPartyDropdownOpen(!partyDropdownOpen)} className="w-4 h-4 cursor-pointer text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              <svg onClick={() => setPartyDropdownOpen(!partyDropdownOpen)} className="w-4 h-4 cursor-pointer text-muted-foreground hover:text-foreground transition-colors print:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </div>
             
-            {partyDropdownOpen && (
-              <div className="absolute top-full left-[90px] mt-1 w-64 bg-background border border-border shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm">
+            {partyDropdownOpen && parties.filter(p => p.name.toLowerCase().includes(partyName.toLowerCase()) || p.phone.includes(partyName)).length > 0 && (
+              <div className="absolute top-full left-0 mt-2 w-full bg-background border border-border shadow-2xl rounded-lg z-50 max-h-60 overflow-y-auto no-print text-sm overflow-hidden">
                 {parties.filter(p => p.name.toLowerCase().includes(partyName.toLowerCase()) || p.phone.includes(partyName)).map(p => (
                   <div
                     key={p.id}
-                    className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-gray-100 last:border-0"
+                    className="px-4 py-3 hover:bg-primary/10 cursor-pointer transition-colors border-b border-border/50 last:border-0"
                     onClick={() => {
                       setPartyName(p.name);
                       setPartyId(p.id);
+                      const discount = p.discountPercentage || 0;
+                      setDefaultDiscount(discount);
                       setPartyDropdownOpen(false);
+                      
+                      setItems(prevItems => prevItems.map(item => {
+                        if (!item.discountPercent || item.discountPercent === 0) {
+                          const discountAmount = (item.mrp * discount) / 100;
+                          const newAmount = (item.mrp - discountAmount) * item.quantity;
+                          return { ...item, discountPercent: discount, amount: newAmount };
+                        }
+                        return item;
+                      }));
                     }}
                   >
-                    <div className="font-bold">{p.name}</div>
-                    <div className="text-xs opacity-90">{p.phone}</div>
+                    <div className="font-bold text-foreground text-sm">{p.name}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{p.phone}</div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-          <div className="flex flex-col items-end gap-1">
-            <div className="font-bold border border-black px-6 py-1 text-lg mb-1">
+          
+          <div className="flex flex-col items-end gap-3">
+            <div className="bg-primary/10 text-primary print:bg-transparent print:text-black font-extrabold px-5 py-1.5 rounded-lg print:rounded-none text-lg tracking-widest border border-primary/20 print:border-black uppercase shadow-sm print:shadow-none">
               CASH MEMO
             </div>
-            <div className="flex items-center gap-1 justify-end w-48">
-              <span className="font-semibold uppercase text-xs mr-2">CASH MEMO NO:</span>
-              <span className="text-xs">CSH-</span>
-              <input value={memoNo.replace(/^CSH-/, '')} onChange={e => setMemoNo('CSH-' + e.target.value.replace(/^CSH-/, ''))} className="outline-none w-16 bg-transparent text-left font-bold text-xs" placeholder="178..." />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-xs">Date :</span>
-              <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="outline-none w-24 bg-transparent text-right font-bold text-xs" />
+            <div className="flex items-center gap-4 bg-background print:bg-transparent border border-border print:border-none rounded-lg px-4 py-2 shadow-sm print:shadow-none">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Memo No.</span>
+                <div className="flex items-center">
+                  <span className="font-bold text-xs text-foreground">CSH-</span>
+                  <input value={memoNo.replace(/^CSH-/, '')} onChange={e => setMemoNo('CSH-' + e.target.value.replace(/^CSH-/, ''))} className="outline-none w-16 bg-transparent font-bold text-xs text-foreground placeholder:text-muted-foreground" placeholder="178" />
+                </div>
+              </div>
+              <div className="w-[1px] h-8 bg-border print:hidden"></div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Date</span>
+                <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="outline-none bg-transparent font-bold text-xs text-foreground cursor-pointer" />
+              </div>
             </div>
           </div>
         </div>
@@ -213,6 +289,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
             items={items}
             onChange={setItems}
             columns={['sno', 'qty', 'name', 'mrp', 'discount', 'amount']}
+            globalDiscount={defaultDiscount}
           />
         </div>
 
@@ -222,13 +299,13 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
           <div className="w-[60%] border-r border-black p-3 flex flex-col justify-between">
             <div>
               <p className="font-bold underline mb-1 text-xs">Bank Details:</p>
-              <div className="flex items-center gap-2 text-xs mb-1"><span className="font-semibold whitespace-nowrap flex-shrink-0">Bank Name:</span><input value={settings.bankName} onChange={e => updateSettings({ bankName: e.target.value })} className="outline-none bg-transparent w-full" placeholder="Bank Name" /></div>
-              <div className="flex items-center gap-2 text-xs"><span className="font-semibold whitespace-nowrap flex-shrink-0">A/c No:</span><input value={settings.bankAccountNo} onChange={e => updateSettings({ bankAccountNo: e.target.value })} className="outline-none bg-transparent w-full" placeholder="A/c No" /> <span className="font-semibold whitespace-nowrap flex-shrink-0">IFSC Code:</span><input value={settings.bankIfsc} onChange={e => updateSettings({ bankIfsc: e.target.value })} className="outline-none bg-transparent w-full" placeholder="IFSC Code" /></div>
+              <div className="flex items-center gap-2 text-xs mb-1"><span className="font-semibold whitespace-nowrap flex-shrink-0">Bank Name:</span><input value={settings.bankName} onChange={e => { const val = e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''); if (val.replace(/ /g, '').length <= 44) updateSettings({ bankName: val }); }} className="outline-none bg-transparent w-full" placeholder="Bank Name" /></div>
+              <div className="flex items-center gap-2 text-xs"><span className="font-semibold whitespace-nowrap flex-shrink-0">A/c No:</span><input value={settings.bankAccountNo} maxLength={17} onChange={e => { const val = e.target.value.replace(/\D/g, ''); updateSettings({ bankAccountNo: val }) }} className="outline-none bg-transparent w-full" placeholder="A/c No" /> <span className="font-semibold whitespace-nowrap flex-shrink-0">IFSC Code:</span><input value={settings.bankIfsc} maxLength={11} onChange={e => { let val = e.target.value.toUpperCase(); let formatted = ''; for (let i = 0; i < val.length; i++) { if (i < 4) { if (/[A-Z]/.test(val[i])) formatted += val[i]; } else { if (/[0-9]/.test(val[i])) formatted += val[i]; } } updateSettings({ bankIfsc: formatted }) }} className="outline-none bg-transparent w-full uppercase" placeholder="IFSC Code" /></div>
             </div>
 
             <div className="mt-8">
               <p className="font-bold text-xs">**THANKING YOU VISIT AGAIN**</p>
-              <p className="italic text-xs mt-2">*Rupees {numberToWords(grandTotal)} Only*</p>
+              <p className="italic text-xs mt-2">*Rupees {numberToWords(netPayable > 0 ? netPayable : grandTotal)} Only*</p>
             </div>
           </div>
 
@@ -250,6 +327,23 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
               <span>GRAND TOTAL</span>
               <span>{grandTotal.toFixed(2)}</span>
             </div>
+            
+            {partyOutstanding > 0 && (
+              <div className="flex items-center justify-between border-b border-black p-2 bg-yellow-50/50 dark:bg-yellow-900/20 print:bg-transparent">
+                <label className="flex items-center gap-2 cursor-pointer no-print text-xs">
+                  <input type="checkbox" checked={useOutstanding} onChange={e => setUseOutstanding(e.target.checked)} className="w-3 h-3 accent-primary" />
+                  <span className="font-semibold text-amber-700 dark:text-amber-400">Use Advance (₹{partyOutstanding})</span>
+                </label>
+                <div className="hidden print:block text-xs font-semibold">Less Advance</div>
+                <span className="text-xs font-bold text-red-600 dark:text-red-400">- {deductedAmount.toFixed(2)}</span>
+              </div>
+            )}
+            {(useOutstanding && partyOutstanding > 0) && (
+              <div className="flex justify-between border-b border-black p-2 font-bold text-lg bg-green-50 dark:bg-green-900/20 print:bg-transparent text-foreground">
+                <span>NET PAYABLE</span>
+                <span>{netPayable.toFixed(2)}</span>
+              </div>
+            )}
 
             <div className="flex-1 p-2 flex flex-col items-end justify-between min-h-[80px]">
               <div className="flex gap-1 text-xs justify-end w-full"><span>For</span><div className="font-bold flex-1 text-right truncate">{settings.companyName}</div></div>

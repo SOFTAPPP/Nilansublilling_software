@@ -529,8 +529,13 @@ export const useStore = create<AppState>((set) => ({
       };
       const updatedParties = billData.partyId ? state.parties.map(p => {
         if (p.id === billData.partyId) {
-          const balanceChange = type === 'credit' ? billData.total : type === 'return' ? -billData.total : 0;
-          return { ...p, outstandingBalance: p.outstandingBalance + balanceChange };
+          const deducted = billData.deductedAmount || 0;
+          const newBalance = p.outstandingBalance - deducted;
+          const effectiveTotal = billData.total; 
+          const balanceChange = type === 'credit' ? effectiveTotal : type === 'return' ? -effectiveTotal : 0;
+          // If credit, balance increases by total, but decreases by deducted
+          // If cash, balance just decreases by deducted
+          return { ...p, outstandingBalance: newBalance + balanceChange };
         }
         return p;
       }) : state.parties;

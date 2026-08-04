@@ -157,7 +157,7 @@ export default function PartyStatement() {
               <svg onClick={() => setPartyDropdownOpen(!partyDropdownOpen)} className="w-4 h-4 cursor-pointer text-gray-500 ml-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </div>
             
-            {partyDropdownOpen && (
+            {partyDropdownOpen && parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).length > 0 && (
               <div className="absolute top-full left-0 mt-1 w-64 bg-background border border-border shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
                 {parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).map(p => (
                   <div

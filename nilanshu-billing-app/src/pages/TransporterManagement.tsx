@@ -120,26 +120,26 @@ export default function TransporterManagement() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card p-6 rounded-xl w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">{editingId ? 'Edit Transporter' : 'Add Transporter'}</h2>
-            <div className="space-y-4">
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center z-50 animate-in fade-in duration-200">
+          <div className="bg-card p-6 md:p-8 rounded-2xl w-full max-w-md shadow-2xl border border-border/50 animate-in zoom-in-95 duration-200">
+            <h2 className="text-2xl font-bold mb-6 tracking-tight text-foreground">{editingId ? 'Edit Transporter' : 'Add Transporter'}</h2>
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm mb-1">Name *</label>
-                <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border p-2 rounded bg-background" />
+                <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Name <span className="text-red-500">*</span></label>
+                <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="Transporter Name" />
               </div>
               <div>
-                <label className="block text-sm mb-1">Phone</label>
-                <input value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full border p-2 rounded bg-background" />
+                <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Phone</label>
+                <input value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="Contact Number" />
               </div>
               <div>
-                <label className="block text-sm mb-1">Address</label>
-                <input value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full border p-2 rounded bg-background" />
+                <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Address</label>
+                <input value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="Full Address" />
               </div>
             </div>
-            <div className="flex justify-end gap-2 mt-6">
-              <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded-md hover:bg-muted">Cancel</button>
-              <button onClick={handleSave} className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">Save</button>
+            <div className="flex justify-end gap-3 mt-8">
+              <button onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 border border-border/50 rounded-xl hover:bg-muted font-bold transition-colors text-sm text-foreground shadow-sm">Cancel</button>
+              <button onClick={handleSave} className="px-7 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-bold shadow-md transition-colors text-sm">Save Transporter</button>
             </div>
           </div>
         </div>

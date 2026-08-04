@@ -165,7 +165,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
                   <svg onClick={() => setTransporterDropdownOpen(!transporterDropdownOpen)} className="w-4 h-4 cursor-pointer text-gray-500 ml-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                 </div>
                 
-                {transporterDropdownOpen && (
+                {transporterDropdownOpen && transporters.filter(t => t.name.toLowerCase().includes(transporterSearch.toLowerCase()) || t.phone.includes(transporterSearch)).length > 0 && (
                   <div className="absolute top-full left-0 mt-1 w-full bg-background border border-border shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
                     {transporters.filter(t => t.name.toLowerCase().includes(transporterSearch.toLowerCase()) || t.phone.includes(transporterSearch)).map(t => (
                       <div

@@ -296,77 +296,80 @@ export default function StockManagement() {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card p-6 rounded-xl w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">{editingId ? 'Edit Product' : 'Add Product'}</h2>
-            <div className="space-y-4">
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center z-50 animate-in fade-in duration-200">
+          <div className="bg-card p-6 md:p-8 rounded-2xl w-full max-w-lg shadow-2xl border border-border/50 animate-in zoom-in-95 duration-200">
+            <h2 className="text-2xl font-bold mb-6 tracking-tight text-foreground">{editingId ? 'Edit Product' : 'Add Product'}</h2>
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm mb-1">Product ID <span className="text-muted-foreground text-xs font-normal">(Leave blank to auto-generate)</span></label>
+                <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Product ID <span className="font-normal opacity-70 capitalize tracking-normal">(Leave blank to auto-generate)</span></label>
                 <input 
                   value={formData.id || ''} 
                   onChange={e => setFormData({...formData, id: e.target.value})} 
-                  className="w-full border p-2 rounded bg-background" 
-                  disabled={!!editingId} // ID cannot be changed once created
+                  className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" 
+                  disabled={!!editingId}
                   placeholder="e.g. PROD-123"
                 />
               </div>
-              <div>
-                <label className="block text-sm mb-1">Name *</label>
-                <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border p-2 rounded bg-background" />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Category *</label>
-                <input value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full border p-2 rounded bg-background" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-5">
+                <div className="col-span-2 md:col-span-1">
+                  <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Name <span className="text-red-500">*</span></label>
+                  <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="Product Name" />
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Category <span className="text-red-500">*</span></label>
+                  <input value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="Category Name" />
+                </div>
+                
                 <div>
-                  <label className="block text-sm mb-1">Price (MRP)</label>
-                  <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full border p-2 rounded bg-background" />
+                  <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Price (MRP)</label>
+                  <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="0.00" />
                 </div>
                 <div>
-                  <label className="block text-sm mb-1">Current Stock</label>
-                  <input type="number" value={formData.stock} onChange={e => setFormData({...formData, stock: Number(e.target.value)})} className="w-full border p-2 rounded bg-background" />
+                  <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Current Stock</label>
+                  <input type="number" value={formData.stock} onChange={e => setFormData({...formData, stock: Number(e.target.value)})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="0" />
+                </div>
+                
+                <div>
+                  <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Min Stock</label>
+                  <input type="number" value={formData.lowStockThreshold} onChange={e => setFormData({...formData, lowStockThreshold: Number(e.target.value)})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="10" />
                 </div>
                 <div>
-                  <label className="block text-sm mb-1">Min Stock</label>
-                  <input type="number" value={formData.lowStockThreshold} onChange={e => setFormData({...formData, lowStockThreshold: Number(e.target.value)})} className="w-full border p-2 rounded bg-background" />
+                  <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">HSN Code</label>
+                  <input value={formData.hsn || ''} onChange={e => setFormData({...formData, hsn: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="e.g. 1234" />
                 </div>
+                
                 <div>
-                  <label className="block text-sm mb-1">HSN Code</label>
-                  <input value={formData.hsn || ''} onChange={e => setFormData({...formData, hsn: e.target.value})} className="w-full border p-2 rounded bg-background" />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1 flex items-center gap-1.5">
+                  <label className="flex items-center gap-1.5 text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                     <ScanBarcode size={14} className={barcodeScanActive ? 'text-emerald-500' : 'text-muted-foreground'} />
                     Barcode
-                    <span className="text-xs text-muted-foreground font-normal">(scan or type)</span>
+                    <span className="text-[10px] font-normal opacity-70 tracking-normal capitalize">(scan/type)</span>
                   </label>
                   <div className="relative">
                     <input 
                       ref={barcodeInputRef}
                       value={formData.barcode || ''} 
                       onChange={e => setFormData({...formData, barcode: e.target.value})} 
-                      className={`w-full border p-2 rounded bg-background transition-colors ${
-                        barcodeScanActive ? 'border-emerald-500 ring-2 ring-emerald-200' : ''
+                      className={`w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 transition-all font-semibold text-sm text-foreground ${
+                        barcodeScanActive ? 'border-emerald-500 ring-2 ring-emerald-200' : 'focus:ring-primary/30'
                       }`}
-                      placeholder="Scan barcode here..."
+                      placeholder="Scan barcode..."
                     />
                     {barcodeScanActive && (
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-500 text-xs font-medium animate-pulse">
-                        ✓ Scanned!
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 text-[10px] font-extrabold animate-pulse uppercase tracking-wider">
+                        Scanned!
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="col-span-2">
-                  <label className="block text-sm mb-1">Variant / Binding</label>
-                  <input value={formData.bindingVariant || ''} onChange={e => setFormData({...formData, bindingVariant: e.target.value})} className="w-full border p-2 rounded bg-background" />
+                <div>
+                  <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Variant / Binding</label>
+                  <input value={formData.bindingVariant || ''} onChange={e => setFormData({...formData, bindingVariant: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="e.g. Hardcover" />
                 </div>
               </div>
             </div>
-            <div className="flex justify-end gap-2 mt-6">
-              <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded-md hover:bg-muted">Cancel</button>
-              <button onClick={handleSave} className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">Save</button>
+            <div className="flex justify-end gap-3 mt-8">
+              <button onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 border border-border/50 rounded-xl hover:bg-muted font-bold transition-colors text-sm text-foreground shadow-sm">Cancel</button>
+              <button onClick={handleSave} className="px-7 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-bold shadow-md transition-colors text-sm">Save Product</button>
             </div>
           </div>
         </div>

@@ -135,7 +135,7 @@ export const BillEngine: React.FC<BillEngineProps> = ({
       return;
     }
 
-    const discountPct = product && globalDiscount > 0 ? globalDiscount : 0;
+    const discountPct = globalDiscount > 0 ? globalDiscount : 0;
     const newItem: BillLineItem = {
       id: crypto.randomUUID(),
       productId: product?.id || '',
@@ -168,6 +168,9 @@ export const BillEngine: React.FC<BillEngineProps> = ({
         item.mrp = prod.price;
         item.hsn = prod.hsn || '';
         item.rate = prod.price;
+        if (item.discountPercent === 0 && globalDiscount > 0) {
+          item.discountPercent = globalDiscount;
+        }
       }
     }
 
@@ -179,6 +182,9 @@ export const BillEngine: React.FC<BillEngineProps> = ({
         item.mrp = match.price;
         item.hsn = match.hsn || '';
         item.rate = match.price;
+        if (item.discountPercent === 0 && globalDiscount > 0) {
+          item.discountPercent = globalDiscount;
+        }
       } else {
         item.productId = '';
       }
@@ -320,8 +326,8 @@ export const BillEngine: React.FC<BillEngineProps> = ({
               {columns.includes('rate') && (
                 <td className="p-0 border border-border">
                    <input 
-                    type="number" className="w-full p-2 text-right bg-transparent outline-none"
-                    value={item.rate || 0} onChange={(e) => updateLineItem(index, 'rate', parseFloat(e.target.value) || 0)}
+                    type="number" min="0" className="w-full p-2 text-right bg-transparent outline-none"
+                    value={item.rate || 0} onChange={(e) => updateLineItem(index, 'rate', Math.max(0, parseFloat(e.target.value) || 0))}
                     readOnly={readOnly}
                   />
                 </td>
@@ -332,8 +338,8 @@ export const BillEngine: React.FC<BillEngineProps> = ({
               {columns.includes('mrp') && (
                 <td className="p-0 border border-border">
                   <input 
-                    type="number" className="w-full p-2 text-right bg-transparent outline-none"
-                    value={item.mrp} onChange={(e) => updateLineItem(index, 'mrp', parseFloat(e.target.value) || 0)}
+                    type="number" min="0" className="w-full p-2 text-right bg-transparent outline-none"
+                    value={item.mrp} onChange={(e) => updateLineItem(index, 'mrp', Math.max(0, parseFloat(e.target.value) || 0))}
                     readOnly={readOnly}
                   />
                 </td>
@@ -341,8 +347,8 @@ export const BillEngine: React.FC<BillEngineProps> = ({
               {columns.includes('discount') && (
                 <td className="p-0 border border-border">
                   <input 
-                    type="number" className="w-full p-2 text-center bg-transparent outline-none"
-                    value={item.discountPercent} onChange={(e) => updateLineItem(index, 'discountPercent', parseFloat(e.target.value) || 0)}
+                    type="number" min="0" className="w-full p-2 text-center bg-transparent outline-none"
+                    value={item.discountPercent} onChange={(e) => updateLineItem(index, 'discountPercent', Math.max(0, parseFloat(e.target.value) || 0))}
                     readOnly={readOnly}
                   />
                 </td>

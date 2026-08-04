@@ -27,6 +27,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   const [billDate, setBillDate] = useState(() => getLocalDateString());
   const [partyDiscount, setPartyDiscount] = useState(0);
   const [partyId, setPartyId] = useState<string | null>(null);
+  const [useOutstanding, setUseOutstanding] = useState(false);
 
   useEffect(() => {
     if (viewBill) {
@@ -69,7 +70,8 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
       setBuyerName(foundParty.name);
       setBuyerPhone(foundParty.phone);
       setBuyerAddress(foundParty.address);
-      setPartyDiscount(foundParty.discountPercentage);
+      const discount = foundParty.discountPercentage || 0;
+      setPartyDiscount(discount);
       setPartyId(foundParty.id);
       
       // Auto-fill consignee details
@@ -77,8 +79,19 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
       setConsigneeAddress(foundParty.address);
       setConsigneeState(foundParty.gstin ? foundParty.gstin.substring(0, 2) : '19'); // Default WB state code 19
       setBuyerState(foundParty.gstin ? foundParty.gstin.substring(0, 2) : '19');
+
+      // Retroactively apply the default discount to all existing items
+      setItems(prevItems => prevItems.map(item => {
+        if (!item.discountPercent || item.discountPercent === 0) {
+          const discountAmount = (item.mrp * discount) / 100;
+          const newAmount = (item.mrp - discountAmount) * item.quantity;
+          return { ...item, discountPercent: discount, amount: newAmount };
+        }
+        return item;
+      }));
     } else {
       setPartyId(null);
+      setPartyDiscount(0);
     }
   };
   
@@ -110,15 +123,57 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   const sgstAmount = (totalAmount * sgstRate) / 100;
   const grandTotal = totalAmount + cgstAmount + sgstAmount;
 
+  const partyOutstanding = parties.find(p => p.id === partyId)?.outstandingBalance || 0;
+  const deductedAmount = (useOutstanding && partyOutstanding > 0) ? Math.min(partyOutstanding, grandTotal) : 0;
+  const netPayable = grandTotal - deductedAmount;
+
   const handlePrint = () => {
+    const bankName = settings.bankName || '';
+    const acNo = settings.bankAccountNo || '';
+    const ifsc = settings.bankIfsc || '';
+    if (bankName.length > 0) {
+      const bLen = bankName.replace(/ /g, '').length;
+      if (bLen < 3 || bLen > 44) {
+        showDialog({ title: 'Validation Error', message: 'Bank Name must be between 3 and 44 characters (excluding spaces).', type: 'alert' });
+        return;
+      }
+    }
+    if (acNo.length > 0 && (acNo.length < 8 || acNo.length > 17)) {
+      showDialog({ title: 'Validation Error', message: 'Bank Account Number must be between 8 and 17 digits.', type: 'alert' });
+      return;
+    }
+    if (ifsc.length > 0 && !/^[A-Za-z]{4}\d{7}$/.test(ifsc)) {
+      showDialog({ title: 'Validation Error', message: 'IFSC Code must start with 4 letters followed by 7 numbers (e.g. SBIN0011372).', type: 'alert' });
+      return;
+    }
+
     try {
       window.print();
     } catch (err) {
-      showDialog({ title: 'Print Error', message: 'Some technical error happened or your printer is having an issue. Please fix it.', type: 'alert' });
+      showDialog({ title: 'Error', message: 'Some technical error happened or your printer is having an issue. Please fix it.', type: 'alert' });
     }
   };
 
   const handleSave = async () => {
+    const bankName = settings.bankName || '';
+    const acNo = settings.bankAccountNo || '';
+    const ifsc = settings.bankIfsc || '';
+    if (bankName.length > 0) {
+      const bLen = bankName.replace(/ /g, '').length;
+      if (bLen < 3 || bLen > 44) {
+        showDialog({ title: 'Validation Error', message: 'Bank Name must be between 3 and 44 characters (excluding spaces).', type: 'alert' });
+        return;
+      }
+    }
+    if (acNo.length > 0 && (acNo.length < 8 || acNo.length > 17)) {
+      showDialog({ title: 'Validation Error', message: 'Bank Account Number must be between 8 and 17 digits.', type: 'alert' });
+      return;
+    }
+    if (ifsc.length > 0 && !/^[A-Za-z]{4}\d{7}$/.test(ifsc)) {
+      showDialog({ title: 'Validation Error', message: 'IFSC Code must start with 4 letters followed by 7 numbers (e.g. SBIN0011372).', type: 'alert' });
+      return;
+    }
+
     if (items.length === 0) {
       showDialog({ title: 'Validation Error', message: 'Please add at least one item.', type: 'alert' });
       return;
@@ -143,6 +198,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
         cgst: cgstAmount,
         sgst: sgstAmount,
         total: grandTotal,
+        deductedAmount: deductedAmount,
         lineItems: items.map(i => ({
           productId: i.productId,
           productName: i.productName,
@@ -277,7 +333,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                       <svg onClick={() => setPartyDropdownOpen(!partyDropdownOpen)} className="w-4 h-4 cursor-pointer text-gray-500 ml-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                     </div>
                     
-                    {partyDropdownOpen && (
+                    {partyDropdownOpen && parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).length > 0 && (
                       <div className="absolute top-full left-0 mt-1 w-full bg-background border border-border shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
                         {parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).map(p => (
                           <div
@@ -393,20 +449,45 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                {sgstAmount.toFixed(2)}
              </div>
            </div>
-           <div className="flex border-t-2 border-black text-sm font-bold text-lg">
-             <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
-               Grand Total
-             </div>
-             <div className="w-[15%] text-right pr-2 py-1">
-               {grandTotal.toFixed(2)}
-             </div>
-           </div>
-        </div>
+            <div className="flex border-t-2 border-black text-sm font-bold text-lg">
+              <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
+                Grand Total
+              </div>
+              <div className="w-[15%] text-right pr-2 py-1">
+                {grandTotal.toFixed(2)}
+              </div>
+            </div>
+            
+            {partyOutstanding > 0 && (
+              <div className="flex border-t-2 border-black text-sm font-bold bg-yellow-50/50 dark:bg-yellow-900/20 print:bg-transparent">
+                <div className="w-[85%] text-right pr-4 py-1 border-r border-black flex justify-end items-center gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer no-print text-xs">
+                    <input type="checkbox" checked={useOutstanding} onChange={e => setUseOutstanding(e.target.checked)} className="w-3 h-3 accent-primary" />
+                    <span className="font-semibold text-amber-700 dark:text-amber-400">Use Advance (₹{partyOutstanding})</span>
+                  </label>
+                  <span className="hidden print:block text-xs font-semibold">Less Advance</span>
+                </div>
+                <div className="w-[15%] text-right pr-2 py-1 text-red-600 dark:text-red-400">
+                  - {deductedAmount.toFixed(2)}
+                </div>
+              </div>
+            )}
+            {(useOutstanding && partyOutstanding > 0) && (
+              <div className="flex border-t-2 border-black text-sm font-bold text-lg bg-green-50 dark:bg-green-900/20 print:bg-transparent text-foreground">
+                <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
+                  NET PAYABLE
+                </div>
+                <div className="w-[15%] text-right pr-2 py-1">
+                  {netPayable.toFixed(2)}
+                </div>
+              </div>
+            )}
+         </div>
 
         {/* Amount in words */}
         <div className="border-b-2 border-black p-2 text-sm flex gap-4 items-center">
           <span className="text-[13px]">Amount Chargeable (in words)</span>
-          <span className="font-bold text-[13px]">{numberToWords(Math.round(grandTotal))} only.</span>
+          <span className="font-bold text-[13px]">{numberToWords(Math.round(netPayable > 0 ? netPayable : grandTotal))} only.</span>
         </div>
 
         {/* Footer info */}
@@ -414,10 +495,10 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           <div className="p-2 border-b border-black">
             <p className="underline mb-1">Company's Bank Details :-</p>
             <div className="flex flex-wrap gap-x-6 gap-y-1 font-bold">
-              <div className="flex gap-2"><span>Bank Name :-</span><input value={settings.bankName} onChange={e => updateSettings({bankName: e.target.value})} className="outline-none bg-transparent" /></div>
-              <div className="flex gap-2"><span>A/c. No.</span><input value={settings.bankAccountNo} onChange={e => updateSettings({bankAccountNo: e.target.value})} className="outline-none bg-transparent" /></div>
+              <div className="flex gap-2"><span>Bank Name :-</span><input value={settings.bankName} onChange={e => { const val = e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''); if (val.replace(/ /g, '').length <= 44) updateSettings({ bankName: val }); }} className="outline-none bg-transparent" /></div>
+              <div className="flex gap-2"><span>A/c. No.</span><input value={settings.bankAccountNo} maxLength={17} onChange={e => { const val = e.target.value.replace(/\D/g, ''); updateSettings({bankAccountNo: val}) }} className="outline-none bg-transparent" /></div>
               <div className="flex gap-2"><input value={settings.companyCity + " Br.,"} onChange={e => updateSettings({companyCity: e.target.value.replace(' Br.,', '')})} className="outline-none bg-transparent text-right" /></div>
-              <div className="flex gap-2"><span>IFS -</span><input value={settings.bankIfsc} onChange={e => updateSettings({bankIfsc: e.target.value})} className="outline-none bg-transparent" /></div>
+              <div className="flex gap-2"><span>IFS -</span><input value={settings.bankIfsc} maxLength={11} onChange={e => { let val = e.target.value.toUpperCase(); let formatted = ''; for (let i = 0; i < val.length; i++) { if (i < 4) { if (/[A-Z]/.test(val[i])) formatted += val[i]; } else { if (/[0-9]/.test(val[i])) formatted += val[i]; } } updateSettings({ bankIfsc: formatted }) }} className="outline-none bg-transparent uppercase" /></div>
             </div>
           </div>
           <div className="flex">
