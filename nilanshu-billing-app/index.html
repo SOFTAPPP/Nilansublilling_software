@@ -4,10 +4,24 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>nilanshu-billing-app</title>
+    <title>NP-Billing</title>
+    <style>
+      body { margin: 0; background-color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+      @media (prefers-color-scheme: dark) { body { background-color: #020817; color: #fff; } }
+      #initial-loader { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; }
+      .spinner { width: 40px; height: 40px; border: 4px solid rgba(0, 0, 0, 0.1); border-left-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
+      @media (prefers-color-scheme: dark) { .spinner { border: 4px solid rgba(255, 255, 255, 0.1); border-left-color: #3b82f6; } }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      .loading-text { margin-top: 1rem; font-size: 14px; color: #64748b; font-weight: 500; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="initial-loader">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading NP-Billing...</div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

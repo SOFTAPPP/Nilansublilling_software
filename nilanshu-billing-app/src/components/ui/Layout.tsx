@@ -24,8 +24,9 @@ export const Layout = () => {
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
       {/* Sidebar */}
       <aside className="w-64 bg-card border-r border-border flex flex-col no-print">
-        <div className="p-6">
-          <h1 className="text-xl font-bold tracking-tight text-primary">Nilanshu Billing</h1>
+        <div className="p-6 flex items-center gap-3">
+          <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
+          <h1 className="text-xl font-bold tracking-tight text-primary">NP-Billing</h1>
         </div>
         
         <nav className="flex-1 px-4 space-y-2 overflow-y-auto">

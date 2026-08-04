@@ -10,7 +10,12 @@ export default function Dashboard() {
   const totalOutstanding = parties.reduce((sum, p) => sum + p.outstandingBalance, 0);
   const todayBills = bills.filter(b => {
     const today = new Date();
-    const bd = new Date(b.date);
+    let dateStr = String(b.date);
+    // Convert PostgreSQL "2026-08-04 20:20:00" to ISO UTC "2026-08-04T20:20:00Z"
+    if (dateStr.includes(' ') && !dateStr.includes('T')) {
+      dateStr = dateStr.replace(' ', 'T') + 'Z';
+    }
+    const bd = new Date(dateStr);
     return bd.toDateString() === today.toDateString();
   });
   const todaySales = todayBills.reduce((sum, b) => sum + Number(b.total || 0), 0);
@@ -28,7 +33,11 @@ export default function Dashboard() {
     const y = d.getFullYear();
     
     const monthlyBills = bills.filter(b => {
-      const bd = new Date(b.date);
+      let dateStr = String(b.date);
+      if (dateStr.includes(' ') && !dateStr.includes('T')) {
+        dateStr = dateStr.replace(' ', 'T') + 'Z';
+      }
+      const bd = new Date(dateStr);
       return bd.getMonth() === m && bd.getFullYear() === y;
     });
     
