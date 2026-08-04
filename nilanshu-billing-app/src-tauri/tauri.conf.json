@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Nilanshu Billing Software",
+        "title": "NP Billing Software",
         "width": 1280,
         "height": 850,
         "resizable": true,

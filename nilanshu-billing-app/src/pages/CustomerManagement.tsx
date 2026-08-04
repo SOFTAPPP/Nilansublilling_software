@@ -193,7 +193,7 @@ export default function CustomerManagement() {
             </div>
             <div>
               <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Opening Balance (₹)</label>
-              <input type="number" placeholder="0" value={newParty.outstandingBalance} onChange={e => setNewParty({...newParty, outstandingBalance: parseFloat(e.target.value) || 0})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
+              <input type="number" placeholder="0" value={newParty.outstandingBalance !== undefined ? Number(Number(newParty.outstandingBalance).toFixed(2)) : 0} onChange={e => setNewParty({...newParty, outstandingBalance: parseFloat(e.target.value) || 0})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
             </div>
           </div>
           <div className="flex gap-3 mt-8">
@@ -257,7 +257,7 @@ export default function CustomerManagement() {
               </div>
               <div>
                 <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Outstanding Balance (₹)</label>
-                <input type="number" value={editForm.outstandingBalance || 0} onChange={e => setEditForm({...editForm, outstandingBalance: parseFloat(e.target.value) || 0})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
+                <input type="number" value={editForm.outstandingBalance !== undefined ? Number(Number(editForm.outstandingBalance).toFixed(2)) : 0} onChange={e => setEditForm({...editForm, outstandingBalance: parseFloat(e.target.value) || 0})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-8">
@@ -295,7 +295,9 @@ export default function CustomerManagement() {
                 <td className="p-4 text-right">{party.discountPercentage}%</td>
                 <td className="p-4 text-right font-medium">
                   <span className={party.outstandingBalance > 0 ? 'text-red-500' : 'text-green-500'}>
-                    {party.outstandingBalance.toFixed(2)}
+                    {party.outstandingBalance < 0 
+                      ? `${Math.abs(party.outstandingBalance).toFixed(2)} (Adv)` 
+                      : party.outstandingBalance.toFixed(2)}
                   </span>
                 </td>
                 <td className="p-4 text-center">

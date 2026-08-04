@@ -58,9 +58,14 @@ export default function Dashboard() {
 
   // Format big numbers
   const formatAmount = (val: number) => {
-    if (val >= 100000) return `₹${(val / 100000).toFixed(1)}L`;
-    if (val >= 1000) return `₹${(val / 1000).toFixed(1)}k`;
-    return `₹${val.toLocaleString()}`;
+    const isAdv = val < 0;
+    const absVal = Math.abs(val);
+    let str = '';
+    if (absVal >= 100000) str = `₹${(absVal / 100000).toFixed(1)}L`;
+    else if (absVal >= 1000) str = `₹${(absVal / 1000).toFixed(1)}k`;
+    else str = `₹${absVal.toLocaleString()}`;
+    
+    return isAdv ? `${str} (Adv)` : str;
   };
 
   const adminData = sessionStorage.getItem('admin');
