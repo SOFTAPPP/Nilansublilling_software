@@ -119,9 +119,12 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
              <span className="font-semibold">Date:</span> 
              <input value={billDate} onChange={e => setBillDate(e.target.value)} className="outline-none bg-transparent w-24" placeholder="DD/MM/YYYY" />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
              <span className="font-semibold">Bill NO:</span> 
-             <input value={billNo} onChange={e => setBillNo(e.target.value)} className="outline-none bg-transparent w-32 text-right" placeholder="QB/..." />
+             <div className="flex items-center">
+               <span className="font-bold">QB/</span>
+               <input value={billNo} onChange={e => setBillNo(e.target.value)} className="outline-none bg-transparent w-24 pl-1" placeholder="123" />
+             </div>
           </div>
         </div>
 

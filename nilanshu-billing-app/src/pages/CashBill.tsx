@@ -258,11 +258,11 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
             )}
           </div>
           
-          <div className="flex flex-col items-end gap-3">
-            <div className="bg-primary/10 text-primary print:bg-transparent print:text-black font-extrabold px-5 py-1.5 rounded-lg print:rounded-none text-lg tracking-widest border border-primary/20 print:border-black uppercase shadow-sm print:shadow-none">
+          <div className="flex flex-col items-end gap-3 print:flex-row-reverse print:items-center print:justify-end print:gap-4 print:mt-auto print:h-full">
+            <div className="bg-primary/10 text-primary print:bg-transparent print:text-black font-extrabold px-5 py-1.5 print:py-2 rounded-lg print:rounded-none text-lg tracking-widest border border-primary/20 print:border-black uppercase shadow-sm print:shadow-none print:flex print:items-center print:h-[42px]">
               CASH MEMO
             </div>
-            <div className="flex items-center gap-4 bg-background print:bg-transparent border border-border print:border-none rounded-lg px-4 py-2 shadow-sm print:shadow-none">
+            <div className="flex items-center gap-4 bg-background print:bg-transparent border border-border print:border-none rounded-lg px-4 py-2 shadow-sm print:shadow-none print:h-[42px]">
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Memo No.</span>
                 <div className="flex items-center">

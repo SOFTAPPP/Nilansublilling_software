@@ -99,13 +99,14 @@
 @layer components {
   .a4-page {
     width: 210mm !important;
-    height: 297mm !important;
+    min-height: 297mm !important;
+    height: auto !important;
     background: hsl(var(--card));
     color: hsl(var(--foreground));
     box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     position: relative;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: visible;
     flex-shrink: 0;
   }
   .half-a4-page {
@@ -123,6 +124,29 @@
 
 /* Print Specific CSS */
 @media print {
+  /* Force dark mode variables to match light mode during print */
+  .dark {
+    --background: 210 20% 98%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+  }
+
   @page {
     size: A4;
     margin: 0;
@@ -158,14 +182,13 @@
   .a4-page {
     width: 210mm !important;
     max-width: 210mm !important;
-    height: 297mm !important;
-    max-height: 297mm !important;
+    min-height: 297mm !important;
+    height: auto !important;
     margin: 0 auto !important;
     box-shadow: none !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     background-color: white !important;
     color: black !important;
-    page-break-after: always;
   }
   .half-a4-page {
     width: 100% !important;

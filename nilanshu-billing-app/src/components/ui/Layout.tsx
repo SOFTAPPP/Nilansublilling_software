@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { Sun, Moon, Receipt, FileText, FileClock, RotateCcw, Truck, BookOpen, UserSquare2, LayoutDashboard, History, LogOut } from 'lucide-react';
+import { Sun, Moon, Receipt, FileText, FileClock, RotateCcw, Truck, BookOpen, UserSquare2, LayoutDashboard, History, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const Layout = () => {
   const { theme, toggleTheme, showDialog, closeDialog } = useStore();
@@ -23,6 +23,8 @@ export const Layout = () => {
     });
   };
 
+  const [isExpanded, setIsExpanded] = useState(true);
+
   const navItems = [
     { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} className="text-blue-500" /> },
     { name: 'Cash Bill', path: '/cash-bill', icon: <Receipt size={20} className="text-green-500" /> },
@@ -40,46 +42,60 @@ export const Layout = () => {
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-64 bg-card border-r border-border flex flex-col no-print">
-        <div className="p-6 flex items-center gap-3">
-          <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
-          <h1 className="text-xl font-bold tracking-tight text-primary">NP-Billing</h1>
+      <aside className={`${isExpanded ? 'w-64' : 'w-20'} bg-card border-r border-border flex flex-col no-print transition-all duration-300 ease-in-out flex-shrink-0 z-20`}>
+        <div className={`p-6 flex items-center ${isExpanded ? 'justify-between' : 'justify-center flex-col'} gap-4 min-h-[5rem]`}>
+          <div className="flex items-center gap-3 overflow-hidden" style={{ display: isExpanded ? 'flex' : 'none' }}>
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5 flex-shrink-0" />
+            <h1 className="text-xl font-bold tracking-tight text-primary truncate">NP-Billing</h1>
+          </div>
+          {!isExpanded && (
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5 flex-shrink-0" />
+          )}
+          <button 
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="p-1.5 rounded-md hover:bg-muted text-muted-foreground flex-shrink-0 bg-background border border-border shadow-sm"
+          >
+            {isExpanded ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+          </button>
         </div>
         
-        <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
+        <nav className={`flex-1 ${isExpanded ? 'px-4' : 'px-3'} space-y-2 overflow-y-auto overflow-x-hidden transition-all duration-300`}>
           {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
+              title={!isExpanded ? item.name : undefined}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                `flex items-center ${isExpanded ? 'justify-start gap-3 px-3' : 'justify-center px-0'} py-2.5 rounded-md transition-colors ${
                   isActive 
                     ? 'bg-primary/10 text-primary font-medium' 
                     : 'hover:bg-muted text-muted-foreground hover:text-foreground'
                 }`
               }
             >
-              {item.icon}
-              {item.name}
+              <div className="flex-shrink-0">{item.icon}</div>
+              {isExpanded && <span className="truncate whitespace-nowrap">{item.name}</span>}
             </NavLink>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-border flex flex-col gap-2">
+        <div className={`p-4 border-t border-border flex flex-col gap-2 ${!isExpanded && 'items-center px-2'}`}>
           <button
             onClick={toggleTheme}
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            title={!isExpanded ? (theme === 'light' ? 'Dark Mode' : 'Light Mode') : undefined}
+            className={`flex items-center ${isExpanded ? 'justify-start gap-3 px-3' : 'justify-center px-0 w-full'} py-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors`}
           >
-            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} className="text-yellow-400" />}
-            {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+            <div className="flex-shrink-0">{theme === 'light' ? <Moon size={20} /> : <Sun size={20} className="text-yellow-400" />}</div>
+            {isExpanded && <span className="truncate whitespace-nowrap">{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
           </button>
           
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-md hover:bg-red-500/10 text-red-500 hover:text-red-600 transition-colors"
+            title={!isExpanded ? 'Logout' : undefined}
+            className={`flex items-center ${isExpanded ? 'justify-start gap-3 px-3' : 'justify-center px-0 w-full'} py-2 rounded-md hover:bg-red-500/10 text-red-500 hover:text-red-600 transition-colors`}
           >
-            <LogOut size={20} />
-            Logout
+            <div className="flex-shrink-0"><LogOut size={20} /></div>
+            {isExpanded && <span className="truncate whitespace-nowrap">Logout</span>}
           </button>
         </div>
       </aside>

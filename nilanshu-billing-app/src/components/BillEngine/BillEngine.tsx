@@ -422,12 +422,18 @@ export const BillEngine: React.FC<BillEngineProps> = ({
       
       {!readOnly && (
         <div className="mt-4 flex items-center justify-between no-print">
-          <button 
-            onClick={() => addLineItem()}
-            className="flex items-center gap-2 text-primary hover:text-primary/80 font-medium text-sm px-4 py-2 bg-primary/10 rounded-md"
-          >
-            <Plus size={16} /> Add Row
-          </button>
+          {items.length < maxItems ? (
+            <button 
+              onClick={() => addLineItem()}
+              className="flex items-center gap-2 text-primary hover:text-primary/80 font-medium text-sm px-4 py-2 bg-primary/10 rounded-md"
+            >
+              <Plus size={16} /> Add Row
+            </button>
+          ) : (
+            <div className="text-sm font-medium text-muted-foreground px-4 py-2 italic bg-muted/50 rounded-md">
+              Maximum {maxItems} items allowed per bill
+            </div>
+          )}
           <BarcodeScanIndicator active={!readOnly} />
         </div>
       )}

@@ -101,10 +101,17 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
   const partyDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Custom dropdown for Despatched through
+  const [despatchDropdownOpen, setDespatchDropdownOpen] = useState(false);
+  const despatchDropdownRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (partyDropdownRef.current && !partyDropdownRef.current.contains(event.target as Node)) {
         setPartyDropdownOpen(false);
+      }
+      if (despatchDropdownRef.current && !despatchDropdownRef.current.contains(event.target as Node)) {
+        setDespatchDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -290,11 +297,11 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
         </div>
 
         {/* Top Details Grid */}
-        <div className="grid grid-cols-2 text-sm border-b-2 border-black min-h-[220px]">
-          {/* Left Column (Seller & Buyer) */}
-          <div className="border-r-2 border-black flex flex-col">
-            {/* Seller Details */}
-            <div className="p-2 border-b-2 border-black flex flex-col justify-center min-h-[140px]">
+        <div className="flex flex-col text-sm border-b-2 border-black min-h-[220px]">
+          {/* Top Half */}
+          <div className="flex border-b-2 border-black">
+            {/* Seller Details (Left) */}
+            <div className="w-1/2 border-r-2 border-black p-2 flex flex-col justify-center min-h-[140px]">
               <div className="font-bold text-2xl uppercase w-full">{settings.companyName}</div>
               <div className="font-bold text-sm w-full">Publishers and Book Sellers</div>
               <div className="w-full text-sm mt-1">{settings.companyAddress}</div>
@@ -303,8 +310,35 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
               <div className="flex gap-2 text-sm"><span className="whitespace-nowrap">Phone No.-</span><span className="w-full">{settings.companyContact}</span></div>
             </div>
             
-            {/* Buyer Details */}
-            <div className="p-2 flex flex-col flex-1">
+            {/* Invoice Meta Top 2 Rows (Right) */}
+            <div className="w-1/2 flex flex-col text-[13px]">
+              <div className="flex flex-1 border-b border-black">
+                <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
+                  <span className="text-[11px] text-gray-600 font-medium">Invoice No.</span>
+                  <input value={invoiceNo} onChange={e => setInvoiceNo(e.target.value)} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                </div>
+                <div className="w-1/2 p-2 flex flex-col justify-start">
+                  <span className="text-[11px] text-gray-600 font-medium">Date:-</span>
+                  <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                </div>
+              </div>
+              <div className="flex flex-1">
+                <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
+                  <span className="text-[11px] text-gray-600 font-medium">Transport no:</span>
+                  <input value={invoiceMeta.dispatchedThrough} onChange={e => setInvoiceMeta({...invoiceMeta, dispatchedThrough: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                </div>
+                <div className="w-1/2 p-2 flex flex-col justify-start">
+                  <span className="text-[11px] text-gray-600 font-medium">Delivery Note Date</span>
+                  <input type="date" value={invoiceMeta.deliveryNoteDate} onChange={e => setInvoiceMeta({...invoiceMeta, deliveryNoteDate: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Bottom Half */}
+          <div className="flex flex-1">
+            {/* Buyer Details (Left) */}
+            <div className="w-1/2 border-r-2 border-black p-2 flex flex-col flex-1">
               <div className="flex items-start gap-1">
                 <span className="text-sm">Buyer:-</span>
                 <div className="flex-1 flex flex-col">
@@ -315,7 +349,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                         value={partySearch} 
                         onChange={e => { setPartySearch(e.target.value); setPartyDropdownOpen(true); }} 
                         onFocus={() => setPartyDropdownOpen(true)}
-                        className="w-full py-1.5 outline-none text-xs"
+                        className="w-full py-1.5 outline-none text-xs bg-transparent"
                         placeholder="Search Customer by Name or Phone..." 
                       />
                       <svg onClick={() => setPartyDropdownOpen(!partyDropdownOpen)} className="w-4 h-4 cursor-pointer text-gray-500 ml-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
@@ -345,54 +379,45 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                 </div>
               </div>
             </div>
-          </div>
-          
-          {/* Right Column (Invoice Meta) */}
-          <div className="flex flex-col text-[13px]">
-            <div className="flex border-b border-black">
-              <div className="w-1/2 border-r border-black p-2 flex flex-col justify-center">
-                <span className="text-[11px] text-gray-600 font-medium">Invoice No.</span>
-                <input value={invoiceNo} onChange={e => setInvoiceNo(e.target.value)} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
-              </div>
-              <div className="w-1/2 p-2 flex flex-col justify-center">
-                <span className="text-[11px] text-gray-600 font-medium">Date:-</span>
-                <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
-              </div>
-            </div>
-            <div className="flex border-b border-black">
-              <div className="w-1/2 border-r border-black p-2 flex flex-col justify-center">
-                <span className="text-[11px] text-gray-600 font-medium">Transport no:</span>
-                <input value={invoiceMeta.dispatchedThrough} onChange={e => setInvoiceMeta({...invoiceMeta, dispatchedThrough: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
-              </div>
-              <div className="w-1/2 p-2 flex flex-col justify-center">
-                <span className="text-[11px] text-gray-600 font-medium">Delivery Note Date</span>
-                <input type="date" value={invoiceMeta.deliveryNoteDate} onChange={e => setInvoiceMeta({...invoiceMeta, deliveryNoteDate: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
-              </div>
-            </div>
-            <div className="flex flex-1">
-              <div className="w-1/2 border-r border-black p-2 flex flex-col justify-center">
-                <span className="text-[11px] text-gray-600 font-medium">Despatched through</span>
-                <div className="relative w-full mt-1 print:hidden">
-                  <select 
-                    value={invoiceMeta.termsOfPayment || 'ROAD'} 
-                    onChange={e => setInvoiceMeta({...invoiceMeta, termsOfPayment: e.target.value})} 
-                    className="font-bold w-full outline-none bg-background appearance-none cursor-pointer border border-border rounded px-2 py-1.5 text-[12px] hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm"
-                  >
-                    <option value="ROAD">ROAD</option>
-                    <option value="TRAIN">TRAIN</option>
-                    <option value="AIR">AIR</option>
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+            
+            {/* Invoice Meta Bottom Row (Right) */}
+            <div className="w-1/2 flex flex-col text-[13px]">
+              <div className="flex flex-1">
+                <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
+                  <span className="text-[11px] text-gray-600 font-medium">Despatched through</span>
+                  <div className="relative w-full mt-1 print:hidden" ref={despatchDropdownRef}>
+                    <div 
+                      onClick={() => setDespatchDropdownOpen(!despatchDropdownOpen)}
+                      className="flex justify-between items-center font-bold w-full outline-none bg-background cursor-pointer border border-border rounded px-2 py-1.5 text-[12px] hover:border-gray-400 focus:border-blue-500 transition-all shadow-sm"
+                    >
+                      <span>{invoiceMeta.termsOfPayment || 'ROAD'}</span>
+                      <svg className={`fill-current h-4 w-4 text-gray-500 transition-transform ${despatchDropdownOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                    {despatchDropdownOpen && (
+                      <div className="absolute top-full left-0 mt-1 w-full bg-background border border-border shadow-xl rounded-md z-50 overflow-hidden text-sm">
+                        {['ROAD', 'TRAIN', 'AIR'].map((method) => (
+                          <div
+                            key={method}
+                            className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-border/50 last:border-0 font-medium"
+                            onClick={() => {
+                              setInvoiceMeta({...invoiceMeta, termsOfPayment: method});
+                              setDespatchDropdownOpen(false);
+                            }}
+                          >
+                            {method}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="hidden print:block font-bold w-full outline-none bg-transparent mt-1">
+                    {invoiceMeta.termsOfPayment || 'ROAD'}
                   </div>
                 </div>
-                <div className="hidden print:block font-bold w-full outline-none bg-transparent mt-1">
-                  {invoiceMeta.termsOfPayment || 'ROAD'}
+                <div className="w-1/2 p-2 flex flex-col justify-start">
+                  <span className="text-[11px] text-gray-600 font-medium">Destination</span>
+                  <input value={invoiceMeta.destination} onChange={e => setInvoiceMeta({...invoiceMeta, destination: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
                 </div>
-              </div>
-              <div className="w-1/2 p-2 flex flex-col justify-center">
-                <span className="text-[11px] text-gray-600 font-medium">Destination</span>
-                <input value={invoiceMeta.destination} onChange={e => setInvoiceMeta({...invoiceMeta, destination: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
               </div>
             </div>
           </div>
@@ -414,7 +439,13 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
            <div className="flex border-t border-black text-sm border-r-0">
              <div className="w-[85%] text-right pr-4 py-1 border-r border-black flex justify-end items-center gap-2">
                <span className="no-print text-xs text-muted-foreground">Party Discount:</span>
-               <input type="number" value={partyDiscount} onChange={e => setPartyDiscount(parseFloat(e.target.value) || 0)} className="w-16 border text-right no-print" />
+               <input 
+                 type="number" 
+                 min="0"
+                 value={partyDiscount} 
+                 onChange={e => setPartyDiscount(Math.max(0, parseFloat(e.target.value) || 0))} 
+                 className="w-16 border text-right no-print" 
+               />
                Less: Discount
              </div>
              <div className="w-[15%] text-right pr-2 py-1">

@@ -31,7 +31,7 @@ export default function Dashboard() {
     const bd = new Date(b.date);
     return bd.toDateString() === today.toDateString();
   });
-  const todaySales = todayBills.reduce((sum, b) => sum + Number(b.total || 0), 0);
+  const todaySales = Number(todayBills.reduce((sum, b) => sum + Number(b.total || 0), 0).toFixed(2));
 
   // Calculate dynamic sales data for the last 6 months
   const now = new Date();
@@ -50,7 +50,7 @@ export default function Dashboard() {
       return bd.getMonth() === m && bd.getFullYear() === y;
     });
     
-    const sales = monthlyBills.reduce((sum, b) => sum + Number(b.total || 0), 0);
+    const sales = Number(monthlyBills.reduce((sum, b) => sum + Number(b.total || 0), 0).toFixed(2));
     salesData.push({ name: monthNames[m], sales });
     
     if (i === 0) currentMonthSales = sales;
@@ -79,7 +79,7 @@ export default function Dashboard() {
         </div>
       </div>
       
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 auto-rows-fr">
           {/* Metric Cards */}
           {[
             { 
@@ -91,7 +91,7 @@ export default function Dashboard() {
             },
             { 
               title: 'Outstanding Dues', 
-              value: `₹${totalOutstanding.toLocaleString()}`, 
+              value: formatAmount(totalOutstanding), 
               icon: IndianRupee, 
               color: { bg: 'bg-blue-500/10', text: 'text-blue-500', glow: 'bg-blue-500' }, 
               gradient: 'bg-gradient-to-r from-blue-500 to-cyan-500' 
@@ -126,18 +126,18 @@ export default function Dashboard() {
               gradient: 'bg-gradient-to-r from-amber-500 to-orange-500' 
             }
           ].map((card, idx) => (
-            <div key={idx} className="relative overflow-hidden bg-card p-6 rounded-2xl border border-border shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 group cursor-default">
+            <div key={idx} className="relative overflow-hidden bg-card p-5 rounded-2xl border border-border shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 group cursor-default flex flex-col justify-center">
               {/* Background glow on hover */}
               <div className={`absolute -right-8 -top-8 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 ${card.color.glow}`}></div>
               
-              <div className="flex flex-col gap-4 relative z-10">
-                <div className={`w-14 h-14 flex items-center justify-center rounded-xl ${card.color.bg} ${card.color.text} transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3 shadow-sm`}>
+              <div className="flex items-center gap-5 relative z-10">
+                <div className={`w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-xl ${card.color.bg} ${card.color.text} transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3 shadow-sm`}>
                   <card.icon size={26} strokeWidth={2.5} />
                 </div>
-                <div className="flex flex-col">
-                  <p className="text-sm text-muted-foreground font-medium mb-1 tracking-wide">{card.title}</p>
-                  <h3 className="text-3xl font-extrabold tracking-tight text-foreground transition-transform duration-300 group-hover:translate-x-1">{card.value}</h3>
-                  {card.subValue && <p className="text-xs text-muted-foreground mt-1.5 font-semibold bg-muted inline-block px-2 py-0.5 rounded-md w-max transition-transform duration-300 group-hover:translate-x-1">{card.subValue}</p>}
+                <div className="flex flex-col min-w-0 flex-1">
+                  <p className="text-sm text-muted-foreground font-medium tracking-wide truncate mb-0.5">{card.title}</p>
+                  <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground transition-transform duration-300 group-hover:translate-x-1 truncate pr-2" title={String(card.value)}>{card.value}</h3>
+                  {card.subValue && <p className="text-xs text-muted-foreground mt-1 font-semibold bg-muted inline-block px-2 py-0.5 rounded-md w-max transition-transform duration-300 group-hover:translate-x-1 truncate max-w-full" title={String(card.subValue)}>{card.subValue}</p>}
                 </div>
               </div>
               
