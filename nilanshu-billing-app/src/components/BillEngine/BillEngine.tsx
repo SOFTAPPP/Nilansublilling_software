@@ -130,6 +130,16 @@ export const BillEngine: React.FC<BillEngineProps> = ({
   };
 
   const addLineItem = (product?: Product) => {
+    if (product) {
+      const existingIndex = items.findIndex(item => item.productId === product.id);
+      if (existingIndex !== -1) {
+        const currentItem = items[existingIndex];
+        updateLineItem(existingIndex, 'quantity', currentItem.quantity + 1);
+        showDialog({ title: 'Item Merged', message: `${product.name} is already in the bill. Quantity increased to ${currentItem.quantity + 1}.`, type: 'alert' });
+        return;
+      }
+    }
+
     if (items.length >= maxItems) {
       showDialog({ title: 'Limit Reached', message: 'Maximum items reached for a single A4 bill! Please generate another bill for additional items.', type: 'alert' });
       return;
@@ -164,6 +174,24 @@ export const BillEngine: React.FC<BillEngineProps> = ({
     if (field === 'productId') {
       const prod = products.find(p => p.id === value);
       if (prod) {
+        const existingIndex = items.findIndex((it, idx) => idx !== index && it.productId === prod.id);
+        if (existingIndex !== -1) {
+          const updatedItems = [...items];
+          updatedItems[index] = {
+            id: updatedItems[index].id, productId: '', productName: '', quantity: 1,
+            mrp: 0, discountPercent: globalDiscount > 0 ? globalDiscount : 0, amount: 0, hsn: '', rate: 0
+          };
+          const basePrice = columns.includes('rate') ? (updatedItems[existingIndex].rate || 0) : updatedItems[existingIndex].mrp;
+          const effectiveDiscount = updatedItems[existingIndex].discountPercent > 0 ? updatedItems[existingIndex].discountPercent : globalDiscount;
+          const discountAmount = (basePrice * effectiveDiscount) / 100;
+          updatedItems[existingIndex].quantity += 1;
+          updatedItems[existingIndex].amount = (basePrice - discountAmount) * updatedItems[existingIndex].quantity;
+          
+          onChange(updatedItems);
+          showDialog({ title: 'Item Merged', message: `${prod.name} is already in the bill. Quantity increased to ${updatedItems[existingIndex].quantity}.`, type: 'alert' });
+          return;
+        }
+
         item.productName = prod.name;
         item.mrp = prod.price;
         item.hsn = prod.hsn || '';
@@ -178,6 +206,24 @@ export const BillEngine: React.FC<BillEngineProps> = ({
     if (field === 'productName') {
       const match = products.find(p => p.name.toLowerCase() === value?.toLowerCase());
       if (match) {
+        const existingIndex = items.findIndex((it, idx) => idx !== index && it.productId === match.id);
+        if (existingIndex !== -1) {
+          const updatedItems = [...items];
+          updatedItems[index] = {
+            id: updatedItems[index].id, productId: '', productName: '', quantity: 1,
+            mrp: 0, discountPercent: globalDiscount > 0 ? globalDiscount : 0, amount: 0, hsn: '', rate: 0
+          };
+          const basePrice = columns.includes('rate') ? (updatedItems[existingIndex].rate || 0) : updatedItems[existingIndex].mrp;
+          const effectiveDiscount = updatedItems[existingIndex].discountPercent > 0 ? updatedItems[existingIndex].discountPercent : globalDiscount;
+          const discountAmount = (basePrice * effectiveDiscount) / 100;
+          updatedItems[existingIndex].quantity += 1;
+          updatedItems[existingIndex].amount = (basePrice - discountAmount) * updatedItems[existingIndex].quantity;
+          
+          onChange(updatedItems);
+          showDialog({ title: 'Item Merged', message: `${match.name} is already in the bill. Quantity increased to ${updatedItems[existingIndex].quantity}.`, type: 'alert' });
+          return;
+        }
+
         item.productId = match.id;
         item.mrp = match.price;
         item.hsn = match.hsn || '';
@@ -206,6 +252,7 @@ export const BillEngine: React.FC<BillEngineProps> = ({
     if (activeRow !== index) return null;
     const query = currentName?.toLowerCase() || '';
     const suggestions = products
+      .filter(p => !items.some((it, idx) => idx !== index && it.productId === p.id))
       .filter(p => !query || 
         p.name.toLowerCase().includes(query) || 
         p.category.toLowerCase().includes(query) ||

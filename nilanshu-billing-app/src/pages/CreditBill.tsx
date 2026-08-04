@@ -128,24 +128,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   const netPayable = grandTotal - deductedAmount;
 
   const handlePrint = () => {
-    const bankName = settings.bankName || '';
-    const acNo = settings.bankAccountNo || '';
-    const ifsc = settings.bankIfsc || '';
-    if (bankName.length > 0) {
-      const bLen = bankName.replace(/ /g, '').length;
-      if (bLen < 3 || bLen > 44) {
-        showDialog({ title: 'Validation Error', message: 'Bank Name must be between 3 and 44 characters (excluding spaces).', type: 'alert' });
-        return;
-      }
-    }
-    if (acNo.length > 0 && (acNo.length < 8 || acNo.length > 17)) {
-      showDialog({ title: 'Validation Error', message: 'Bank Account Number must be between 8 and 17 digits.', type: 'alert' });
-      return;
-    }
-    if (ifsc.length > 0 && !/^[A-Za-z]{4}\d{7}$/.test(ifsc)) {
-      showDialog({ title: 'Validation Error', message: 'IFSC Code must start with 4 letters followed by 7 numbers (e.g. SBIN0011372).', type: 'alert' });
-      return;
-    }
+    if (!validate()) return;
 
     try {
       window.print();
@@ -154,38 +137,43 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
     }
   };
 
-  const handleSave = async () => {
+  const validate = () => {
     const bankName = settings.bankName || '';
     const acNo = settings.bankAccountNo || '';
     const ifsc = settings.bankIfsc || '';
     if (bankName.length > 0) {
       const bLen = bankName.replace(/ /g, '').length;
       if (bLen < 3 || bLen > 44) {
-        showDialog({ title: 'Validation Error', message: 'Bank Name must be between 3 and 44 characters (excluding spaces).', type: 'alert' });
-        return;
+        showDialog({ title: 'Bank Details Error', message: 'Bank Name must be between 3 and 44 characters (excluding spaces).', type: 'alert' });
+        return false;
       }
     }
     if (acNo.length > 0 && (acNo.length < 8 || acNo.length > 17)) {
-      showDialog({ title: 'Validation Error', message: 'Bank Account Number must be between 8 and 17 digits.', type: 'alert' });
-      return;
+      showDialog({ title: 'Bank Details Error', message: 'Bank Account Number must be between 8 and 17 digits.', type: 'alert' });
+      return false;
     }
     if (ifsc.length > 0 && !/^[A-Za-z]{4}\d{7}$/.test(ifsc)) {
-      showDialog({ title: 'Validation Error', message: 'IFSC Code must start with 4 letters followed by 7 numbers (e.g. SBIN0011372).', type: 'alert' });
-      return;
+      showDialog({ title: 'Bank Details Error', message: 'IFSC Code must start with 4 letters followed by 7 numbers (e.g. SBIN0011372).', type: 'alert' });
+      return false;
     }
 
     if (items.length === 0) {
-      showDialog({ title: 'Validation Error', message: 'Please add at least one item.', type: 'alert' });
-      return;
+      showDialog({ title: 'Item Missing', message: 'Please add at least one item.', type: 'alert' });
+      return false;
     }
     if (!invoiceNo) {
-      showDialog({ title: 'Validation Error', message: 'Please enter an Invoice No.', type: 'alert' });
-      return;
+      showDialog({ title: 'Invoice Number Missing', message: 'Please enter an Invoice No.', type: 'alert' });
+      return false;
     }
     if (!partyId) {
-      showDialog({ title: 'Validation Error', message: 'Please select a valid customer.', type: 'alert' });
-      return;
+      showDialog({ title: 'Name Missing', message: 'Please select a valid customer.', type: 'alert' });
+      return false;
     }
+    return true;
+  };
+
+  const handleSave = async () => {
+    if (!validate()) return;
     
     try {
       await createBill({
@@ -255,20 +243,20 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
         <div className="flex flex-wrap gap-2 md:gap-3 justify-end flex-1">
           {!viewBill && (
             <button onClick={handleSave} className="whitespace-nowrap bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium shadow-sm transition-colors text-sm">
-              Save to Database
+              Save
             </button>
           )}
           <button 
             onClick={() => setShowPaidStamp(!showPaidStamp)}
             className="whitespace-nowrap border border-green-600 text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 font-medium shadow-sm transition-colors text-sm bg-white"
           >
-            Toggle PAID Stamp
+            Paid Stamp
           </button>
           <button 
             onClick={() => setShowCancelStamp(!showCancelStamp)}
             className="whitespace-nowrap border border-red-600 text-red-700 px-4 py-2 rounded-lg hover:bg-red-50 font-medium shadow-sm transition-colors text-sm bg-white"
           >
-            Toggle DELETE Stamp
+            Cancelled Stamp
           </button>
           {!viewBill && (
             <button onClick={handleSendSMS} className="whitespace-nowrap bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 font-medium shadow-sm transition-colors text-sm">
@@ -338,7 +326,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                         {parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).map(p => (
                           <div
                             key={p.id}
-                            className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-gray-100 last:border-0"
+                            className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-gray-100 last:border-0 flex justify-between items-center"
                             onClick={() => {
                               handlePartyLookup(p.phone, 'phone');
                               setPartySearch('');

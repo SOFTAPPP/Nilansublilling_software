@@ -125,7 +125,7 @@
 @media print {
   @page {
     size: A4;
-    margin: 5mm;
+    margin: 0;
   }
   ::-webkit-scrollbar {
     display: none !important;
@@ -156,15 +156,16 @@
     overflow: visible !important;
   }
   .a4-page {
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    min-height: auto !important;
-    margin: 0 !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: 297mm !important;
+    max-height: 297mm !important;
+    margin: 0 auto !important;
     box-shadow: none !important;
-    overflow: visible !important;
+    overflow: hidden !important;
     background-color: white !important;
     color: black !important;
+    page-break-after: always;
   }
   .half-a4-page {
     width: 100% !important;

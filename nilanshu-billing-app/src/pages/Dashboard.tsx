@@ -1,7 +1,25 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { AlertTriangle, IndianRupee, TrendingUp, Package, FileText } from 'lucide-react';
+import { AlertTriangle, IndianRupee, TrendingUp, Package, FileText, Clock, Users } from 'lucide-react';
+
+const LiveClock = () => {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-2 bg-card border border-border px-4 py-2 rounded-xl shadow-sm text-sm font-medium text-muted-foreground">
+      <Clock size={16} className="text-primary" />
+      <span>{time.toLocaleDateString('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</span>
+      <span className="mx-1">|</span>
+      <span className="text-foreground">{time.toLocaleTimeString('en-IN')}</span>
+    </div>
+  );
+};
 
 export default function Dashboard() {
   const { products, parties, bills } = useStore();
@@ -45,11 +63,23 @@ export default function Dashboard() {
     return `₹${val.toLocaleString()}`;
   };
 
+  const adminData = sessionStorage.getItem('admin');
+  const adminName = adminData ? JSON.parse(adminData).username : 'Admin';
+
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+      <div className="flex justify-between items-center flex-wrap gap-4">
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-card border border-border px-4 py-2 rounded-xl shadow-sm text-sm font-medium text-muted-foreground">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+            Logged in as <span className="text-foreground font-bold">{adminName}</span>
+          </div>
+          <LiveClock />
+        </div>
+      </div>
       
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
           {/* Metric Cards */}
           {[
             { 
@@ -79,6 +109,13 @@ export default function Dashboard() {
               icon: Package, 
               color: { bg: 'bg-purple-500/10', text: 'text-purple-500', glow: 'bg-purple-500' }, 
               gradient: 'bg-gradient-to-r from-purple-500 to-indigo-500' 
+            },
+            { 
+              title: 'Total Customers', 
+              value: parties.length, 
+              icon: Users, 
+              color: { bg: 'bg-cyan-500/10', text: 'text-cyan-500', glow: 'bg-cyan-500' }, 
+              gradient: 'bg-gradient-to-r from-cyan-500 to-blue-500' 
             },
             { 
               title: "Today's Bills", 

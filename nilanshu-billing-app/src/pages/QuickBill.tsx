@@ -25,15 +25,20 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
     }
   }, [viewBill]);
 
-  const handleSave = async () => {
+  const validate = () => {
     if (items.length === 0) {
-      showDialog({ title: 'Validation Error', message: 'Please add at least one item.', type: 'alert' });
-      return;
+      showDialog({ title: 'Item Missing', message: 'Please add at least one item.', type: 'alert' });
+      return false;
     }
     if (!billNo) {
-      showDialog({ title: 'Validation Error', message: 'Please enter a Bill No.', type: 'alert' });
-      return;
+      showDialog({ title: 'Bill Number Missing', message: 'Please enter a Bill No.', type: 'alert' });
+      return false;
     }
+    return true;
+  };
+
+  const handleSave = async () => {
+    if (!validate()) return;
     try {
       await createBill({
         type: 'quick',
@@ -67,6 +72,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
   const grandTotal = Math.round(totalAmount);
 
   const handlePrint = () => {
+    if (!validate()) return;
     try {
       window.print();
     } catch (err) {
@@ -84,7 +90,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
               onClick={handleSave} 
               className="whitespace-nowrap bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium shadow-sm transition-colors text-sm"
             >
-              Save to Database
+              Save
             </button>
           )}
           <button 

@@ -43,15 +43,20 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
     }
   }, [viewBill, transporters]);
 
-  const handleSave = async () => {
+  const validate = () => {
     if (items.length === 0) {
-      showDialog({ title: 'Validation Error', message: 'Please add at least one item.', type: 'alert' });
-      return;
+      showDialog({ title: 'Item Missing', message: 'Please add at least one item.', type: 'alert' });
+      return false;
     }
     if (!billNo) {
-      showDialog({ title: 'Validation Error', message: 'Please enter a Bill No.', type: 'alert' });
-      return;
+      showDialog({ title: 'Bill Number Missing', message: 'Please enter a Bill No.', type: 'alert' });
+      return false;
     }
+    return true;
+  };
+
+  const handleSave = async () => {
+    if (!validate()) return;
     
     const foundTransporter = transporters.find(p => p.phone === transporterPhone || p.name.toLowerCase() === transporterName.toLowerCase());
     
@@ -112,6 +117,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
   const grandTotal = Math.round(totalAmount);
 
   const handlePrint = () => {
+    if (!validate()) return;
     try {
       window.print();
     } catch (err) {
@@ -129,7 +135,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
               onClick={handleSave} 
               className="whitespace-nowrap bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium shadow-sm transition-colors text-sm"
             >
-              Save to Database
+              Save
             </button>
           )}
           <button 
@@ -141,7 +147,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         </div>
       </div>
 
-      <div className="a4-page border border-border relative">
+      <div className="a4-page border border-border relative flex flex-col">
         <div className="text-center py-2 border-b border-black font-semibold text-lg flex justify-between px-4">
           <span className="w-1/3"></span>
           <span className="w-1/3">TRANSPORT BILL</span>
@@ -210,7 +216,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
           </div>
         </div>
 
-        <div className="min-h-[300px]">
+        <div className="flex-1 min-h-[300px] flex flex-col">
           <BillEngine items={items} onChange={setItems} columns={['sno', 'name', 'qty', 'rate', 'amount']} />
         </div>
 

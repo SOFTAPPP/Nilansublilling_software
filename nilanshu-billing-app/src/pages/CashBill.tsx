@@ -85,34 +85,39 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
   const deductedAmount = (useOutstanding && partyOutstanding > 0) ? Math.min(partyOutstanding, grandTotal) : 0;
   const netPayable = grandTotal - deductedAmount;
 
-  const handleSave = async () => {
+  const validate = () => {
     const bankName = settings.bankName || '';
     const acNo = settings.bankAccountNo || '';
     const ifsc = settings.bankIfsc || '';
     if (bankName.length > 0) {
       const bLen = bankName.replace(/ /g, '').length;
       if (bLen < 3 || bLen > 44) {
-        showDialog({ title: 'Validation Error', message: 'Bank Name must be between 3 and 44 characters (excluding spaces).', type: 'alert' });
-        return;
+        showDialog({ title: 'Bank Details Error', message: 'Bank Name must be between 3 and 44 characters (excluding spaces).', type: 'alert' });
+        return false;
       }
     }
     if (acNo.length > 0 && (acNo.length < 8 || acNo.length > 17)) {
-      showDialog({ title: 'Validation Error', message: 'Bank Account Number must be between 8 and 17 digits.', type: 'alert' });
-      return;
+      showDialog({ title: 'Bank Details Error', message: 'Bank Account Number must be between 8 and 17 digits.', type: 'alert' });
+      return false;
     }
     if (ifsc.length > 0 && !/^[A-Za-z]{4}\d{7}$/.test(ifsc)) {
-      showDialog({ title: 'Validation Error', message: 'IFSC Code must start with 4 letters followed by 7 numbers (e.g. SBIN0011372).', type: 'alert' });
-      return;
+      showDialog({ title: 'Bank Details Error', message: 'IFSC Code must start with 4 letters followed by 7 numbers (e.g. SBIN0011372).', type: 'alert' });
+      return false;
     }
 
     if (items.length === 0) {
-      showDialog({ title: 'Validation Error', message: 'Please add at least one item.', type: 'alert' });
-      return;
+      showDialog({ title: 'Item Missing', message: 'Please add at least one item.', type: 'alert' });
+      return false;
     }
     if (!memoNo) {
-      showDialog({ title: 'Validation Error', message: 'Please enter a Memo No.', type: 'alert' });
-      return;
+      showDialog({ title: 'Memo Number Missing', message: 'Please enter a Memo No.', type: 'alert' });
+      return false;
     }
+    return true;
+  };
+
+  const handleSave = async () => {
+    if (!validate()) return;
 
     try {
       await createBill({
@@ -143,24 +148,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
   };
 
   const handlePrint = () => {
-    const bankName = settings.bankName || '';
-    const acNo = settings.bankAccountNo || '';
-    const ifsc = settings.bankIfsc || '';
-    if (bankName.length > 0) {
-      const bLen = bankName.replace(/ /g, '').length;
-      if (bLen < 3 || bLen > 44) {
-        showDialog({ title: 'Validation Error', message: 'Bank Name must be between 3 and 44 characters (excluding spaces).', type: 'alert' });
-        return;
-      }
-    }
-    if (acNo.length > 0 && (acNo.length < 8 || acNo.length > 17)) {
-      showDialog({ title: 'Validation Error', message: 'Bank Account Number must be between 8 and 17 digits.', type: 'alert' });
-      return;
-    }
-    if (ifsc.length > 0 && !/^[A-Za-z]{4}\d{7}$/.test(ifsc)) {
-      showDialog({ title: 'Validation Error', message: 'IFSC Code must start with 4 letters followed by 7 numbers (e.g. SBIN0011372).', type: 'alert' });
-      return;
-    }
+    if (!validate()) return;
 
     try {
       window.print();
@@ -176,11 +164,11 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         <div className="flex flex-wrap gap-2 md:gap-3 justify-end flex-1">
           {!viewBill && (
             <button onClick={handleSave} className="whitespace-nowrap bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium shadow-sm transition-colors text-sm">
-              Save to Database
+              Save
             </button>
           )}
           <button onClick={() => setShowPaidStamp(!showPaidStamp)} className="whitespace-nowrap border border-green-600 text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 font-medium shadow-sm transition-colors text-sm bg-background">
-            Toggle Stamp
+            Paid Stamp
           </button>
           <button onClick={handlePrint} className="whitespace-nowrap bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors text-sm">
             Print Bill
@@ -231,12 +219,20 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
               <svg onClick={() => setPartyDropdownOpen(!partyDropdownOpen)} className="w-4 h-4 cursor-pointer text-muted-foreground hover:text-foreground transition-colors print:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </div>
             
-            {partyDropdownOpen && parties.filter(p => p.name.toLowerCase().includes(partyName.toLowerCase()) || p.phone.includes(partyName)).length > 0 && (
+            {partyDropdownOpen && parties.filter(p => {
+              const isSelectedMatch = partyId && parties.find(x => x.id === partyId)?.name === partyName;
+              if (isSelectedMatch) return true;
+              return p.name.toLowerCase().includes(partyName.toLowerCase()) || p.phone.includes(partyName);
+            }).length > 0 && (
               <div className="absolute top-full left-0 mt-2 w-full bg-background border border-border shadow-2xl rounded-lg z-50 max-h-60 overflow-y-auto no-print text-sm overflow-hidden">
-                {parties.filter(p => p.name.toLowerCase().includes(partyName.toLowerCase()) || p.phone.includes(partyName)).map(p => (
+                {parties.filter(p => {
+                  const isSelectedMatch = partyId && parties.find(x => x.id === partyId)?.name === partyName;
+                  if (isSelectedMatch) return true;
+                  return p.name.toLowerCase().includes(partyName.toLowerCase()) || p.phone.includes(partyName);
+                }).map(p => (
                   <div
                     key={p.id}
-                    className="px-4 py-3 hover:bg-primary/10 cursor-pointer transition-colors border-b border-border/50 last:border-0"
+                    className="px-4 py-3 hover:bg-primary/10 cursor-pointer transition-colors border-b border-border/50 last:border-0 flex justify-between items-center"
                     onClick={() => {
                       setPartyName(p.name);
                       setPartyId(p.id);
@@ -255,7 +251,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
                     }}
                   >
                     <div className="font-bold text-foreground text-sm">{p.name}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{p.phone}</div>
+                    <div className="text-xs text-muted-foreground">{p.phone}</div>
                   </div>
                 ))}
               </div>
