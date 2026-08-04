@@ -196,7 +196,7 @@ export default function StockManagement() {
           onChange={(e) => setSelectedCategory(e.target.value)}
           className="bg-background border border-border px-4 py-2 rounded-md outline-none focus:ring-2 focus:ring-primary/50"
         >
-          {categories.map(c => (
+          {categories.map((c: string) => (
             <option key={c} value={c}>{c}</option>
           ))}
         </select>

@@ -1,7 +1,7 @@
 const { Client } = require('pg');
 const bcryptjs = require('bcryptjs');
 
-const DB_URL = 'postgres://postgres:Aritradutta%402005@localhost:5432/npsoftwaredatabase';
+const DB_URL = 'postgres://npbilling_user:Aritradutta%402005@72.61.231.155:5432/npsoftwaredatabase';
 
 async function seed() {
   const client = new Client({ connectionString: DB_URL });

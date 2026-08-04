@@ -7,10 +7,12 @@ let dbInstance: Database | null = null;
 export const getDb = async () => {
   if (!dbInstance) {
     try {
+      console.log('[DB] Connecting to:', DB_URL.replace(/\/\/.*@/, '//***@'));
       dbInstance = await Database.load(DB_URL);
-    } catch (err) {
+      console.log('[DB] Connected successfully');
+    } catch (err: any) {
       console.error('Database connection failed:', err);
-      throw new Error('Failed to connect to database. Please check your database configuration.');
+      throw new Error(`DB connection failed: ${err?.message || err?.toString() || 'Unknown error'}`);
     }
   }
   return dbInstance;
