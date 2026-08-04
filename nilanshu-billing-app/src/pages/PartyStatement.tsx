@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
+import { getDb } from '../utils/api';
+import { Download, Printer } from 'lucide-react';
+import { getLocalDateString } from '../utils/dateUtils';
 
 export default function PartyStatement() {
   const { parties, bills, settings, updateSettings, fetchParties, fetchBills, showDialog } = useStore();
@@ -8,10 +11,10 @@ export default function PartyStatement() {
   
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
-    d.setFullYear(d.getFullYear() - 1);
-    return d.toISOString().split('T')[0];
+    d.setMonth(d.getMonth() - 1);
+    return getLocalDateString(d);
   });
-  const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [toDate, setToDate] = useState(() => getLocalDateString());
 
   useEffect(() => {
     fetchParties();

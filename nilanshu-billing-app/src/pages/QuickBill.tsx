@@ -2,17 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
+import { getLocalDateString } from '../utils/dateUtils';
 
 export default function QuickBill({ viewBill }: { viewBill?: any }) {
   const { settings, updateSettings, createBill, showDialog } = useStore();
   const [items, setItems] = useState<BillLineItem[]>([]);
   const [billNo, setBillNo] = useState('');
-  const [billDate, setBillDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [billDate, setBillDate] = useState(() => getLocalDateString());
+  const [showPaidStamp, setShowPaidStamp] = useState(true);
 
   useEffect(() => {
     if (viewBill) {
       setBillNo(viewBill.billNumber || '');
-      setBillDate(new Date(viewBill.date).toISOString().split('T')[0]);
+      setBillDate(getLocalDateString(viewBill.date));
       if (viewBill.lineItems) {
         setItems(viewBill.lineItems.map((li: any) => ({
           ...li,

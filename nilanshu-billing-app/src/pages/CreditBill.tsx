@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
+import { getLocalDateString } from '../utils/dateUtils';
 
 export default function CreditBill({ type = 'credit', viewBill }: { type?: 'credit' | 'return', viewBill?: any }) {
   const { parties, settings, updateSettings, createBill, showDialog } = useStore();
@@ -23,14 +24,14 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   const [buyerAddress, setBuyerAddress] = useState('');
   const [buyerState, setBuyerState] = useState('');
   const [invoiceNo, setInvoiceNo] = useState('');
-  const [billDate, setBillDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [billDate, setBillDate] = useState(() => getLocalDateString());
   const [partyDiscount, setPartyDiscount] = useState(0);
   const [partyId, setPartyId] = useState<string | null>(null);
 
   useEffect(() => {
     if (viewBill) {
       setInvoiceNo(viewBill.billNumber || '');
-      setBillDate(new Date(viewBill.date).toISOString().split('T')[0]);
+      setBillDate(getLocalDateString(viewBill.date));
       if (viewBill.partyId) {
         setPartyId(viewBill.partyId);
         const p = parties.find(p => p.id === viewBill.partyId);

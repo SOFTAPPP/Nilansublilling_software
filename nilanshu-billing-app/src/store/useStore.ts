@@ -238,7 +238,14 @@ export const useStore = create<AppState>((set) => ({
     try {
       const db = await getDb();
       const bills = await db.select('SELECT id, type, "billNumber", "partyId", "transporterId", subtotal, discount, cgst, sgst, total, status, CAST(date AS TEXT) as date FROM "Bill" ORDER BY date DESC');
-      set({ bills: bills as Bill[] });
+      const normalizedBills = (bills as any[]).map(b => {
+        let dateStr = String(b.date);
+        if (dateStr.includes(' ') && !dateStr.includes('T')) {
+          dateStr = dateStr.replace(' ', 'T') + 'Z';
+        }
+        return { ...b, date: dateStr };
+      });
+      set({ bills: normalizedBills as Bill[] });
     } catch (error: any) {
       console.error('Failed to fetch bills', error);
       useStore.getState().showDialog({ title: 'Fetch Error', message: 'Failed to load bills: ' + (error.message || String(error)), type: 'alert' });
@@ -414,13 +421,13 @@ export const useStore = create<AppState>((set) => ({
     }
   },
   createBill: async (billData) => {
-    const db = await getDb();
     const id = crypto.randomUUID();
 
     if (!billData.lineItems || billData.lineItems.length === 0) {
       throw new Error('Bill must have at least one line item.');
     }
 
+    const newProductsToCreate: any[] = [];
     // Validate and auto-create products for manually typed line items
     for (let i = 0; i < billData.lineItems.length; i++) {
       if (!billData.lineItems[i].productId) {
@@ -434,10 +441,12 @@ export const useStore = create<AppState>((set) => ({
           billData.lineItems[i].productId = existingProd.id;
         } else {
           const newProdId = crypto.randomUUID();
-          await db.execute(
-            'INSERT INTO "Product" (id, name, category, price, stock, "lowStockThreshold", "bindingVariant", hsn, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())',
-            [newProdId, billData.lineItems[i].productName.trim(), 'Miscellaneous', billData.lineItems[i].mrp || 0, 0, 10, null, billData.lineItems[i].hsn || null]
-          );
+          newProductsToCreate.push({
+            id: newProdId,
+            name: billData.lineItems[i].productName.trim(),
+            mrp: billData.lineItems[i].mrp || 0,
+            hsn: billData.lineItems[i].hsn || null
+          });
           billData.lineItems[i].productId = newProdId;
         }
       }
@@ -448,21 +457,30 @@ export const useStore = create<AppState>((set) => ({
     if (type !== 'return') {
       for (const item of billData.lineItems) {
         if (!item.productId) continue;
-        const stockRows = await db.select<{ stock: number; name: string; category: string }[]>(
-          'SELECT stock, name, category FROM "Product" WHERE id = $1', [item.productId]
-        );
-        if (!stockRows || stockRows.length === 0) continue;
-        const currentStock = Number(stockRows[0].stock) || 0;
+        if (newProductsToCreate.some(np => np.id === item.productId)) continue;
+
+        const existingProd = useStore.getState().products.find(p => p.id === item.productId);
+        if (!existingProd) continue;
+
+        const currentStock = existingProd.stock;
         const needed = Number(item.quantity) || 0;
-        if (currentStock < needed && stockRows[0].category !== 'Miscellaneous') {
-          throw new Error(`Insufficient stock for "${stockRows[0].name}". Available: ${currentStock}, Needed: ${needed}`);
+        if (currentStock < needed && existingProd.category !== 'Miscellaneous') {
+          throw new Error(`Insufficient stock for "${existingProd.name}". Available: ${currentStock}, Needed: ${needed}`);
         }
       }
     }
 
     // Optimistic: update local state for stock changes instead of re-fetching
     set((state) => {
-      const updatedProducts = state.products.map(p => {
+      // Add the new miscellaneous products to local state immediately
+      const appendedProducts = [...state.products];
+      for (const np of newProductsToCreate) {
+        appendedProducts.push({
+          id: np.id, name: np.name, category: 'Miscellaneous', price: np.mrp, stock: 0, lowStockThreshold: 10, bindingVariant: null, hsn: np.hsn, barcode: null
+        } as any);
+      }
+
+      const updatedProducts = appendedProducts.map(p => {
         const lineItem = (billData.lineItems || []).find((li: any) => li.productId === p.id);
         if (lineItem) {
           const qty = Number(lineItem.quantity) || 0;
@@ -490,6 +508,16 @@ export const useStore = create<AppState>((set) => ({
     // Background DB sync
     (async () => {
       try {
+        const db = await getDb();
+
+        // Insert new miscellaneous products
+        for (const np of newProductsToCreate) {
+          await db.execute(
+            'INSERT INTO "Product" (id, name, category, price, stock, "lowStockThreshold", "bindingVariant", hsn, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())',
+            [np.id, np.name, 'Miscellaneous', np.mrp, 0, 10, null, np.hsn]
+          );
+        }
+
         await db.execute(
           `INSERT INTO "Bill" (
             id, type, "billNumber", "partyId", "transporterId", subtotal, discount, cgst, sgst, total, status, date, 
@@ -538,46 +566,12 @@ export const useStore = create<AppState>((set) => ({
   },
   deleteBill: async (id) => {
     try {
-      const db = await getDb();
+      // Find bill in local state to immediately remove it from UI
+      const bill = useStore.getState().bills.find(b => b.id === id);
+      if (!bill) throw new Error("Bill not found in local state");
 
-      const billRows = await db.select<{ type: string, total: number, partyId: string | null }[]>('SELECT type, total, "partyId" FROM "Bill" WHERE id = $1', [id]);
-      if (!billRows || billRows.length === 0) throw new Error("Bill not found");
-      const bill = billRows[0];
-
-      const items = await db.select<{ productId: string, quantity: number }[]>('SELECT "productId", quantity FROM "BillLineItem" WHERE "billId" = $1', [id]);
-
-      // Revert stock
-      for (const item of items) {
-        if (item.productId) {
-          if (bill.type === 'return') {
-            await db.execute('UPDATE "Product" SET stock = stock - $1, "updatedAt" = NOW() WHERE id = $2', [Number(item.quantity) || 0, item.productId]);
-          } else {
-            await db.execute('UPDATE "Product" SET stock = stock + $1, "updatedAt" = NOW() WHERE id = $2', [Number(item.quantity) || 0, item.productId]);
-          }
-        }
-      }
-
-      // Revert party balance
-      if (bill.partyId) {
-        if (bill.type === 'credit') {
-          await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [Number(bill.total) || 0, bill.partyId]);
-        } else if (bill.type === 'return') {
-          await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [Number(bill.total) || 0, bill.partyId]);
-        }
-      }
-
-      // Delete the bill (cascades to BillLineItem)
-      await db.execute('DELETE FROM "Bill" WHERE id = $1', [id]);
-
-      // Optimistic: remove bill and revert stock/balance locally
+      // OPTIMISTIC UPDATE 1: Instantly remove the bill from the UI list and revert party balance
       set((state) => {
-        const updatedProducts = state.products.map(p => {
-          const item = items.find(i => i.productId === p.id);
-          if (item) {
-            return { ...p, stock: bill.type === 'return' ? p.stock - item.quantity : p.stock + item.quantity };
-          }
-          return p;
-        });
         const updatedParties = bill.partyId ? state.parties.map(p => {
           if (p.id === bill.partyId) {
             const revert = bill.type === 'credit' ? -bill.total : bill.type === 'return' ? bill.total : 0;
@@ -585,8 +579,60 @@ export const useStore = create<AppState>((set) => ({
           }
           return p;
         }) : state.parties;
-        return { bills: state.bills.filter(b => b.id !== id), products: updatedProducts, parties: updatedParties };
+        return { bills: state.bills.filter(b => b.id !== id), parties: updatedParties };
       });
+
+      // Background process: fetch items, revert stock in UI, then sync with DB
+      (async () => {
+        try {
+          const db = await getDb();
+          const items = await db.select<{ productId: string, quantity: number }[]>('SELECT "productId", quantity FROM "BillLineItem" WHERE "billId" = $1', [id]);
+          
+          // OPTIMISTIC UPDATE 2: Instantly revert stock in the UI once items are fetched
+          set((state) => {
+            const updatedProducts = state.products.map(p => {
+              const item = items.find(i => i.productId === p.id);
+              if (item) {
+                return { ...p, stock: bill.type === 'return' ? p.stock - item.quantity : p.stock + item.quantity };
+              }
+              return p;
+            });
+            return { products: updatedProducts };
+          });
+
+          // Sync with DB
+          for (const item of items) {
+            if (item.productId) {
+              if (bill.type === 'return') {
+                await db.execute('UPDATE "Product" SET stock = stock - $1, "updatedAt" = NOW() WHERE id = $2', [Number(item.quantity) || 0, item.productId]);
+              } else {
+                await db.execute('UPDATE "Product" SET stock = stock + $1, "updatedAt" = NOW() WHERE id = $2', [Number(item.quantity) || 0, item.productId]);
+              }
+            }
+          }
+
+          if (bill.partyId) {
+            if (bill.type === 'credit') {
+              await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [Number(bill.total) || 0, bill.partyId]);
+            } else if (bill.type === 'return') {
+              await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [Number(bill.total) || 0, bill.partyId]);
+            }
+          }
+
+          await db.execute('DELETE FROM "Bill" WHERE id = $1', [id]);
+
+        } catch (bgErr: any) {
+          console.error("Delete Bill Background Error", bgErr);
+          useStore.getState().showDialog({
+            title: 'Delete Sync Failed',
+            message: bgErr.message || 'Failed to sync deletion with server. Reverting.',
+            type: 'alert'
+          });
+          await useStore.getState().fetchBills();
+          await useStore.getState().fetchProducts();
+          await useStore.getState().fetchParties();
+        }
+      })();
     } catch (err: any) {
       console.error("Delete Bill Error", err);
       useStore.getState().showDialog({

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useStore } from '../store/useStore';
+import { useStore, Bill } from '../store/useStore';
 import { getDb } from '../utils/api';
 import { Search, Printer, Download, Trash2, X } from 'lucide-react';
 import { numberToWords } from '../utils/numberToWords';
+import { getLocalDateString } from '../utils/dateUtils';
 import CashBill from './CashBill';
 import CreditBill from './CreditBill';
 import QuickBill from './QuickBill';
@@ -146,7 +147,7 @@ export default function BillHistory() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `bills_export_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `bills_export_${getLocalDateString()}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };

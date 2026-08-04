@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
+import { getLocalDateString } from '../utils/dateUtils';
 
 export default function CashBill({ viewBill }: { viewBill?: any }) {
   const { settings, updateSettings, createBill, parties, showDialog } = useStore();
@@ -9,13 +10,13 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
   const [partyId, setPartyId] = useState<string | null>(null);
   const [partyName, setPartyName] = useState('');
   const [memoNo, setMemoNo] = useState('CSH-');
-  const [billDate, setBillDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [billDate, setBillDate] = useState(() => getLocalDateString());
   const [showPaidStamp, setShowPaidStamp] = useState(true);
 
   useEffect(() => {
     if (viewBill) {
       setMemoNo(viewBill.billNumber || '');
-      setBillDate(new Date(viewBill.date).toISOString().split('T')[0]);
+      setBillDate(getLocalDateString(viewBill.date));
       if (viewBill.partyId) {
         setPartyId(viewBill.partyId);
         const p = parties.find(p => p.id === viewBill.partyId);
