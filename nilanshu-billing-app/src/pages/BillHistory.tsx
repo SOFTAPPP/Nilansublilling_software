@@ -43,28 +43,17 @@ interface BillFull {
 }
 
 export default function BillHistory() {
-  const { parties, showDialog, deleteBill } = useStore();
-  const [bills, setBills] = useState<BillFull[]>([]);
+  const { parties, bills: storeBills, showDialog, deleteBill } = useStore();
+  const bills = storeBills as unknown as BillFull[];
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('ALL');
   const [selectedBill, setSelectedBill] = useState<BillFull | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchAllBills();
-  }, []);
-
+  // No need to fetch on mount, it's already in the global store!
   const fetchAllBills = async () => {
-    try {
-      setLoading(true);
-      const db = await getDb();
-      const rows = await db.select<any[]>('SELECT * FROM "Bill" ORDER BY date DESC, "createdAt" DESC');
-      setBills(rows as BillFull[]);
-    } catch (err) {
-      console.error('Failed to fetch bills', err);
-    } finally {
-      setLoading(false);
-    }
+    // Left for refresh button compatibility if needed, but UI is already optimistic
+    useStore.getState().fetchBills();
   };
 
   const fetchBillDetails = async (bill: BillFull) => {
