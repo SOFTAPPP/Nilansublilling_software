@@ -240,7 +240,7 @@ export default function StockManagement() {
         <table className="w-full text-left text-sm">
           <thead className="bg-muted text-muted-foreground">
             <tr>
-              <th className="p-4 font-medium">Product ID</th>
+              <th className="p-4 font-medium whitespace-nowrap">Product ID</th>
               <th className="p-4 font-medium">Product Name</th>
               <th className="p-4 font-medium">Category</th>
               <th className="p-4 font-medium">Barcode</th>
@@ -254,7 +254,7 @@ export default function StockManagement() {
           <tbody className="divide-y divide-border">
             {filteredProducts.map(product => (
               <tr key={product.id} className="hover:bg-muted/50 transition-colors">
-                <td className="p-4 text-muted-foreground font-medium">{product.id}</td>
+                <td className="p-4 text-muted-foreground font-medium whitespace-nowrap">{product.id}</td>
                 <td className="p-4 font-medium">{product.name}</td>
                 <td className="p-4">
                   <span className="bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-xs font-medium">
