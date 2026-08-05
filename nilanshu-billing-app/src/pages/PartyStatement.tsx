@@ -222,7 +222,7 @@ export default function PartyStatement() {
         
         for (const id of missingIds) {
           try {
-            const items = await db.select<any[]>('SELECT quantity, "productName" as name FROM "BillLineItem" WHERE "billId" = $1', [id]);
+            const items = await db.select<any[]>('SELECT bli.quantity, p.name FROM "BillLineItem" bli LEFT JOIN "Product" p ON bli."productId" = p.id WHERE bli."billId" = $1', [id]);
             if (items && items.length > 0) {
               newEntries[id] = items.map(i => `${i.name || 'Unknown'} (x${i.quantity})`).join(', ');
             } else {
