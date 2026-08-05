@@ -19,11 +19,15 @@ import TransportBill from './pages/TransportBill';
 import BillHistory from './pages/BillHistory';
 import { Titlebar } from './components/ui/Titlebar';
 import GlobalDialog from './components/GlobalDialog';
+import { useLiveSync } from './hooks/useLiveSync';
 
 import { getDb } from './utils/api';
 
 function App() {
   const { fetchProducts, fetchParties, fetchSettings, fetchBills, fetchTransporters, token } = useStore();
+
+  // Activate live sync — polls the DB every 5s so all instances stay in sync
+  useLiveSync();
 
   // Warm up DB connection immediately on app start
   useEffect(() => {

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { Sun, Moon, Receipt, FileText, FileClock, RotateCcw, Truck, BookOpen, UserSquare2, LayoutDashboard, History, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Sun, Moon, Receipt, FileText, FileClock, RotateCcw, Truck, BookOpen, UserSquare2, LayoutDashboard, History, LogOut, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 
 export const Layout = () => {
-  const { theme, toggleTheme, showDialog, closeDialog } = useStore();
+  const { theme, toggleTheme, showDialog, closeDialog, fetchProducts, fetchParties, fetchTransporters, fetchBills, fetchSettings } = useStore();
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const navigate = useNavigate();
 
@@ -24,6 +25,22 @@ export const Layout = () => {
   };
 
   const [isExpanded, setIsExpanded] = useState(true);
+
+  const handleRefresh = useCallback(async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    try {
+      await Promise.allSettled([
+        fetchProducts(),
+        fetchParties(),
+        fetchTransporters(),
+        fetchBills(),
+        fetchSettings(),
+      ]);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [isSyncing, fetchProducts, fetchParties, fetchTransporters, fetchBills, fetchSettings]);
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} className="text-blue-500" /> },
@@ -88,7 +105,16 @@ export const Layout = () => {
             <div className="flex-shrink-0">{theme === 'light' ? <Moon size={20} /> : <Sun size={20} className="text-yellow-400" />}</div>
             {isExpanded && <span className="truncate whitespace-nowrap">{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
           </button>
-          
+
+          <button
+            onClick={handleRefresh}
+            disabled={isSyncing}
+            title={!isExpanded ? 'Refresh Data' : undefined}
+            className={`flex items-center ${isExpanded ? 'justify-start gap-3 px-3' : 'justify-center px-0 w-full'} py-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors`}
+          >
+            <div className="flex-shrink-0"><RefreshCw size={20} className={`text-emerald-500 ${isSyncing ? 'animate-spin' : ''}`} /></div>
+            {isExpanded && <span className="truncate whitespace-nowrap">{isSyncing ? 'Syncing...' : 'Refresh'}</span>}
+          </button>
           <button
             onClick={handleLogout}
             title={!isExpanded ? 'Logout' : undefined}
