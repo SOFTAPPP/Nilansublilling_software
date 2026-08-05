@@ -226,88 +226,96 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         <div className="h-1 bg-black w-full my-4"></div>
 
         {/* Bill Meta */}
-        <div className="flex justify-between items-start mb-4 bg-muted/20 print:bg-transparent rounded-xl p-4 print:p-0 border border-border print:border-none">
-          <div className="flex flex-col gap-1 relative w-[380px]" ref={partyDropdownRef}>
-            <div className="flex items-baseline gap-2">
-              <span className="text-sm">Buyer:-</span>
-              <input
-                type="text"
-                value={partyName}
-                onChange={e => { handlePartyLookup(e.target.value); setPartyDropdownOpen(true); }}
-                onFocus={() => setPartyDropdownOpen(true)}
-                className="outline-none w-full bg-transparent font-bold text-sm text-foreground"
-                placeholder="Search & Enter Buyer Name or Phone..."
-              />
-
-            </div>
-
-            {partyId && (
-              <div className="text-[14px] text-foreground font-medium mt-1 pl-12 flex flex-col gap-1">
-                {parties.find(p => p.id === partyId)?.address && <div>{parties.find(p => p.id === partyId)?.address}</div>}
-                {parties.find(p => p.id === partyId)?.phone && <div>{parties.find(p => p.id === partyId)?.phone}</div>}
+        <div className="flex flex-col mb-4 bg-muted/20 print:bg-transparent rounded-xl p-4 print:p-0 border border-border print:border-none gap-4 min-h-[170px] print:min-h-0">
+          
+          {/* Top Row: Center CASH MEMO */}
+          <div className="flex justify-center w-full">
+            <div className="relative">
+              <span className="hidden print:block absolute -top-5 left-1/2 -translate-x-1/2 text-[12px] italic text-gray-500 whitespace-nowrap">Original for Recipient</span>
+              <div className="text-primary print:text-black font-extrabold text-xl tracking-widest uppercase -mt-2">
+                CASH MEMO
               </div>
-            )}
+            </div>
+          </div>
 
-            {partyDropdownOpen && parties.filter(p => {
-              const isSelectedMatch = partyId && parties.find(x => x.id === partyId)?.name === partyName;
-              if (isSelectedMatch) return true;
-              return p.name.toLowerCase().includes(partyName.toLowerCase()) || p.phone.includes(partyName);
-            }).length > 0 && (
-                <div className="absolute top-full left-0 mt-2 w-full bg-background border border-border shadow-2xl rounded-lg z-50 max-h-60 overflow-y-auto no-print text-sm">
-                  {parties.filter(p => {
-                    const isSelectedMatch = partyId && parties.find(x => x.id === partyId)?.name === partyName;
-                    if (isSelectedMatch) return true;
-                    return p.name.toLowerCase().includes(partyName.toLowerCase()) || p.phone.includes(partyName);
-                  }).map(p => (
-                    <div
-                      key={p.id}
-                      className="px-4 py-3 hover:bg-primary/10 cursor-pointer transition-colors border-b border-border/50 last:border-0 flex justify-between items-center"
-                      onClick={() => {
-                        setPartyName(p.name);
-                        setPartyId(p.id);
-                        const customerDiscount = p.discountPercentage || 0;
-                        setDefaultDiscount(customerDiscount);
-                        setPartyDropdownOpen(false);
+          {/* Bottom Row: Buyer, Memo No, Date */}
+          <div className="flex justify-between items-start w-full gap-4 print:items-end">
+            
+            {/* Buyer Block */}
+            <div className="flex flex-col gap-1 relative w-[380px] print:w-auto print:flex-1" ref={partyDropdownRef}>
+              <div className="flex items-baseline gap-2">
+                <span className="text-sm">Buyer:-</span>
+                <input
+                  type="text"
+                  value={partyName}
+                  onChange={e => { handlePartyLookup(e.target.value); setPartyDropdownOpen(true); }}
+                  onFocus={() => setPartyDropdownOpen(true)}
+                  className="outline-none w-full bg-transparent font-bold text-sm text-foreground"
+                  placeholder="Search & Enter Buyer Name or Phone..."
+                />
+              </div>
 
-                        // Only apply customer default discount to items that have NO manually set discount
-                        setItems(prevItems => prevItems.map(item => {
-                          if (!item.discountPercent || item.discountPercent === 0) {
-                            const discountAmount = (item.mrp * customerDiscount) / 100;
-                            const newAmount = (item.mrp - discountAmount) * item.quantity;
-                            return { ...item, discountPercent: customerDiscount, amount: newAmount };
-                          }
-                          return item;
-                        }));
-                      }}
-                    >
-                      <div className="font-bold text-foreground text-sm">{p.name}</div>
-                      <div className="text-xs text-muted-foreground">{p.phone}</div>
-                    </div>
-                  ))}
+              {partyId && (
+                <div className="text-[14px] text-foreground font-medium mt-1 pl-12 flex flex-col gap-1">
+                  {parties.find(p => p.id === partyId)?.address && <div>{parties.find(p => p.id === partyId)?.address}</div>}
+                  {parties.find(p => p.id === partyId)?.phone && <div>{parties.find(p => p.id === partyId)?.phone}</div>}
                 </div>
               )}
-          </div>
-          <div className="flex flex-col items-end gap-3 print:flex-row-reverse print:items-center print:justify-end print:gap-4 print:mt-auto print:h-full">
-            <div className="flex items-center gap-3">
-              <div className="flex flex-col bg-background print:bg-transparent border border-border print:border-none rounded-lg px-4 py-2 shadow-sm print:shadow-none print:h-[42px] min-w-[120px]">
+
+              {partyDropdownOpen && parties.filter(p => {
+                const isSelectedMatch = partyId && parties.find(x => x.id === partyId)?.name === partyName;
+                if (isSelectedMatch) return true;
+                return p.name.toLowerCase().includes(partyName.toLowerCase()) || p.phone.includes(partyName);
+              }).length > 0 && (
+                  <div className="absolute top-full left-0 mt-2 w-full bg-background border border-border shadow-2xl rounded-lg z-50 max-h-60 overflow-y-auto no-print text-sm">
+                    {parties.filter(p => {
+                      const isSelectedMatch = partyId && parties.find(x => x.id === partyId)?.name === partyName;
+                      if (isSelectedMatch) return true;
+                      return p.name.toLowerCase().includes(partyName.toLowerCase()) || p.phone.includes(partyName);
+                    }).map(p => (
+                      <div
+                        key={p.id}
+                        className="px-4 py-3 hover:bg-primary/10 cursor-pointer transition-colors border-b border-border/50 last:border-0 flex justify-between items-center"
+                        onClick={() => {
+                          setPartyName(p.name);
+                          setPartyId(p.id);
+                          const customerDiscount = p.discountPercentage || 0;
+                          setDefaultDiscount(customerDiscount);
+                          setPartyDropdownOpen(false);
+
+                          // Only apply customer default discount to items that have NO manually set discount
+                          setItems(prevItems => prevItems.map(item => {
+                            if (!item.discountPercent || item.discountPercent === 0) {
+                              const discountAmount = (item.mrp * customerDiscount) / 100;
+                              const newAmount = (item.mrp - discountAmount) * item.quantity;
+                              return { ...item, discountPercent: customerDiscount, amount: newAmount };
+                            }
+                            return item;
+                          }));
+                        }}
+                      >
+                        <div className="font-bold text-foreground text-sm">{p.name}</div>
+                        <div className="text-xs text-muted-foreground">{p.phone}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+            </div>
+
+            {/* Memo No and Date Block */}
+            <div className="flex items-start gap-3 shrink-0">
+              <div className="flex flex-col bg-background print:bg-transparent border border-border print:border-none rounded-lg px-4 py-2 shadow-sm print:shadow-none min-w-[120px]">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Memo No.</span>
                 <div className="flex items-center">
                   <span className="font-bold text-xs text-foreground">CSH-</span>
                   <input value={memoNo.replace(/^CSH-/, '')} onChange={e => handleMemoNoChange(e.target.value)} className="outline-none w-16 bg-transparent font-bold text-xs text-foreground placeholder:text-muted-foreground" placeholder="178" />
                 </div>
               </div>
-              
-              <div className="relative">
-                <span className="hidden print:block absolute -top-5 left-0 text-[12px] italic text-gray-500">Original for Recipient</span>
-                <div className="bg-primary/10 text-primary print:bg-transparent print:text-black font-extrabold px-5 py-1.5 print:py-2 print:px-4 rounded-lg print:rounded-none text-lg tracking-widest border border-primary/20 print:border-black uppercase shadow-sm print:shadow-none print:flex print:items-center print:whitespace-nowrap h-full">
-                  CASH MEMO
-                </div>
-              </div>
-            </div>
 
-            <div className="flex flex-col bg-background print:bg-transparent border border-border print:border-none rounded-lg px-4 py-2 shadow-sm print:shadow-none print:h-[42px] min-w-[120px]">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Date</span>
-              <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="outline-none bg-transparent font-bold text-xs text-foreground cursor-pointer" />
+              <div className="flex flex-col bg-background print:bg-transparent border border-border print:border-none rounded-lg px-4 py-2 shadow-sm print:shadow-none min-w-[120px]">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Date</span>
+                <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="outline-none bg-transparent font-bold text-xs text-foreground cursor-pointer" />
+              </div>
             </div>
           </div>
         </div>
