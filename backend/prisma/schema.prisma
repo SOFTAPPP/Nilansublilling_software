@@ -72,6 +72,7 @@ model Bill {
   cgst          Float          @default(0)
   sgst          Float          @default(0)
   total         Float
+  paymentAmount Float          @default(0)
   status        String         @default("completed")
   vehicleNo     String?
   destination   String?

@@ -10,6 +10,8 @@ export default function PartyStatement() {
   const [partySearch, setPartySearch] = useState('');
   const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
   const partyDropdownRef = useRef<HTMLDivElement>(null);
+  const [lineItemCache, setLineItemCache] = useState<Record<string, string>>({});
+  const fetchedIds = useRef(new Set<string>());
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -95,7 +97,7 @@ export default function PartyStatement() {
   const selectedParty = parties.find(p => p.id === selectedPartyId);
 
   // Compute Ledger
-  const partyBills = bills.filter(b => b.partyId === selectedPartyId && (b.type === 'credit' || b.type === 'return' || b.type === 'receipt'));
+  const partyBills = bills.filter(b => b.partyId === selectedPartyId && (b.type === 'credit' || b.type === 'return' || b.type === 'receipt' || b.type === 'cash'));
   
   // Sort ascending by date
   const sortedBills = [...partyBills].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -111,10 +113,26 @@ export default function PartyStatement() {
     const isCredit = bill.type === 'credit';
     const isReturn = bill.type === 'return';
     const isReceipt = bill.type === 'receipt';
+    const isCash = bill.type === 'cash';
     
     if (isCredit) {
-      const before = running - bill.total;
+      if (bill.paymentAmount && bill.paymentAmount > 0) {
+        const beforePayment = running + bill.paymentAmount;
+        rawHistory.unshift({
+          billId: bill.id,
+          date: new Date(bill.date),
+          vNo: bill.billNumber,
+          particulars: `Payment Received (against Bill No. ${bill.billNumber})`,
+          debit: 0,
+          credit: bill.paymentAmount,
+          balance: running
+        });
+        running = beforePayment;
+      }
+      
+      const beforePurchase = running - bill.total;
       rawHistory.unshift({
+        billId: bill.id,
         date: new Date(bill.date),
         vNo: bill.billNumber,
         particulars: `Bill No. ${bill.billNumber}`,
@@ -122,11 +140,39 @@ export default function PartyStatement() {
         credit: 0,
         balance: running
       });
-      running = before;
+      running = beforePurchase;
+      
+    } else if (isCash) {
+      const creditAmt = bill.total + (bill.paymentAmount || 0);
+      const beforePayment = running + creditAmt;
+      rawHistory.unshift({
+        billId: bill.id,
+        date: new Date(bill.date),
+        vNo: bill.billNumber,
+        particulars: `Payment Received (Cash Bill No. ${bill.billNumber})`,
+        debit: 0,
+        credit: creditAmt,
+        balance: running
+      });
+      running = beforePayment;
+      
+      const beforePurchase = running - bill.total;
+      rawHistory.unshift({
+        billId: bill.id,
+        date: new Date(bill.date),
+        vNo: bill.billNumber,
+        particulars: `Cash Bill No. ${bill.billNumber}`,
+        debit: bill.total,
+        credit: 0,
+        balance: running
+      });
+      running = beforePurchase;
+      
     } else if (isReturn || isReceipt) {
       const before = running + bill.total;
       const particulars = isReturn ? `Sales Return No. ${bill.billNumber}` : `Receipt No. ${bill.billNumber}`;
       rawHistory.unshift({
+        billId: bill.id,
         date: new Date(bill.date),
         vNo: bill.billNumber,
         particulars: particulars,
@@ -159,6 +205,42 @@ export default function PartyStatement() {
     }
   }
   
+  const filteredBillIds = filteredHistory.map(h => h.billId).filter(Boolean).join(',');
+
+  useEffect(() => {
+    async function fetchMissingItems() {
+      if (!filteredBillIds) return;
+      const ids = filteredBillIds.split(',');
+      const missingIds = ids.filter(id => !fetchedIds.current.has(id));
+      if (missingIds.length === 0) return;
+      
+      missingIds.forEach(id => fetchedIds.current.add(id));
+      
+      try {
+        const db = await getDb();
+        const newEntries: Record<string, string> = {};
+        
+        for (const id of missingIds) {
+          try {
+            const items = await db.select<any[]>('SELECT quantity, "productName" as name FROM "BillLineItem" WHERE "billId" = $1', [id]);
+            if (items && items.length > 0) {
+              newEntries[id] = items.map(i => `${i.name || 'Unknown'} (x${i.quantity})`).join(', ');
+            } else {
+              newEntries[id] = '';
+            }
+          } catch(e) {
+            newEntries[id] = '';
+          }
+        }
+        
+        setLineItemCache(prev => ({ ...prev, ...newEntries }));
+      } catch (e) {
+        console.error("Failed to fetch bill items for statement", e);
+      }
+    }
+    fetchMissingItems();
+  }, [filteredBillIds]);
+  
   const entries = [
     {
       date: new Date(fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
@@ -168,14 +250,20 @@ export default function PartyStatement() {
       credit: balanceBeforePeriod < 0 ? -balanceBeforePeriod : 0,
       balance: balanceBeforePeriod
     },
-    ...filteredHistory.map(h => ({
-      date: h.dateStr,
-      vNo: h.vNo,
-      particulars: h.particulars,
-      debit: h.debit,
-      credit: h.credit,
-      balance: h.balance
-    }))
+    ...filteredHistory.map(h => {
+      let parts = h.particulars;
+      if (h.billId && lineItemCache[h.billId]) {
+        parts += ` - ${lineItemCache[h.billId]}`;
+      }
+      return {
+        date: h.dateStr,
+        vNo: h.vNo,
+        particulars: parts,
+        debit: h.debit,
+        credit: h.credit,
+        balance: h.balance
+      };
+    })
   ];
   
   const totalDebit = entries.slice(1).reduce((sum, e) => sum + e.debit, 0) + (balanceBeforePeriod > 0 ? balanceBeforePeriod : 0);
@@ -273,12 +361,12 @@ export default function PartyStatement() {
             <div>
               <p className="font-black mb-1 uppercase text-blue-900 tracking-wider text-xs">Period Summary</p>
               <p>Total Credit Purchase: <span className="font-bold">₹ {filteredHistory.reduce((sum, h) => sum + (h.debit || 0), 0).toFixed(2)}</span></p>
-              <p>Total Cash Purchase: <span className="font-bold">₹ {filteredHistory.reduce((sum, h) => sum + (h.credit || 0), 0).toFixed(2)}</span></p>
+              <p>Total Debit Purchase: <span className="font-bold">₹ {filteredHistory.reduce((sum, h) => sum + (h.credit || 0), 0).toFixed(2)}</span></p>
             </div>
             <div className="text-right">
               <p className="font-black mb-1 uppercase text-blue-900 tracking-wider text-xs">Balance Summary</p>
-              <p>Opening Balance: <span className="font-bold">₹ {Math.abs(balanceBeforePeriod).toFixed(2)} {balanceBeforePeriod >= 0 ? 'Dr' : 'Cr'}</span></p>
-              <p>Closing Balance: <span className="font-bold">₹ {Math.abs(finalBalance).toFixed(2)} {finalBalance >= 0 ? 'Dr' : 'Cr'}</span></p>
+              <p>Opening Balance: <span className="font-bold">₹ {balanceBeforePeriod.toFixed(2)}</span></p>
+              <p>Closing Balance: <span className="font-bold">₹ {finalBalance.toFixed(2)}</span></p>
             </div>
           </div>
         )}
@@ -291,8 +379,8 @@ export default function PartyStatement() {
               <th className="py-2 px-1 font-bold w-16 text-center">V No.</th>
               <th className="py-2 px-1 font-bold">Particulars</th>
               <th className="py-2 px-1 font-bold text-right w-28">Credit Purchase</th>
-              <th className="py-2 px-1 font-bold text-right w-28">Cash Purchase</th>
-              <th className="py-2 px-1 font-bold text-right w-36">Outstanding Balance</th>
+              <th className="py-2 px-1 font-bold text-right w-28">Debit Purchase</th>
+              <th className="py-2 px-1 font-bold text-right w-36">Outstanding Due</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-300 print:divide-black">
@@ -304,7 +392,7 @@ export default function PartyStatement() {
                   <td className="py-1">{entry.particulars}</td>
                   <td className="py-1 text-right">{entry.debit ? entry.debit.toFixed(2) : ''}</td>
                   <td className="py-1 text-right">{entry.credit ? entry.credit.toFixed(2) : ''}</td>
-                  <td className="py-1 text-right">{entry.balance !== undefined ? `${Math.abs(entry.balance).toFixed(2)} ${entry.balance >= 0 ? 'Dr' : 'Cr'}` : '0.00'}</td>
+                  <td className="py-1 text-right">{entry.balance !== undefined ? entry.balance.toFixed(2) : '0.00'}</td>
                 </tr>
               ))
             ) : (
@@ -323,7 +411,7 @@ export default function PartyStatement() {
                 <td></td>
                 <td className="py-2 px-1 text-right">{totalDebit.toFixed(2)}</td>
                 <td className="py-2 px-1 text-right">{totalCredit.toFixed(2)}</td>
-                <td className="py-2 px-1 text-right">{Math.abs(finalBalance).toFixed(2)} {finalBalance >= 0 ? 'Dr' : 'Cr'}</td>
+                <td className="py-2 px-1 text-right">{finalBalance.toFixed(2)}</td>
               </tr>
             </tfoot>
           )}

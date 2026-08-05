@@ -49,6 +49,7 @@ export interface Bill {
   total: number;
   status: string;
   date: string;
+  paymentAmount?: number;
 }
 
 export interface BillLineItem {
@@ -275,7 +276,7 @@ export const useStore = create<AppState>((set) => ({
     return useStore.getState().enqueueSync(async () => {
       try {
         const db = await getDb();
-        const bills = await db.select('SELECT id, type, "billNumber", "partyId", "transporterId", subtotal, discount, cgst, sgst, total, status, CAST(date AS TEXT) as date FROM "Bill" ORDER BY date DESC');
+        const bills = await db.select('SELECT id, type, "billNumber", "partyId", "transporterId", subtotal, discount, cgst, sgst, total, "paymentAmount", status, CAST(date AS TEXT) as date FROM "Bill" ORDER BY date DESC');
         const normalizedBills = (bills as any[]).map(b => {
           let dateStr = String(b.date);
           if (dateStr.includes(' ') && !dateStr.includes('T')) {
@@ -531,16 +532,26 @@ export const useStore = create<AppState>((set) => ({
         partyId: billData.partyId || undefined, transporterId: billData.transporterId || undefined,
         subtotal: billData.subtotal, discount: billData.discount,
         cgst: billData.cgst || 0, sgst: billData.sgst || 0, total: billData.total,
+        paymentAmount: Math.abs(billData.deductedAmount || 0),
         status: billData.status || 'completed', date: billData.date || new Date().toISOString()
       };
       const updatedParties = billData.partyId ? state.parties.map(p => {
         if (p.id === billData.partyId) {
           const deducted = billData.deductedAmount || 0;
           const actualDeducted = deducted > 0 ? deducted : 0;
+          const addedPayment = deducted < 0 ? Math.abs(deducted) : 0;
           const effectiveTotal = billData.total || 0;
           let balanceChange = 0;
-          if (type === 'credit') balanceChange = effectiveTotal - actualDeducted;
-          else if (type === 'return' || type === 'receipt') balanceChange = -effectiveTotal;
+          
+          if (type === 'credit') {
+            balanceChange = effectiveTotal - actualDeducted - addedPayment;
+          } else if (type === 'cash') {
+            if (addedPayment > 0) {
+              balanceChange = -addedPayment;
+            }
+          } else if (type === 'return' || type === 'receipt') {
+            balanceChange = -effectiveTotal;
+          }
           
           return { ...p, outstandingBalance: p.outstandingBalance + balanceChange };
         }
@@ -564,12 +575,13 @@ export const useStore = create<AppState>((set) => ({
 
         await db.execute(
           `INSERT INTO "Bill" (
-            id, type, "billNumber", "partyId", "transporterId", subtotal, discount, cgst, sgst, total, status, date, 
+            id, type, "billNumber", "partyId", "transporterId", subtotal, discount, cgst, sgst, total, "paymentAmount", status, date, 
             "vehicleNo", destination, "driverName", "lrNo", "createdAt", "updatedAt"
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CAST($12 AS TIMESTAMP), $13, $14, $15, $16, NOW(), NOW())`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CAST($13 AS TIMESTAMP), $14, $15, $16, $17, NOW(), NOW())`,
           [
             id, type, billData.billNumber || `BILL-${Date.now()}`, billData.partyId || null, billData.transporterId || null,
             Number(billData.subtotal) || 0, Number(billData.discount) || 0, Number(billData.cgst) || 0, Number(billData.sgst) || 0, Number(billData.total) || 0,
+            Math.abs(Number(billData.deductedAmount) || 0),
             billData.status || 'completed', billData.date ? new Date(billData.date).toISOString() : new Date().toISOString(),
             billData.vehicleNo || null, billData.destination || null, billData.driverName || null, billData.lrNo || null
           ]
@@ -651,10 +663,20 @@ export const useStore = create<AppState>((set) => ({
           if (p.id === billData.partyId) {
             const deducted = billData.deductedAmount || 0;
             const actualDeducted = deducted > 0 ? deducted : 0;
+            const addedPayment = deducted < 0 ? Math.abs(deducted) : 0;
             const effectiveTotal = billData.total || 0;
             let balanceChange = 0;
-            if (type === 'credit') balanceChange = effectiveTotal - actualDeducted;
-            else if (type === 'return' || type === 'receipt') balanceChange = -effectiveTotal;
+            
+            if (type === 'credit') {
+              balanceChange = effectiveTotal - actualDeducted - addedPayment;
+            } else if (type === 'cash') {
+              if (addedPayment > 0) {
+                balanceChange = -addedPayment;
+              }
+            } else if (type === 'return' || type === 'receipt') {
+              balanceChange = -effectiveTotal;
+            }
+            
             return { ...p, outstandingBalance: p.outstandingBalance + balanceChange };
           }
           return p;
@@ -687,6 +709,7 @@ export const useStore = create<AppState>((set) => ({
           cgst: billData.cgst || 0,
           sgst: billData.sgst || 0,
           total: billData.total,
+          paymentAmount: Math.abs(billData.deductedAmount || 0),
           status: billData.status || 'completed',
           date: billData.date || b.date
         } : b);
@@ -724,12 +747,13 @@ export const useStore = create<AppState>((set) => ({
           // Update Bill Record
           await db.execute(
             `UPDATE "Bill" SET 
-              type = $1, "partyId" = $2, "transporterId" = $3, subtotal = $4, discount = $5, cgst = $6, sgst = $7, total = $8, status = $9, date = CAST($10 AS TIMESTAMP), 
-              "vehicleNo" = $11, destination = $12, "driverName" = $13, "lrNo" = $14, "updatedAt" = NOW()
-             WHERE id = $15`,
+              type = $1, "partyId" = $2, "transporterId" = $3, subtotal = $4, discount = $5, cgst = $6, sgst = $7, total = $8, "paymentAmount" = $9, status = $10, date = CAST($11 AS TIMESTAMP), 
+              "vehicleNo" = $12, destination = $13, "driverName" = $14, "lrNo" = $15, "updatedAt" = NOW()
+             WHERE id = $16`,
             [
               type, billData.partyId || null, billData.transporterId || null,
               Number(billData.subtotal) || 0, Number(billData.discount) || 0, Number(billData.cgst) || 0, Number(billData.sgst) || 0, Number(billData.total) || 0,
+              Math.abs(Number(billData.deductedAmount) || 0),
               billData.status || 'completed', billData.date ? new Date(billData.date).toISOString() : new Date().toISOString(),
               billData.vehicleNo || null, billData.destination || null, billData.driverName || null, billData.lrNo || null,
               id
