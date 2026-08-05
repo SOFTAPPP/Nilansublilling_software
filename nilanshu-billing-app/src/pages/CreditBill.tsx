@@ -458,9 +458,17 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                         className="font-bold w-full outline-none bg-transparent"
                       />
 
-                      {partyDropdownOpen && parties.filter(p => p.name.toLowerCase().includes(buyerName.toLowerCase()) || p.phone.includes(buyerName)).length > 0 && (
+                      {partyDropdownOpen && parties.filter(p => {
+                        const isSelectedMatch = partyId && parties.find(x => x.id === partyId)?.name === buyerName;
+                        if (isSelectedMatch) return true;
+                        return p.name.toLowerCase().includes(buyerName.toLowerCase()) || p.phone.includes(buyerName);
+                      }).length > 0 && (
                         <div className="absolute top-full left-0 mt-1 w-[400px] max-w-[90vw] bg-background border border-border shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
-                          {parties.filter(p => p.name.toLowerCase().includes(buyerName.toLowerCase()) || p.phone.includes(buyerName)).map(p => (
+                          {parties.filter(p => {
+                            const isSelectedMatch = partyId && parties.find(x => x.id === partyId)?.name === buyerName;
+                            if (isSelectedMatch) return true;
+                            return p.name.toLowerCase().includes(buyerName.toLowerCase()) || p.phone.includes(buyerName);
+                          }).map(p => (
                             <div
                               key={p.id}
                               className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-gray-100 last:border-0 flex justify-between items-center"
