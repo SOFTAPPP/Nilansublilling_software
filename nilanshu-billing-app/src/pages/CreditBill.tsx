@@ -348,7 +348,11 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           <div className="flex border-b-2 border-black">
             {/* Seller Details (Left) */}
             <div className="w-1/2 border-r-2 border-black p-2 flex flex-col justify-center min-h-[140px]">
-              <div className="font-bold text-3xl uppercase w-full">{settings.companyName}</div>
+              <input 
+                value={settings.companyName} 
+                onChange={e => updateSettings({ companyName: e.target.value })} 
+                className="font-bold text-3xl uppercase w-full bg-transparent outline-none" 
+              />
               <div className="font-bold text-[15px] w-full">Publishers and Book Sellers</div>
               <div className="w-full text-sm mt-1">{settings.companyAddress}</div>
               <div className="w-full text-sm">{settings.companyCity}</div>
@@ -575,7 +579,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
             <div className="flex flex-wrap gap-x-6 gap-y-1 font-bold">
               <div className="flex gap-2"><span>Bank Name :-</span><input value={settings.bankName} onChange={e => { const val = e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''); if (val.replace(/ /g, '').length <= 44) updateSettings({ bankName: val }); }} className="outline-none bg-transparent" /></div>
               <div className="flex gap-2"><span>A/c. No.</span><input value={settings.bankAccountNo} maxLength={17} onChange={e => { const val = e.target.value.replace(/\D/g, ''); updateSettings({ bankAccountNo: val }) }} className="outline-none bg-transparent" /></div>
-              <div className="flex gap-2"><span>IFS -</span><input value={settings.bankIfsc} maxLength={11} onChange={e => { let val = e.target.value.toUpperCase(); let formatted = ''; for (let i = 0; i < val.length; i++) { if (i < 4) { if (/[A-Z]/.test(val[i])) formatted += val[i]; } else { if (/[0-9]/.test(val[i])) formatted += val[i]; } } updateSettings({ bankIfsc: formatted }) }} className="outline-none bg-transparent uppercase" /></div>
+              <div className="flex gap-2"><span>IFSC -</span><input value={settings.bankIfsc} maxLength={11} onChange={e => { let val = e.target.value.toUpperCase(); let formatted = ''; for (let i = 0; i < val.length; i++) { if (i < 4) { if (/[A-Z]/.test(val[i])) formatted += val[i]; } else { if (/[0-9]/.test(val[i])) formatted += val[i]; } } updateSettings({ bankIfsc: formatted }) }} className="outline-none bg-transparent uppercase" /></div>
             </div>
           </div>
           <div className="flex">

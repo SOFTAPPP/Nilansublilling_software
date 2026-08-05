@@ -244,6 +244,7 @@ export default function StockManagement() {
               <th className="p-4 font-medium">Product Name</th>
               <th className="p-4 font-medium">Category</th>
               <th className="p-4 font-medium">Barcode</th>
+              <th className="p-4 font-medium">ISBN</th>
               <th className="p-4 font-medium">Variant/Binding</th>
               <th className="p-4 font-medium text-right">MRP (₹)</th>
               <th className="p-4 font-medium text-right">Stock</th>
@@ -262,6 +263,7 @@ export default function StockManagement() {
                   </span>
                 </td>
                 <td className="p-4 text-muted-foreground">{product.barcode || '-'}</td>
+                <td className="p-4 text-muted-foreground">{product.hsn || '-'}</td>
                 <td className="p-4 text-muted-foreground">{product.bindingVariant || '-'}</td>
                 <td className="p-4 text-right">{product.price.toFixed(2)}</td>
                 <td className="p-4 text-right">

@@ -11,6 +11,7 @@ export interface Product {
   bindingVariant?: string;
   hsn?: string;
   barcode?: string;
+  isbn?: string;
 }
 
 export interface Party {

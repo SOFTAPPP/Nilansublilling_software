@@ -5,7 +5,7 @@ import { getNextBillNumber } from '../utils/billNumber';
 import { numberToWords } from '../utils/numberToWords';
 
 export default function Voucher({ viewBill }: { viewBill?: any }) {
-  const { parties, settings, createBill, showDialog } = useStore();
+  const { parties, settings, updateSettings, createBill, showDialog } = useStore();
   const [voucherNo, setVoucherNo] = useState('');
   const [voucherDate, setVoucherDate] = useState(() => getLocalDateString());
   const [payTo, setPayTo] = useState('');
@@ -206,9 +206,12 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
 
           <div className="text-center my-4">
             <p className="text-xs font-bold tracking-[0.3em] uppercase text-gray-600 mb-1">VOUCHER</p>
-            <h2 className="text-3xl font-black tracking-wide" style={{ fontFamily: 'serif' }}>
-              NILANSU PUBLICATION
-            </h2>
+            <input 
+              value={settings.companyName || 'NILANSU PUBLICATION'}
+              onChange={e => updateSettings({ companyName: e.target.value })}
+              className="text-3xl font-black tracking-wide bg-transparent outline-none text-center w-full" 
+              style={{ fontFamily: 'serif' }}
+            />
             <p className="text-sm mt-1">34, BENIATOLA LANE, KOLKATA</p>
           </div>
 

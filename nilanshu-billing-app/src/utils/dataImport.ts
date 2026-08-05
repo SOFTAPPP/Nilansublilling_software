@@ -79,5 +79,9 @@ const mapToParties = (data: any[]): Party[] => {
     gstin: item.gstin || item.GSTIN || '',
     discountPercentage: Number(item.discountPercentage || item.Discount || 0),
     outstandingBalance: Number(item.outstandingBalance || item.Balance || 0),
+    proprietorName: item.proprietorName || item.ProprietorName || '',
+    bankName: item.bankName || item.BankName || '',
+    bankAccountNo: item.bankAccountNo || item.BankAccountNo || '',
+    bankIfsc: item.bankIfsc || item.BankIfsc || '',
   }));
 };

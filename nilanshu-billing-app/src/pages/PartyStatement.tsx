@@ -198,7 +198,11 @@ export default function PartyStatement() {
         
         {/* Header */}
         <div className="text-center mb-6 flex flex-col items-center border-b-2 border-black pb-4">
-          <div className="text-3xl font-black tracking-wide text-center w-full uppercase text-blue-900">{settings.companyName}</div>
+          <input 
+            value={settings.companyName} 
+            onChange={e => updateSettings({ companyName: e.target.value })} 
+            className="text-3xl font-black tracking-wide text-center w-full uppercase text-blue-900 bg-transparent outline-none" 
+          />
           <div className="text-center w-full mt-2 font-semibold">{settings.companyAddress}</div>
           <div className="text-center w-full font-semibold">{settings.companyCity}</div>
           <div className="flex justify-center gap-6 w-full mt-2 text-xs">

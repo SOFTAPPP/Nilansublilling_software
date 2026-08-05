@@ -5,7 +5,7 @@ import { getNextBillNumber } from '../utils/billNumber';
 import { numberToWords } from '../utils/numberToWords';
 
 export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
-  const { parties, settings, createBill, showDialog } = useStore();
+  const { parties, settings, updateSettings, createBill, showDialog } = useStore();
   const [receiptNo, setReceiptNo] = useState('');
   const [receiptDate, setReceiptDate] = useState(() => getLocalDateString());
   const [customerName, setCustomerName] = useState('');
@@ -115,9 +115,12 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
       </div>
 
       <div className="text-center mb-3">
-        <h2 className="text-2xl font-black text-blue-900 tracking-wide" style={{ fontFamily: 'serif' }}>
-          NILANSU PUBLICATION
-        </h2>
+        <input 
+          value={settings.companyName || 'NILANSU PUBLICATION'}
+          onChange={e => updateSettings({ companyName: e.target.value })}
+          className="text-2xl font-black text-blue-900 tracking-wide bg-transparent outline-none text-center w-full" 
+          style={{ fontFamily: 'serif' }}
+        />
         <p className="text-[11px] text-blue-800">34, BENIATOLA LANE, KOLKATA-700009</p>
         <p className="text-[11px] text-blue-800">Mob. : {settings.companyContact}</p>
       </div>
@@ -159,7 +162,7 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
 
       <div className="flex justify-between items-end mt-6 pt-4">
         <div className="text-center">
-          <p className="text-xs text-blue-800 font-bold">NILANSU PUBLICATION</p>
+          <p className="text-xs text-blue-800 font-bold">{settings.companyName || 'NILANSU PUBLICATION'}</p>
         </div>
         <div className="text-center">
           <p className="border-t border-blue-800 pt-1 text-[11px] font-semibold px-6">Prop. Signature with Date</p>

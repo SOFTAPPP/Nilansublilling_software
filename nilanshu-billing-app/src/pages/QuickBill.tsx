@@ -114,7 +114,11 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
       <div className="half-a4-page border border-border p-6 relative flex flex-col">
         
         <div className="text-center mb-6 flex flex-col items-center">
-          <div className="text-2xl font-bold font-serif uppercase tracking-widest w-full text-center">{settings.companyName}</div>
+          <input 
+            value={settings.companyName} 
+            onChange={e => updateSettings({ companyName: e.target.value })} 
+            className="text-2xl font-bold font-serif uppercase tracking-widest w-full text-center bg-transparent outline-none" 
+          />
           <div className="text-sm w-full text-center mt-1">{settings.companyAddress}</div>
           <div className="text-sm w-full text-center">{settings.companyCity}</div>
           <div className="mt-2 font-bold border border-black inline-block px-4 py-1">
