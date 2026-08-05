@@ -226,3 +226,37 @@
     -webkit-appearance: none !important;
   }
 }
+
+/* ===== Custom Titlebar Button Styles ===== */
+.titlebar-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  -webkit-app-region: no-drag;
+  position: relative;
+  z-index: 10000;
+}
+.titlebar-btn-default {
+  color: var(--muted-foreground, #888);
+}
+.titlebar-btn-default:hover {
+  background: var(--muted, rgba(128, 128, 128, 0.2));
+  color: var(--foreground, #fff);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+.titlebar-btn-close {
+  color: var(--muted-foreground, #888);
+}
+.titlebar-btn-close:hover {
+  background: rgba(239, 68, 68, 0.9);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(239, 68, 68, 0.3);
+  transform: scale(1.05);
+}

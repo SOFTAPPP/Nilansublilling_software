@@ -17,6 +17,7 @@ import QuickBill from './pages/QuickBill';
 import ReturnBill from './pages/ReturnBill';
 import TransportBill from './pages/TransportBill';
 import BillHistory from './pages/BillHistory';
+import { Titlebar } from './components/ui/Titlebar';
 import GlobalDialog from './components/GlobalDialog';
 
 import { getDb } from './utils/api';
@@ -57,24 +58,29 @@ function App() {
 
   return (
     <BrowserRouter>
-      <GlobalDialog />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        
-        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-          <Route index element={<Dashboard />} />
-          <Route path="cash-bill" element={<CashBill />} />
-          <Route path="credit-bill" element={<CreditBill />} />
-          <Route path="quick-bill" element={<QuickBill />} />
-          <Route path="return-bill" element={<ReturnBill />} />
-          <Route path="transport-bill" element={<TransportBill />} />
-          <Route path="customers" element={<CustomerManagement />} />
-          <Route path="transporters" element={<TransporterManagement />} />
-          <Route path="party-statements" element={<PartyStatement />} />
-          <Route path="bill-history" element={<BillHistory />} />
-          <Route path="stock" element={<StockManagement />} />
-        </Route>
-      </Routes>
+      <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
+        <Titlebar />
+        <div className="flex-1 relative overflow-hidden flex flex-col">
+          <GlobalDialog />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            
+            <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+              <Route index element={<Dashboard />} />
+              <Route path="cash-bill" element={<CashBill />} />
+              <Route path="credit-bill" element={<CreditBill />} />
+              <Route path="quick-bill" element={<QuickBill />} />
+              <Route path="return-bill" element={<ReturnBill />} />
+              <Route path="transport-bill" element={<TransportBill />} />
+              <Route path="customers" element={<CustomerManagement />} />
+              <Route path="transporters" element={<TransporterManagement />} />
+              <Route path="party-statements" element={<PartyStatement />} />
+              <Route path="bill-history" element={<BillHistory />} />
+              <Route path="stock" element={<StockManagement />} />
+            </Route>
+          </Routes>
+        </div>
+      </div>
     </BrowserRouter>
   );
 }

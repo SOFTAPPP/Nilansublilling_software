@@ -416,12 +416,11 @@ export const useStore = create<AppState>((set) => ({
   },
   deleteParty: async (id) => {
     try {
-      set((state) => ({ parties: state.parties.filter(p => p.id !== id) }));
       const db = await getDb();
       await db.execute('DELETE FROM "Party" WHERE id=$1', [id]);
+      set((state) => ({ parties: state.parties.filter(p => p.id !== id) }));
     } catch (err) {
       useStore.getState().showDialog({ title: 'Delete Failed', message: 'Cannot delete this customer because they have existing bills or records.', type: 'alert' });
-      useStore.getState().fetchParties();
     }
   },
   addTransporter: async (transporter) => {
@@ -444,12 +443,11 @@ export const useStore = create<AppState>((set) => ({
   },
   deleteTransporter: async (id) => {
     try {
-      set((state) => ({ transporters: state.transporters.filter(t => t.id !== id) }));
       const db = await getDb();
       await db.execute('DELETE FROM "Transporter" WHERE id=$1', [id]);
+      set((state) => ({ transporters: state.transporters.filter(t => t.id !== id) }));
     } catch (err) {
       useStore.getState().showDialog({ title: 'Delete Failed', message: 'Cannot delete this transporter because they have existing bills or records.', type: 'alert' });
-      useStore.getState().fetchTransporters();
     }
   },
   createBill: async (billData) => {

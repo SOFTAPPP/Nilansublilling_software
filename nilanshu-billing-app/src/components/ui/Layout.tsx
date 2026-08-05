@@ -40,7 +40,7 @@ export const Layout = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden">
+    <div className="flex h-full bg-background text-foreground overflow-hidden">
       {/* Sidebar */}
       <aside className={`${isExpanded ? 'w-64' : 'w-20'} bg-card border-r border-border flex flex-col no-print transition-all duration-300 ease-in-out flex-shrink-0 z-20`}>
         <div className={`p-6 flex items-center ${isExpanded ? 'justify-between' : 'justify-center flex-col'} gap-4 min-h-[5rem]`}>
