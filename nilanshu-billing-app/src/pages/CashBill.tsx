@@ -239,12 +239,10 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         <div className="flex flex-col mb-4 bg-muted/20 print:bg-transparent rounded-xl p-4 print:p-0 border border-border print:border-none gap-4 min-h-[170px] print:min-h-0">
           
           {/* Top Row: Center CASH MEMO */}
-          <div className="flex justify-center w-full">
-            <div className="relative">
-              <span className="hidden print:block absolute -top-5 left-1/2 -translate-x-1/2 text-[12px] italic text-gray-500 whitespace-nowrap">Original for Recipient</span>
-              <div className="text-primary print:text-black font-extrabold text-xl tracking-widest uppercase -mt-2">
-                CASH MEMO
-              </div>
+          <div className="flex justify-center w-full relative">
+            <span className="hidden print:block absolute right-2 top-0 text-[12px] italic text-gray-500 whitespace-nowrap">Original for Recipient</span>
+            <div className="text-primary print:text-black font-extrabold text-xl tracking-widest uppercase -mt-2">
+              CASH MEMO
             </div>
           </div>
 

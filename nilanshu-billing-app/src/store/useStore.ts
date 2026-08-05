@@ -594,8 +594,15 @@ export const useStore = create<AppState>((set) => ({
           if (type === 'credit') {
             const deducted = billData.deductedAmount || 0;
             const actualDeducted = deducted > 0 ? deducted : 0;
-            const change = (Number(billData.total) || 0) - actualDeducted;
+            const addedPayment = deducted < 0 ? Math.abs(deducted) : 0;
+            const change = (Number(billData.total) || 0) - actualDeducted - addedPayment;
             await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [change, billData.partyId]);
+          } else if (type === 'cash') {
+            const deducted = billData.deductedAmount || 0;
+            const addedPayment = deducted < 0 ? Math.abs(deducted) : 0;
+            if (addedPayment > 0) {
+              await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [addedPayment, billData.partyId]);
+            }
           } else if (type === 'return' || type === 'receipt') {
             await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [Number(billData.total) || 0, billData.partyId]);
           }

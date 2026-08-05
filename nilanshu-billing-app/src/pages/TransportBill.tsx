@@ -1,19 +1,48 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { BillEngine } from '../components/BillEngine/BillEngine';
-import { BillLineItem, useStore } from '../store/useStore';
-import { numberToWords } from '../utils/numberToWords';
+import { useStore } from '../store/useStore';
 import { getNextBillNumber } from '../utils/billNumber';
 
 export default function TransportBill({ viewBill }: { viewBill?: any }) {
-  const { transporters, createBill, showDialog } = useStore();
-  const [items, setItems] = useState<BillLineItem[]>([]);
+  const { parties, transporters, createBill, showDialog } = useStore();
+  
+  const [billNo, setBillNo] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  // Buyer fields
+  const [partyId, setPartyId] = useState<string | null>(null);
+  const [buyerName, setBuyerName] = useState('');
+  const [buyerProprietor, setBuyerProprietor] = useState('');
+  const [buyerAddress, setBuyerAddress] = useState('');
+  const [buyerDistrict, setBuyerDistrict] = useState('');
+  const [buyerPin, setBuyerPin] = useState('');
+  const [buyerState, setBuyerState] = useState('');
+  const [buyerMob, setBuyerMob] = useState('');
+  
+  // Transporter fields
+  const [transporterId, setTransporterId] = useState<string | null>(null);
+  const [transporterName, setTransporterName] = useState('');
+  const [transporterAddress, setTransporterAddress] = useState('');
   const [transporterPhone, setTransporterPhone] = useState('');
+
+  // Packet fields
+  const [totalPacket, setTotalPacket] = useState('');
+  const [value, setValue] = useState('');
+  const [material, setMaterial] = useState('');
+
+  // Dropdown states
+  const [partySearch, setPartySearch] = useState('');
+  const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
+  const partyDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [transporterSearch, setTransporterSearch] = useState('');
   const [transporterDropdownOpen, setTransporterDropdownOpen] = useState(false);
   const transporterDropdownRef = useRef<HTMLDivElement>(null);
-  const [transporterSearch, setTransporterSearch] = useState('');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      if (partyDropdownRef.current && !partyDropdownRef.current.contains(event.target as Node)) {
+        setPartyDropdownOpen(false);
+      }
       if (transporterDropdownRef.current && !transporterDropdownRef.current.contains(event.target as Node)) {
         setTransporterDropdownOpen(false);
       }
@@ -21,8 +50,6 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-  const [transporterName, setTransporterName] = useState('');
-  const [billNo, setBillNo] = useState('');
 
   // Auto-fill next bill number
   useEffect(() => {
@@ -34,111 +61,92 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
   useEffect(() => {
     if (viewBill) {
       setBillNo(viewBill.billNumber || '');
-      if (viewBill.transporterId) {
-        const t = transporters.find(t => t.id === viewBill.transporterId);
-        if (t) {
-          setTransporterName(t.name);
-          setTransporterPhone(t.phone);
+      if (viewBill.date) {
+        setDate(new Date(viewBill.date).toISOString().split('T')[0]);
+      }
+      
+      // Parse JSON from lrNo
+      if (viewBill.lrNo) {
+        try {
+          const data = JSON.parse(viewBill.lrNo);
+          setBuyerName(data.buyerName || '');
+          setBuyerProprietor(data.buyerProprietor || '');
+          setBuyerAddress(data.buyerAddress || '');
+          setBuyerDistrict(data.buyerDistrict || '');
+          setBuyerPin(data.buyerPin || '');
+          setBuyerState(data.buyerState || '');
+          setBuyerMob(data.buyerMob || '');
+          
+          setTransporterName(data.transporterName || '');
+          setTransporterAddress(data.transporterAddress || '');
+          setTransporterPhone(data.transporterPhone || '');
+          
+          setTotalPacket(data.totalPacket || '');
+          setValue(data.value || '');
+          setMaterial(data.material || '');
+        } catch (e) {
+          // fallback if it wasn't JSON
         }
       }
-      if (viewBill.lineItems) {
-        setItems(viewBill.lineItems.map((li: any) => ({
-          ...li,
-          mrp: li.mrp || li.rate,
-          amount: li.amount,
-        })));
-      }
+      setPartyId(viewBill.partyId || null);
+      setTransporterId(viewBill.transporterId || null);
     }
-  }, [viewBill, transporters]);
+  }, [viewBill]);
 
-  const validate = () => {
-    if (items.length === 0) {
-      showDialog({ title: 'Item Missing', message: 'Please add at least one item.', type: 'alert' });
-      return false;
+  const handlePartyLookup = (val: string) => {
+    const p = parties.find(p => p.phone === val || p.name.toLowerCase() === val.toLowerCase());
+    if (p) {
+      setPartyId(p.id);
+      setBuyerName(p.name);
+      setBuyerProprietor(p.proprietorName || '');
+      setBuyerAddress(p.address || '');
+      setBuyerMob(p.phone || '');
     }
-    if (!billNo) {
-      showDialog({ title: 'Bill Number Missing', message: 'Please enter a Bill No.', type: 'alert' });
-      return false;
+  };
+
+  const handleTransporterLookup = (val: string) => {
+    const t = transporters.find(t => t.phone === val || t.name.toLowerCase() === val.toLowerCase());
+    if (t) {
+      setTransporterId(t.id);
+      setTransporterName(t.name);
+      setTransporterPhone(t.phone);
+      setTransporterAddress(t.address || '');
     }
-    return true;
   };
 
   const handleSave = async () => {
-    if (!validate()) return;
-    
-    const foundTransporter = transporters.find(p => p.phone === transporterPhone || p.name.toLowerCase() === transporterName.toLowerCase());
-    
     try {
       await createBill({
         type: 'transport',
         billNumber: billNo,
-        transporterId: foundTransporter ? foundTransporter.id : null,
-        subtotal: totalAmount,
+        partyId: partyId,
+        transporterId: transporterId,
+        subtotal: 0,
         discount: 0,
-        total: grandTotal,
-        vehicleNo: dispatchDetails.vehicleNo,
-        destination: dispatchDetails.destination,
-        driverName: dispatchDetails.driverName,
-        lrNo: dispatchDetails.lrNo,
-        metadata: {
-          proprietor: dispatchDetails.proprietor,
-          address: dispatchDetails.address,
-          packets: dispatchDetails.packets
-        },
-        lineItems: items.map(i => ({
-          productId: i.productId,
-          productName: i.productName,
-          quantity: i.quantity,
-          mrp: i.mrp,
-          discountPercent: i.discountPercent,
-          amount: i.amount,
-          rate: i.rate,
-          hsn: i.hsn,
-        }))
+        total: Number(value) || 0,
+        date: new Date(date).toISOString(),
+        // Store all custom fields as JSON in lrNo
+        lrNo: JSON.stringify({
+          buyerName, buyerProprietor, buyerAddress, buyerDistrict, buyerPin, buyerState, buyerMob,
+          totalPacket, value, material,
+          transporterName, transporterAddress, transporterPhone
+        }),
+        lineItems: []
       });
       showDialog({ title: 'Success', message: 'Transport Bill saved successfully!', type: 'alert' });
-      setItems([]);
-      setBillNo('');
-      setDispatchDetails({ proprietor: '', address: '', vehicleNo: '', destination: '', driverName: '', lrNo: '', packets: '' });
-      setTransporterPhone('');
-      setTransporterName('');
+      // Reset
+      getNextBillNumber('TRN-').then(setBillNo);
+      setBuyerName(''); setBuyerProprietor(''); setBuyerAddress(''); setBuyerDistrict(''); setBuyerPin(''); setBuyerState(''); setBuyerMob('');
+      setTransporterName(''); setTransporterAddress(''); setTransporterPhone('');
+      setTotalPacket(''); setValue(''); setMaterial('');
+      setPartyId(null); setTransporterId(null);
     } catch (err: any) {
-      const msg = typeof err === 'string' ? err : err.message;
-      showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
+      showDialog({ title: 'Save Failed', message: err.message || 'Failed to save bill.', type: 'alert' });
     }
   };
-
-  const handleTransporterLookup = (val: string, field: 'phone' | 'name') => {
-    if (field === 'phone') setTransporterPhone(val);
-    if (field === 'name') setTransporterName(val);
-
-    const foundTransporter = transporters.find(p => p.phone === val || p.name.toLowerCase() === val.toLowerCase());
-    if (foundTransporter) {
-      setTransporterName(foundTransporter.name);
-      setTransporterPhone(foundTransporter.phone);
-    }
-  };
-  const [dispatchDetails, setDispatchDetails] = useState({
-    proprietor: '',
-    address: '',
-    vehicleNo: '',
-    destination: '',
-    driverName: '',
-    lrNo: '',
-    packets: ''
-  });
-
-  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
-  const grandTotal = Math.round(totalAmount);
 
   const handlePrint = () => {
-    if (!validate()) return;
-    try {
-      window.print();
-    } catch (err) {
-      showDialog({ title: 'Print Error', message: 'Some technical error happened or your printer is having an issue. Please fix it.', type: 'alert' });
-    }
+    window.print();
   };
 
   return (
@@ -158,103 +166,163 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
             onClick={handlePrint}
             className="whitespace-nowrap bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors text-sm"
           >
-            Print Transport Bill
+            Print
           </button>
         </div>
       </div>
 
-      <div className="a4-page border border-border relative flex flex-col">
-        <div className="text-center py-2 border-b border-black font-semibold text-lg flex justify-between px-4">
-          <span className="w-1/3"></span>
-          <span className="w-1/3">TRANSPORT BILL</span>
-          <span className="w-1/3 text-right text-xs font-normal mt-1">(DISPATCH COPY)</span>
+      <div className="a4-page border-2 border-black relative flex flex-col bg-white">
+        <div className="text-center py-4 border-b-2 border-black font-bold text-2xl tracking-wider">
+          TRANSPORT BILL
         </div>
 
-        <div className="grid grid-cols-2 text-sm border-b border-black">
-          <div className="border-r border-black p-4">
-            <h2 className="font-bold text-lg mb-2">Consignee Details</h2>
-            <div className="flex-1 flex flex-col gap-2">
-              <div className="relative no-print" ref={transporterDropdownRef}>
-                <div className="flex items-center border border-border bg-background rounded-lg px-2 text-sm w-full shadow-sm">
-                  <input 
-                    type="text"
-                    value={transporterSearch} 
-                    onChange={e => { setTransporterSearch(e.target.value); setTransporterDropdownOpen(true); }} 
-                    onFocus={() => setTransporterDropdownOpen(true)}
-                    className="w-full py-1.5 outline-none text-xs"
-                    placeholder="Search Transporter by Name or Phone..." 
-                  />
-                  <svg onClick={() => setTransporterDropdownOpen(!transporterDropdownOpen)} className="w-4 h-4 cursor-pointer text-gray-500 ml-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                </div>
-                
-                {transporterDropdownOpen && transporters.filter(t => t.name.toLowerCase().includes(transporterSearch.toLowerCase()) || t.phone.includes(transporterSearch)).length > 0 && (
-                  <div className="absolute top-full left-0 mt-1 w-full bg-background border border-border shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
-                    {transporters.filter(t => t.name.toLowerCase().includes(transporterSearch.toLowerCase()) || t.phone.includes(transporterSearch)).map(t => (
-                      <div
-                        key={t.id}
-                        className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-gray-100 last:border-0"
-                        onClick={() => {
-                          handleTransporterLookup(t.phone, 'phone');
-                          setTransporterSearch('');
-                          setTransporterDropdownOpen(false);
-                        }}
-                      >
-                        <div className="font-bold">{t.name}</div>
-                        <div className="text-xs opacity-90">{t.phone}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+        <div className="flex justify-between border-b-2 border-black p-4 bg-gray-50 print:bg-transparent">
+          <div className="flex items-center gap-2">
+            <span className="font-bold">Bill No:</span>
+            <input value={billNo} onChange={e => setBillNo(e.target.value)} className="border-b border-black outline-none bg-transparent font-semibold w-32" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-bold">Date:</span>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} className="border-b border-black outline-none bg-transparent font-semibold" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 flex-1">
+          {/* LEFT COLUMN - BUYER */}
+          <div className="border-r-2 border-black p-4 flex flex-col gap-4">
+            <div className="font-bold text-lg border-b border-black pb-1 mb-2 uppercase">Buyer Details</div>
+            
+            <div className="relative no-print" ref={partyDropdownRef}>
+              <div className="flex items-center border border-gray-300 rounded px-2 text-sm bg-white">
+                <input 
+                  type="text"
+                  value={partySearch} 
+                  onChange={e => { setPartySearch(e.target.value); setPartyDropdownOpen(true); }} 
+                  onFocus={() => setPartyDropdownOpen(true)}
+                  className="w-full py-1.5 outline-none text-xs"
+                  placeholder="Auto-fill from saved parties..." 
+                />
               </div>
-              <div className="flex flex-col gap-1 mt-1">
-                <input value={transporterName} onChange={e => setTransporterName(e.target.value)} placeholder="Transporter Name" className="font-bold w-full outline-none bg-transparent border-b border-gray-200 text-sm" />
-                <input value={transporterPhone} onChange={e => setTransporterPhone(e.target.value)} placeholder="Phone Number" className="w-full outline-none bg-transparent border-b border-gray-200 text-sm" />
+              {partyDropdownOpen && parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).length > 0 && (
+                <div className="absolute top-full left-0 mt-1 w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto no-print text-sm">
+                  {parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).map(p => (
+                    <div key={p.id} className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer border-b" onClick={() => { handlePartyLookup(p.phone); setPartySearch(''); setPartyDropdownOpen(false); }}>
+                      <div className="font-bold">{p.name}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-gray-600">Buyer Name</span>
+                <input value={buyerName} onChange={e => setBuyerName(e.target.value)} className="border-b border-gray-400 outline-none font-bold text-lg" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-gray-600">Proprietor Name</span>
+                <input value={buyerProprietor} onChange={e => setBuyerProprietor(e.target.value)} className="border-b border-gray-400 outline-none" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-gray-600">Address</span>
+                <input value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} className="border-b border-gray-400 outline-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-gray-600">District</span>
+                  <input value={buyerDistrict} onChange={e => setBuyerDistrict(e.target.value)} className="border-b border-gray-400 outline-none" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-gray-600">Pin Code</span>
+                  <input value={buyerPin} onChange={e => setBuyerPin(e.target.value)} className="border-b border-gray-400 outline-none" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-gray-600">State</span>
+                  <input value={buyerState} onChange={e => setBuyerState(e.target.value)} className="border-b border-gray-400 outline-none" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-gray-600">Mobile No.</span>
+                  <input value={buyerMob} onChange={e => setBuyerMob(e.target.value)} className="border-b border-gray-400 outline-none" />
+                </div>
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 p-4 gap-2 text-xs">
-            <p className="font-semibold">Date:</p><p>{new Date().toLocaleDateString('en-GB')}</p>
-            
-            <p className="font-semibold">Bill No:</p>
-            <input value={billNo} onChange={e => setBillNo(e.target.value)} className="border-b border-gray-300 outline-none bg-transparent" placeholder="TRN-101" />
-            
-            <p className="font-semibold">Proprietor:</p>
-            <input value={dispatchDetails.proprietor} onChange={e => setDispatchDetails({...dispatchDetails, proprietor: e.target.value})} className="border-b border-gray-300 outline-none bg-transparent" />
-            
-            <p className="font-semibold">Address:</p>
-            <input value={dispatchDetails.address} onChange={e => setDispatchDetails({...dispatchDetails, address: e.target.value})} className="border-b border-gray-300 outline-none bg-transparent" />
 
-            <p className="font-semibold">Vehicle No:</p>
-            <input value={dispatchDetails.vehicleNo} onChange={e => setDispatchDetails({...dispatchDetails, vehicleNo: e.target.value})} className="border-b border-gray-300 outline-none bg-transparent" />
+          {/* RIGHT COLUMN - TRANSPORTER & MATERIAL */}
+          <div className="p-4 flex flex-col gap-4">
+            <div className="font-bold text-lg border-b border-black pb-1 mb-2 uppercase">Transporter Details</div>
             
-            <p className="font-semibold">Destination:</p>
-            <input value={dispatchDetails.destination} onChange={e => setDispatchDetails({...dispatchDetails, destination: e.target.value})} className="border-b border-gray-300 outline-none bg-transparent" />
-            
-            <p className="font-semibold">Driver Name:</p>
-            <input value={dispatchDetails.driverName} onChange={e => setDispatchDetails({...dispatchDetails, driverName: e.target.value})} className="border-b border-gray-300 outline-none bg-transparent" />
-            
-            <p className="font-semibold">L.R. No:</p>
-            <input value={dispatchDetails.lrNo} onChange={e => setDispatchDetails({...dispatchDetails, lrNo: e.target.value})} className="border-b border-gray-300 outline-none bg-transparent" />
-            
-            <p className="font-semibold">Packets:</p>
-            <input value={dispatchDetails.packets} onChange={e => setDispatchDetails({...dispatchDetails, packets: e.target.value})} className="border-b border-gray-300 outline-none bg-transparent" />
+            <div className="relative no-print" ref={transporterDropdownRef}>
+              <div className="flex items-center border border-gray-300 rounded px-2 text-sm bg-white">
+                <input 
+                  type="text"
+                  value={transporterSearch} 
+                  onChange={e => { setTransporterSearch(e.target.value); setTransporterDropdownOpen(true); }} 
+                  onFocus={() => setTransporterDropdownOpen(true)}
+                  className="w-full py-1.5 outline-none text-xs"
+                  placeholder="Auto-fill from saved transporters..." 
+                />
+              </div>
+              {transporterDropdownOpen && transporters.filter(t => t.name.toLowerCase().includes(transporterSearch.toLowerCase()) || t.phone.includes(transporterSearch)).length > 0 && (
+                <div className="absolute top-full left-0 mt-1 w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto no-print text-sm">
+                  {transporters.filter(t => t.name.toLowerCase().includes(transporterSearch.toLowerCase()) || t.phone.includes(transporterSearch)).map(t => (
+                    <div key={t.id} className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer border-b" onClick={() => { handleTransporterLookup(t.phone); setTransporterSearch(''); setTransporterDropdownOpen(false); }}>
+                      <div className="font-bold">{t.name}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-gray-600">Transporter Name</span>
+                <input value={transporterName} onChange={e => setTransporterName(e.target.value)} className="border-b border-gray-400 outline-none font-bold text-lg" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-gray-600">Transporter Address</span>
+                <input value={transporterAddress} onChange={e => setTransporterAddress(e.target.value)} className="border-b border-gray-400 outline-none" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-gray-600">Transporter Phone No.</span>
+                <input value={transporterPhone} onChange={e => setTransporterPhone(e.target.value)} className="border-b border-gray-400 outline-none" />
+              </div>
+            </div>
+
+            <div className="font-bold text-lg border-b border-black pb-1 mt-4 mb-2 uppercase">Package Details</div>
+            <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-gray-600">Total Packet</span>
+                  <input value={totalPacket} onChange={e => setTotalPacket(e.target.value)} className="border-b border-gray-400 outline-none font-bold text-lg" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-gray-600">Value (₹)</span>
+                  <input value={value} onChange={e => setValue(e.target.value)} className="border-b border-gray-400 outline-none font-bold text-lg" />
+                </div>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-gray-600">Material in Packet</span>
+                <input value={material} onChange={e => setMaterial(e.target.value)} className="border-b border-gray-400 outline-none" />
+              </div>
+            </div>
+
           </div>
         </div>
 
-        <div className="flex-1 min-h-[300px] flex flex-col">
-          <BillEngine items={items} onChange={setItems} columns={['sno', 'name', 'qty', 'rate', 'amount']} />
+        {/* BOTTOM SIGNATURE AREA */}
+        <div className="border-t-2 border-black min-h-[150px] p-4 flex flex-col justify-end">
+          <div className="flex justify-between items-end w-full">
+            <div className="w-1/3"></div>
+            <div className="w-1/3"></div>
+            <div className="w-1/3 text-center border-t border-dashed border-gray-400 pt-2 font-bold text-sm">
+              Transport Received Sign. with seal
+            </div>
+          </div>
         </div>
 
-        <div className="border-y border-black flex">
-          <div className="w-3/4 p-2 border-r border-black">
-            <p className="font-bold">Total Bundles/Qty: {totalQuantity}</p>
-            <p className="italic text-sm mt-2">Amount in words: {numberToWords(grandTotal)}</p>
-          </div>
-          <div className="w-1/4 p-2 flex justify-between font-bold text-lg items-center">
-            <span>TOTAL</span>
-            <span>{grandTotal.toFixed(2)}</span>
-          </div>
-        </div>
       </div>
     </div>
   );

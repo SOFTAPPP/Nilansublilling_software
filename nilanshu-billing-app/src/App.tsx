@@ -23,6 +23,7 @@ import ReceiptCopy from './pages/ReceiptCopy';
 import Voucher from './pages/Voucher';
 import { Titlebar } from './components/ui/Titlebar';
 import GlobalDialog from './components/GlobalDialog';
+import { NetworkStatus } from './components/ui/NetworkStatus';
 import { useLiveSync } from './hooks/useLiveSync';
 
 import { getDb } from './utils/api';
@@ -109,6 +110,7 @@ function App() {
     <BrowserRouter>
       <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
         <Titlebar />
+        <NetworkStatus />
         <div className="flex-1 relative overflow-hidden flex flex-col">
           <GlobalDialog />
           <Routes>

@@ -66,8 +66,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
         }))
       });
       showDialog({ title: 'Success', message: 'Quick Bill saved successfully!', type: 'alert' });
-      setItems([]);
-      setBillNo('');
+      // Removed automatic clearing so user can print after saving
     } catch (err: any) {
       const msg = typeof err === 'string' ? err : err.message;
       showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
@@ -94,12 +93,23 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
         <h2 className="text-2xl font-bold">Quick Bill</h2>
         <div className="flex flex-wrap gap-2 md:gap-3 justify-end flex-1">
           {!viewBill && (
-            <button 
-              onClick={handleSave} 
-              className="whitespace-nowrap bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium shadow-sm transition-colors text-sm"
-            >
-              Save
-            </button>
+            <>
+              <button 
+                onClick={() => {
+                  setItems([]);
+                  getNextBillNumber('QB-').then(setBillNo);
+                }}
+                className="whitespace-nowrap bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 font-medium shadow-sm transition-colors text-sm"
+              >
+                New Bill
+              </button>
+              <button 
+                onClick={handleSave} 
+                className="whitespace-nowrap bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium shadow-sm transition-colors text-sm"
+              >
+                Save
+              </button>
+            </>
           )}
           <button 
             onClick={handlePrint}
