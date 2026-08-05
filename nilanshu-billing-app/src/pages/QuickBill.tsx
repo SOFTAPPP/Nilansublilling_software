@@ -131,7 +131,15 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
              <span className="font-semibold">Bill NO:</span> 
              <div className="flex items-center">
                <span className="font-bold">QB/</span>
-               <input value={billNo} onChange={e => setBillNo(e.target.value)} className="outline-none bg-transparent w-24 pl-1" placeholder="123" />
+               <input 
+                 value={billNo.replace(/^QB-/, '')} 
+                 onChange={e => {
+                   const val = e.target.value.replace(/^QB-/, '');
+                   setBillNo(val ? `QB-${val}` : '');
+                 }} 
+                 className="outline-none bg-transparent w-24 pl-1 font-bold" 
+                 placeholder="123" 
+               />
              </div>
           </div>
         </div>

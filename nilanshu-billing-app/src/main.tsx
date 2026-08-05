@@ -8,7 +8,15 @@ import App from './App.tsx'
 // 1. Disable right-click context menu
 document.addEventListener('contextmenu', e => e.preventDefault());
 
-// 2. Disable browser keyboard shortcuts that expose browser UI
+// 2. Disable mouse scroll changing number inputs globally
+document.addEventListener('wheel', (e) => {
+  const target = e.target as HTMLElement;
+  if (target && target.tagName === 'INPUT' && (target as HTMLInputElement).type === 'number') {
+    target.blur();
+  }
+});
+
+// 3. Disable browser keyboard shortcuts that expose browser UI
 document.addEventListener('keydown', e => {
   // Ctrl+R / F5 — Refresh (not native-like)
   if ((e.ctrlKey && e.key === 'r') || e.key === 'F5') {

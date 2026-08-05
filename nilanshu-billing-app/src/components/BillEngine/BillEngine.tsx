@@ -171,6 +171,10 @@ export const BillEngine: React.FC<BillEngineProps> = ({
     const newItems = [...items];
     const item = { ...newItems[index], [field]: value };
     
+    if (field === 'discountPercent') {
+      item.discountManuallySet = true;
+    }
+    
     if (field === 'productId') {
       const prod = products.find(p => p.id === value);
       if (prod) {
@@ -236,12 +240,9 @@ export const BillEngine: React.FC<BillEngineProps> = ({
       }
     }
 
-    // Recalculate amount
+    // Recalculate amount (Base price * quantity only, no per-item discount)
     const basePrice = columns.includes('rate') ? (item.rate || 0) : item.mrp;
-    // Fallback to global discount if item discount is 0 and global exists
-    const effectiveDiscount = item.discountPercent > 0 ? item.discountPercent : globalDiscount;
-    const discountAmount = (basePrice * effectiveDiscount) / 100;
-    item.amount = (basePrice - discountAmount) * item.quantity;
+    item.amount = basePrice * item.quantity;
 
     newItems[index] = item;
     onChange(newItems);
@@ -252,6 +253,7 @@ export const BillEngine: React.FC<BillEngineProps> = ({
     if (activeRow !== index) return null;
     const query = currentName?.toLowerCase() || '';
     const suggestions = products
+      .filter(p => p.category !== 'Miscellaneous') // Hide Miscellaneous one-off items from suggestions
       .filter(p => !items.some((it, idx) => idx !== index && it.productId === p.id))
       .filter(p => !query || 
         p.name.toLowerCase().includes(query) || 
@@ -395,7 +397,15 @@ export const BillEngine: React.FC<BillEngineProps> = ({
                 <td className="p-0 border border-border">
                   <input 
                     type="number" min="0" className="w-full p-2 text-center bg-transparent outline-none"
-                    value={item.discountPercent} onChange={(e) => updateLineItem(index, 'discountPercent', Math.max(0, parseFloat(e.target.value) || 0))}
+                    value={item.discountPercent} 
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        updateLineItem(index, 'discountPercent', globalDiscount);
+                      } else {
+                        updateLineItem(index, 'discountPercent', Math.max(0, parseFloat(val) || 0));
+                      }
+                    }}
                     readOnly={readOnly}
                   />
                 </td>

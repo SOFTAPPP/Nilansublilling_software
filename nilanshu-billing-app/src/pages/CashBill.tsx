@@ -1,23 +1,23 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
-import { numberToWords } from '../utils/numberToWords';
+import { checkBillNumberExists, getNextBillNumber, getNextBillNumberSync } from '../utils/billNumber';
 import { getLocalDateString } from '../utils/dateUtils';
-import { getNextBillNumber, checkBillNumberExists } from '../utils/billNumber';
+import { numberToWords } from '../utils/numberToWords';
 
 export default function CashBill({ viewBill }: { viewBill?: any }) {
   const { settings, updateSettings, createBill, parties, showDialog } = useStore();
   const [items, setItems] = useState<BillLineItem[]>([]);
   const [partyId, setPartyId] = useState<string | null>(null);
   const [partyName, setPartyName] = useState('');
-  const [memoNo, setMemoNo] = useState('CSH-');
+  const bills = useStore(state => state.bills);
+  const [memoNo, setMemoNo] = useState(() => viewBill ? (viewBill.billNumber || '') : getNextBillNumberSync('CSH-', bills));
 
-  // Auto-fill next bill number on mount
+  // Auto-fill next memo number
+  // (No longer needed to run asynchronously on mount since we initialized it synchronously)
   useEffect(() => {
-    if (!viewBill) {
-      getNextBillNumber('CSH-').then(setMemoNo);
-    }
-  }, [viewBill]);
+    // Synchronously initialized
+  }, []);
   const [billDate, setBillDate] = useState(() => getLocalDateString());
   const [showPaidStamp, setShowPaidStamp] = useState(true);
   const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
@@ -65,29 +65,19 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
       setPartyId(foundParty.id);
       const discount = foundParty.discountPercentage || 0;
       setDefaultDiscount(discount);
-      
-      // Retroactively apply the default discount to all existing items
-      setItems(prevItems => prevItems.map(item => {
-        // If the item had no explicit discount set, apply the customer's default discount
-        if (!item.discountPercent || item.discountPercent === 0) {
-          const discountAmount = (item.mrp * discount) / 100;
-          const newAmount = (item.mrp - discountAmount) * item.quantity;
-          return { ...item, discountPercent: discount, amount: newAmount };
-        }
-        return item;
-      }));
     } else {
       setPartyId(null);
       setDefaultDiscount(0);
     }
   };
 
-  // Calculate totals
+  // Calculate totals (discount applies to totalAmount)
   const mrpTotal = items.reduce((sum, item) => sum + (item.mrp * item.quantity), 0);
-  const discountTotal = items.reduce((sum, item) => sum + ((item.mrp * item.quantity) - item.amount), 0);
-  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
-  const roundOff = Math.round(totalAmount) - totalAmount;
-  const grandTotal = Math.round(totalAmount);
+  const totalAmount = mrpTotal; // Base sum is just MRP total now
+  const discountTotal = (totalAmount * defaultDiscount) / 100;
+  const subtotalBeforeRound = totalAmount - discountTotal;
+  const roundOff = Math.round(subtotalBeforeRound) - subtotalBeforeRound;
+  const grandTotal = Math.round(subtotalBeforeRound);
 
   const partyOutstanding = parties.find(p => p.id === partyId)?.outstandingBalance || 0;
   const deductedAmount = (useOutstanding && partyOutstanding > 0) ? Math.min(partyOutstanding, grandTotal) : 0;
@@ -129,11 +119,20 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
     const fullNo = 'CSH-' + val.replace(/^CSH-/, '');
     setMemoNo(fullNo);
     if (val.replace(/^CSH-/, '').length > 0) {
-      const exists = await checkBillNumberExists(fullNo);
-      if (exists) {
+      // Check local bills state first for immediate feedback (including optimistically deleted bills)
+      const localExists = useStore.getState().bills.some(b => b.billNumber === fullNo);
+
+      if (localExists) {
         showDialog({ title: 'Duplicate Bill Number', message: `Bill number ${fullNo} already exists. Please use a different number.`, type: 'alert' });
         // Reset back to next available
         getNextBillNumber('CSH-').then(setMemoNo);
+      } else {
+        // Fallback to DB check
+        const dbExists = await checkBillNumberExists(fullNo);
+        if (dbExists) {
+          showDialog({ title: 'Duplicate Bill Number', message: `Bill number ${fullNo} already exists. Please use a different number.`, type: 'alert' });
+          getNextBillNumber('CSH-').then(setMemoNo);
+        }
       }
     }
   };
@@ -200,7 +199,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
 
       {/* Bill Canvas */}
       <div className="a4-page relative flex flex-col p-4 print:p-2">
-        
+
         {/* Stamps overlay */}
         {showPaidStamp && (
           <div className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-green-600 border-4 border-green-600 rounded-full w-48 h-48 flex items-center justify-center opacity-30 pointer-events-none z-0">
@@ -210,7 +209,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
 
         {/* Header */}
         <div className="text-center flex flex-col items-center relative">
-          <img src="/logo.png" alt="Logo" className="absolute left-0 top-0 w-10 h-10 object-contain" />
+          <img src="/logo.png" alt="Logo" className="absolute left-0 top-0 w-14 h-14 object-contain" />
           <div className="text-3xl font-bold uppercase tracking-wide text-center w-full">{settings.companyName}</div>
           <div className="text-sm mt-1 text-center w-full">{settings.companyAddress}</div>
           <div className="text-sm text-center w-full">{settings.companyCity}</div>
@@ -228,70 +227,69 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
 
         {/* Bill Meta */}
         <div className="flex justify-between items-end mb-4 bg-muted/20 print:bg-transparent rounded-xl p-4 print:p-0 border border-border print:border-none">
-          <div className="flex flex-col gap-1.5 relative w-72" ref={partyDropdownRef}>
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider pl-1">Billed To</span>
-            <div className="flex items-center bg-background print:bg-transparent border border-border print:border-b-black print:border-t-0 print:border-l-0 print:border-r-0 rounded-lg print:rounded-none px-3 print:px-0 py-2 shadow-sm print:shadow-none transition-all focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary">
+          <div className="flex flex-col gap-1 relative w-[380px]" ref={partyDropdownRef}>
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm">Buyer:-</span>
               <input
                 type="text"
                 value={partyName}
                 onChange={e => { handlePartyLookup(e.target.value); setPartyDropdownOpen(true); }}
                 onFocus={() => setPartyDropdownOpen(true)}
-                className="outline-none w-full bg-transparent font-bold text-sm uppercase text-foreground"
-                placeholder="CASH CUSTOMER"
+                className="outline-none w-full bg-transparent font-bold text-sm text-foreground"
+                placeholder="Search & Enter Buyer Name or Phone..."
               />
-              <svg onClick={() => setPartyDropdownOpen(!partyDropdownOpen)} className="w-4 h-4 cursor-pointer text-muted-foreground hover:text-foreground transition-colors print:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </div>
-            
+
             {partyId && (
-              <div className="text-[13px] text-foreground/90 font-medium mt-1.5 px-1.5">
+              <div className="text-[14px] text-gray-600 font-normal mt-1 pl-12 flex flex-col gap-1">
                 {parties.find(p => p.id === partyId)?.address && <div>{parties.find(p => p.id === partyId)?.address}</div>}
-                {parties.find(p => p.id === partyId)?.phone && <div>Ph: {parties.find(p => p.id === partyId)?.phone}</div>}
+                {parties.find(p => p.id === partyId)?.phone && <div>{parties.find(p => p.id === partyId)?.phone}</div>}
               </div>
             )}
-            
+
             {partyDropdownOpen && parties.filter(p => {
               const isSelectedMatch = partyId && parties.find(x => x.id === partyId)?.name === partyName;
               if (isSelectedMatch) return true;
               return p.name.toLowerCase().includes(partyName.toLowerCase()) || p.phone.includes(partyName);
             }).length > 0 && (
-              <div className="absolute top-full left-0 mt-2 w-full bg-background border border-border shadow-2xl rounded-lg z-50 max-h-60 overflow-y-auto no-print text-sm overflow-hidden">
-                {parties.filter(p => {
-                  const isSelectedMatch = partyId && parties.find(x => x.id === partyId)?.name === partyName;
-                  if (isSelectedMatch) return true;
-                  return p.name.toLowerCase().includes(partyName.toLowerCase()) || p.phone.includes(partyName);
-                }).map(p => (
-                  <div
-                    key={p.id}
-                    className="px-4 py-3 hover:bg-primary/10 cursor-pointer transition-colors border-b border-border/50 last:border-0 flex justify-between items-center"
-                    onClick={() => {
-                      setPartyName(p.name);
-                      setPartyId(p.id);
-                      const customerDiscount = p.discountPercentage || 0;
-                      setDefaultDiscount(customerDiscount);
-                      setPartyDropdownOpen(false);
-                      
-                      // Only apply customer default discount to items that have NO manually set discount
-                      setItems(prevItems => prevItems.map(item => {
-                        if (!item.discountPercent || item.discountPercent === 0) {
-                          const discountAmount = (item.mrp * customerDiscount) / 100;
-                          const newAmount = (item.mrp - discountAmount) * item.quantity;
-                          return { ...item, discountPercent: customerDiscount, amount: newAmount };
-                        }
-                        return item;
-                      }));
-                    }}
-                  >
-                    <div className="font-bold text-foreground text-sm">{p.name}</div>
-                    <div className="text-xs text-muted-foreground">{p.phone}</div>
-                  </div>
-                ))}
-              </div>
-            )}
+                <div className="absolute top-full left-0 mt-2 w-full bg-background border border-border shadow-2xl rounded-lg z-50 max-h-60 overflow-y-auto no-print text-sm">
+                  {parties.filter(p => {
+                    const isSelectedMatch = partyId && parties.find(x => x.id === partyId)?.name === partyName;
+                    if (isSelectedMatch) return true;
+                    return p.name.toLowerCase().includes(partyName.toLowerCase()) || p.phone.includes(partyName);
+                  }).map(p => (
+                    <div
+                      key={p.id}
+                      className="px-4 py-3 hover:bg-primary/10 cursor-pointer transition-colors border-b border-border/50 last:border-0 flex justify-between items-center"
+                      onClick={() => {
+                        setPartyName(p.name);
+                        setPartyId(p.id);
+                        const customerDiscount = p.discountPercentage || 0;
+                        setDefaultDiscount(customerDiscount);
+                        setPartyDropdownOpen(false);
+
+                        // Only apply customer default discount to items that have NO manually set discount
+                        setItems(prevItems => prevItems.map(item => {
+                          if (!item.discountPercent || item.discountPercent === 0) {
+                            const discountAmount = (item.mrp * customerDiscount) / 100;
+                            const newAmount = (item.mrp - discountAmount) * item.quantity;
+                            return { ...item, discountPercent: customerDiscount, amount: newAmount };
+                          }
+                          return item;
+                        }));
+                      }}
+                    >
+                      <div className="font-bold text-foreground text-sm">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">{p.phone}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
           </div>
-          
+
           <div className="flex flex-col items-end gap-3 print:flex-row-reverse print:items-center print:justify-end print:gap-4 print:mt-auto print:h-full">
             <div className="relative">
-              <span className="hidden print:block absolute -top-4 left-0 right-0 text-center text-[9px] italic text-gray-500">Original for Recipient</span>
+              <span className="hidden print:block absolute -top-5 left-0 text-[12px] italic text-gray-500">Original for Recipient</span>
               <div className="bg-primary/10 text-primary print:bg-transparent print:text-black font-extrabold px-5 py-1.5 print:py-2 rounded-lg print:rounded-none text-lg tracking-widest border border-primary/20 print:border-black uppercase shadow-sm print:shadow-none print:flex print:items-center print:h-[42px]">
                 CASH MEMO
               </div>
@@ -318,8 +316,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
           <BillEngine
             items={items}
             onChange={setItems}
-            columns={['sno', 'qty', 'name', 'mrp', 'discount', 'amount']}
-            globalDiscount={defaultDiscount}
+            columns={['sno', 'qty', 'name', 'mrp', 'amount']}
           />
         </div>
 
@@ -334,9 +331,9 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
             </div>
 
             {/* QR Code in the middle space */}
-            <div className="flex justify-center my-3">
+            <div className="flex my-3">
               <div className="w-20 h-20 border border-gray-300 p-1 flex items-center justify-center relative">
-                <div className="text-[8px] text-gray-400 text-center leading-tight">SCAN<br/>TO<br/>PAY</div>
+                <div className="text-[8px] text-gray-400 text-center leading-tight">SCAN<br />TO<br />PAY</div>
                 <img src="/qr.png" alt="QR" className="absolute w-18 h-18 object-contain opacity-0" onError={(e) => (e.currentTarget.style.opacity = '0')} onLoad={(e) => (e.currentTarget.style.opacity = '1')} />
               </div>
             </div>
@@ -353,9 +350,19 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
               <span>MRP TOTAL</span>
               <span>{mrpTotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between border-b border-black p-2 text-xs">
-              <span>Discount</span>
-              <span>{discountTotal.toFixed(2)}</span>
+            <div className="flex justify-between border-b border-black p-2 text-xs items-center gap-2">
+              <span className="flex-1 flex justify-between items-center">
+                <span>Party Discount:</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={defaultDiscount}
+                  onChange={e => setDefaultDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className="w-12 border-2 border-gray-300 rounded text-center font-bold no-print text-xs py-0.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </span>
+              <span>Less: Discount</span>
+              <span className="w-16 text-right">{discountTotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between border-b border-black p-2 text-xs">
               <span>Round Off</span>
@@ -365,7 +372,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
               <span>GRAND TOTAL</span>
               <span>{grandTotal.toFixed(2)}</span>
             </div>
-            
+
             {partyOutstanding > 0 && (
               <div className="flex items-center justify-between border-b border-black p-2 bg-yellow-50/50 dark:bg-yellow-900/20 print:bg-transparent">
                 <label className="flex items-center gap-2 cursor-pointer no-print text-xs">

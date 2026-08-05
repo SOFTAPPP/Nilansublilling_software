@@ -1,14 +1,14 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
-import { numberToWords } from '../utils/numberToWords';
+import { checkBillNumberExists, getNextBillNumber, getNextBillNumberSync } from '../utils/billNumber';
 import { getLocalDateString } from '../utils/dateUtils';
-import { getNextBillNumber, checkBillNumberExists } from '../utils/billNumber';
+import { numberToWords } from '../utils/numberToWords';
 
 export default function CreditBill({ type = 'credit', viewBill }: { type?: 'credit' | 'return', viewBill?: any }) {
   const { parties, settings, updateSettings, createBill, showDialog } = useStore();
   const [items, setItems] = useState<BillLineItem[]>([]);
-  
+
   // Consignee Details
   const [consigneeName, setConsigneeName] = useState('');
   const [consigneeAddress, setConsigneeAddress] = useState('');
@@ -18,20 +18,21 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   const [invoiceMeta, setInvoiceMeta] = useState({
     deliveryNote: '', termsOfPayment: '', refNo: '', otherRef: '', dispatchDocNo: '', deliveryNoteDate: '', dispatchedThrough: '', destination: '', termsOfDelivery: '', orderDate: ''
   });
-  
+
   // Buyer Details
   const [buyerPhone, setBuyerPhone] = useState('');
   const [buyerName, setBuyerName] = useState('');
   const [buyerAddress, setBuyerAddress] = useState('');
   const [buyerState, setBuyerState] = useState('');
-  const [invoiceNo, setInvoiceNo] = useState('');
+  const bills = useStore(state => state.bills);
+  const [invoiceNo, setInvoiceNo] = useState(() => viewBill ? (viewBill.billNumber || '') : getNextBillNumberSync('INV-', bills));
 
   // Auto-fill next invoice number
+  // (No longer needed to run asynchronously on mount since we initialized it synchronously)
   useEffect(() => {
-    if (!viewBill) {
-      getNextBillNumber('INV-').then(setInvoiceNo);
-    }
-  }, [viewBill]);
+    // We only need to check it once when the component mounts if we wanted to be sure it's latest,
+    // but the store already has the latest bills.
+  }, []);
   const [billDate, setBillDate] = useState(() => getLocalDateString());
   const [partyDiscount, setPartyDiscount] = useState(0);
   const [partyId, setPartyId] = useState<string | null>(null);
@@ -81,28 +82,24 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
       const discount = foundParty.discountPercentage || 0;
       setPartyDiscount(discount);
       setPartyId(foundParty.id);
-      
+
       // Auto-fill consignee details
       setConsigneeName(foundParty.name);
       setConsigneeAddress(foundParty.address);
       setConsigneeState('19'); // Default WB state code
       setBuyerState('19');
-
-      // Retroactively apply the default discount to all existing items
-      setItems(prevItems => prevItems.map(item => {
-        if (!item.discountPercent || item.discountPercent === 0) {
-          const discountAmount = (item.mrp * discount) / 100;
-          const newAmount = (item.mrp - discountAmount) * item.quantity;
-          return { ...item, discountPercent: discount, amount: newAmount };
-        }
-        return item;
-      }));
     } else {
       setPartyId(null);
       setPartyDiscount(0);
+      if (val === '') {
+        setBuyerPhone('');
+        setBuyerAddress('');
+        setConsigneeName('');
+        setConsigneeAddress('');
+      }
     }
   };
-  
+
   // Paid and Cancelled stamps
   const [showPaidStamp, setShowPaidStamp] = useState(false);
   const [partySearch, setPartySearch] = useState('');
@@ -128,15 +125,19 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   const [showCancelStamp, setShowCancelStamp] = useState(false);
 
   // Calculates
-  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
+  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0); // Base sum without discount
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
   const mrpTotal = items.reduce((sum, item) => sum + (item.mrp * item.quantity), 0);
-  const discountTotal = mrpTotal - totalAmount;
-  const cgstRate = 9;
-  const sgstRate = 9;
-  const cgstAmount = (totalAmount * cgstRate) / 100;
-  const sgstAmount = (totalAmount * sgstRate) / 100;
-  const subtotalBeforeRound = totalAmount + cgstAmount + sgstAmount;
+  const discountTotal = (totalAmount * partyDiscount) / 100;
+
+  // Tax calculations on discounted total
+  const taxableAmount = totalAmount - discountTotal;
+  const cgstRate = 0;
+  const sgstRate = 0;
+  const cgstAmount = (taxableAmount * cgstRate) / 100;
+  const sgstAmount = (taxableAmount * sgstRate) / 100;
+
+  const subtotalBeforeRound = taxableAmount + cgstAmount + sgstAmount;
   const roundOff = Math.round(subtotalBeforeRound) - subtotalBeforeRound;
   const grandTotal = Math.round(subtotalBeforeRound);
 
@@ -148,24 +149,27 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   const handleInvoiceNoChange = async (val: string) => {
     setInvoiceNo(val);
     if (val.trim().length > 0) {
-      const exists = await checkBillNumberExists(val);
-      if (exists) {
+      // Check local bills state first for immediate feedback
+      const localExists = useStore.getState().bills.some(b => b.billNumber === val);
+
+      if (localExists) {
         showDialog({ title: 'Duplicate Invoice Number', message: `Invoice number ${val} already exists. Please use a different number.`, type: 'alert' });
         getNextBillNumber('INV-').then(setInvoiceNo);
+      } else {
+        // Fallback DB check
+        const dbExists = await checkBillNumberExists(val);
+        if (dbExists) {
+          showDialog({ title: 'Duplicate Invoice Number', message: `Invoice number ${val} already exists. Please use a different number.`, type: 'alert' });
+          getNextBillNumber('INV-').then(setInvoiceNo);
+        }
       }
     }
   };
 
-  // When partyDiscount changes, recalculate all item amounts
+  // Removed retroactive recalculation when partyDiscount changes because discount is now global.
   useEffect(() => {
-    if (partyDiscount >= 0) {
-      setItems(prevItems => prevItems.map(item => {
-        const discountAmount = (item.mrp * partyDiscount) / 100;
-        const newRate = item.mrp - discountAmount;
-        const newAmount = newRate * item.quantity;
-        return { ...item, discountPercent: partyDiscount, rate: newRate, amount: newAmount };
-      }));
-    }
+    // Left empty to avoid React hook count mismatch or safely remove if preferred.
+    // The discount is now calculated dynamically in the render cycle.
   }, [partyDiscount]);
 
   const handlePrint = () => {
@@ -215,7 +219,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
 
   const handleSave = async () => {
     if (!validate()) return;
-    
+
     try {
       await createBill({
         type: type,
@@ -240,11 +244,11 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
         }))
       });
       showDialog({ title: 'Success', message: `${type === 'return' ? 'Return' : 'Credit'} Bill saved successfully!`, type: 'alert' });
-      
+
       if (buyerPhone) {
         await handleSendSMS();
       }
-      
+
     } catch (err: any) {
       const msg = typeof err === 'string' ? err : err.message;
       showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
@@ -287,17 +291,20 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
               Save
             </button>
           )}
-          <button 
+          <button
             onClick={() => setShowPaidStamp(!showPaidStamp)}
             className="whitespace-nowrap border border-green-600 text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 font-medium shadow-sm transition-colors text-sm bg-white"
           >
             Paid Stamp
           </button>
-          <button 
+          <button
             onClick={() => setShowCancelStamp(!showCancelStamp)}
-            className="whitespace-nowrap border border-red-600 text-red-700 px-4 py-2 rounded-lg hover:bg-red-50 font-medium shadow-sm transition-colors text-sm bg-white"
+            className={`whitespace-nowrap border px-4 py-2 rounded-lg font-medium shadow-sm transition-colors text-sm bg-white ${type === 'return'
+                ? 'border-blue-600 text-blue-700 hover:bg-blue-50'
+                : 'border-red-600 text-red-700 hover:bg-red-50'
+              }`}
           >
-            Cancelled Stamp
+            {type === 'return' ? 'Received Stamp' : 'Cancelled Stamp'}
           </button>
           {!viewBill && (
             <button onClick={handleSendSMS} className="whitespace-nowrap bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 font-medium shadow-sm transition-colors text-sm">
@@ -312,7 +319,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
 
       {/* Bill Canvas */}
       <div className="a4-page border-2 border-border relative flex flex-col">
-        
+
         {/* Stamps overlay */}
         {showPaidStamp && (
           <div className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-green-600 border-4 border-green-600 rounded-full w-64 h-64 flex items-center justify-center opacity-30 pointer-events-none z-0">
@@ -320,16 +327,19 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           </div>
         )}
         {showCancelStamp && (
-          <div className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-12 text-blue-600 border-4 border-blue-600 rounded-full w-64 h-64 flex items-center justify-center opacity-30 pointer-events-none z-0">
-            <span className="text-5xl font-bold uppercase tracking-widest text-center">RECEIVED</span>
+          <div className={`absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-12 border-4 rounded-full w-64 h-64 flex items-center justify-center opacity-30 pointer-events-none z-0 ${type === 'return' ? 'text-blue-600 border-blue-600' : 'text-red-600 border-red-600'
+            }`}>
+            <span className="text-5xl font-bold uppercase tracking-widest text-center">
+              {type === 'return' ? 'RECEIVED' : 'CANCELLED'}
+            </span>
           </div>
         )}
 
         {/* Header */}
         <div className="relative text-center py-2 font-bold text-lg border-b-2 border-black tracking-wide">
-          <img src="/logo.png" alt="Logo" className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 object-contain print:block" />
+          <img src="/logo.png" alt="Logo" className="absolute left-2 top-1/2 -translate-y-1/2 w-14 h-14 object-contain print:block" />
           {type === 'return' ? 'RETURN CUM CHALLAN' : 'INVOICE CUM CHALLAN'}
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-normal italic text-gray-600">Original for Recipient</span>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[12px] font-normal italic text-gray-600">Original for Recipient</span>
         </div>
 
         {/* Top Details Grid */}
@@ -338,50 +348,56 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           <div className="flex border-b-2 border-black">
             {/* Seller Details (Left) */}
             <div className="w-1/2 border-r-2 border-black p-2 flex flex-col justify-center min-h-[140px]">
-              <div className="font-bold text-2xl uppercase w-full">{settings.companyName}</div>
-              <div className="font-bold text-sm w-full">Publishers and Book Sellers</div>
+              <div className="font-bold text-3xl uppercase w-full">{settings.companyName}</div>
+              <div className="font-bold text-[15px] w-full">Publishers and Book Sellers</div>
               <div className="w-full text-sm mt-1">{settings.companyAddress}</div>
               <div className="w-full text-sm">{settings.companyCity}</div>
               <div className="flex gap-2 text-sm mt-1"><span className="whitespace-nowrap">IT PAN -</span><span className="w-full uppercase">{settings.companyPan}</span></div>
               <div className="flex gap-2 text-sm"><span className="whitespace-nowrap">Phone No.-</span><span className="w-full">{settings.companyContact}</span></div>
             </div>
-            
-            {/* Invoice Meta Top 2 Rows (Right) */}
+
+            {/* Invoice Meta Grid (Right) */}
             <div className="w-1/2 flex flex-col text-[13px]">
               <div className="flex flex-1 border-b border-black">
                 <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
                   <span className="text-[11px] text-gray-600 font-medium">Invoice No.</span>
-                  <input value={invoiceNo} onChange={e => handleInvoiceNoChange(e.target.value)} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                  <input value={invoiceNo} onChange={e => handleInvoiceNoChange(e.target.value)} className="font-bold w-full max-w-[180px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
                 </div>
                 <div className="w-1/2 p-2 flex flex-col justify-start">
                   <span className="text-[11px] text-gray-600 font-medium">Date:-</span>
-                  <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                  <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="font-bold w-full max-w-[150px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0 cursor-pointer" />
                 </div>
               </div>
               <div className="flex flex-1 border-b border-black">
                 <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
-                  <span className="text-[11px] text-gray-600 font-medium">Transport no:</span>
-                  <input value={invoiceMeta.dispatchedThrough} onChange={e => setInvoiceMeta({...invoiceMeta, dispatchedThrough: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                  <span className="text-[11px] text-gray-600 font-medium">Transport Name:</span>
+                  <input value={invoiceMeta.dispatchedThrough} onChange={e => setInvoiceMeta({ ...invoiceMeta, dispatchedThrough: e.target.value })} className="font-bold w-full max-w-[180px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
                 </div>
                 <div className="w-1/2 p-2 flex flex-col justify-start">
+                  <span className="text-[11px] text-gray-600 font-medium">Transport no:</span>
+                  <input value={invoiceMeta.dispatchDocNo} onChange={e => setInvoiceMeta({ ...invoiceMeta, dispatchDocNo: e.target.value })} className="font-bold w-full max-w-[150px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                </div>
+              </div>
+              <div className="flex flex-1 border-b border-black">
+                <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
                   <span className="text-[11px] text-gray-600 font-medium">Delivery Note Date</span>
-                  <input type="date" value={invoiceMeta.deliveryNoteDate} onChange={e => setInvoiceMeta({...invoiceMeta, deliveryNoteDate: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                  <input type="date" value={invoiceMeta.deliveryNoteDate} onChange={e => setInvoiceMeta({ ...invoiceMeta, deliveryNoteDate: e.target.value })} className="font-bold w-full max-w-[150px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0 cursor-pointer" />
+                </div>
+                <div className="w-1/2 p-2 flex flex-col justify-start">
+                  <span className="text-[11px] text-gray-600 font-medium">Order Date</span>
+                  <input type="date" value={invoiceMeta.orderDate} onChange={e => setInvoiceMeta({ ...invoiceMeta, orderDate: e.target.value })} className="font-bold w-full max-w-[150px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0 cursor-pointer" />
                 </div>
               </div>
               <div className="flex flex-1">
-                <div className="w-1/4 border-r border-black p-2 flex flex-col justify-start">
-                  <span className="text-[11px] text-gray-600 font-medium">Order Date</span>
-                  <input type="date" value={invoiceMeta.orderDate} onChange={e => setInvoiceMeta({...invoiceMeta, orderDate: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
-                </div>
-                <div className="w-1/4 border-r border-black p-2 flex flex-col justify-start">
+                <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
                   <span className="text-[11px] text-gray-600 font-medium">Despatched through</span>
-                  <div className="relative w-full mt-1 print:hidden" ref={despatchDropdownRef}>
-                    <div 
+                  <div className="relative w-full max-w-[180px] mt-1 print:hidden" ref={despatchDropdownRef}>
+                    <div
                       onClick={() => setDespatchDropdownOpen(!despatchDropdownOpen)}
                       className="flex justify-between items-center font-bold w-full outline-none bg-background cursor-pointer border border-border rounded px-2 py-1.5 text-[12px] hover:border-gray-400 focus:border-blue-500 transition-all shadow-sm"
                     >
                       <span>{invoiceMeta.termsOfPayment || 'ROAD'}</span>
-                      <svg className={`fill-current h-4 w-4 text-gray-500 transition-transform ${despatchDropdownOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                      <svg className={`fill-current h-4 w-4 text-gray-500 transition-transform ${despatchDropdownOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
                     </div>
                     {despatchDropdownOpen && (
                       <div className="absolute top-full left-0 mt-1 w-full bg-background border border-border shadow-xl rounded-md z-50 overflow-hidden text-sm">
@@ -390,7 +406,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                             key={method}
                             className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-border/50 last:border-0 font-medium"
                             onClick={() => {
-                              setInvoiceMeta({...invoiceMeta, termsOfPayment: method});
+                              setInvoiceMeta({ ...invoiceMeta, termsOfPayment: method });
                               setDespatchDropdownOpen(false);
                             }}
                           >
@@ -406,60 +422,62 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                 </div>
                 <div className="w-1/2 p-2 flex flex-col justify-start">
                   <span className="text-[11px] text-gray-600 font-medium">Destination</span>
-                  <input value={invoiceMeta.destination} onChange={e => setInvoiceMeta({...invoiceMeta, destination: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                  <input value={invoiceMeta.destination} onChange={e => setInvoiceMeta({ ...invoiceMeta, destination: e.target.value })} className="font-bold w-full max-w-[180px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
                 </div>
               </div>
             </div>
           </div>
-          
+
           {/* Bottom Half */}
           <div className="flex flex-1">
-            {/* Buyer Details (Left) */}
-            <div className="w-1/2 border-r-2 border-black p-2 flex flex-col flex-1">
+            {/* Buyer Details (Full Width) */}
+            <div className="w-full p-2 flex flex-col flex-1">
               <div className="flex items-start gap-1">
                 <span className="text-sm">Buyer:-</span>
-                <div className="flex-1 flex flex-col">
-                  <div className="relative no-print mb-1" ref={partyDropdownRef}>
-                    <div className="flex items-center border border-border bg-background rounded-lg px-2 text-sm w-full shadow-sm">
-                      <input 
-                        type="text"
-                        value={partySearch} 
-                        onChange={e => { setPartySearch(e.target.value); setPartyDropdownOpen(true); }} 
+                <div className="flex-1 flex justify-between gap-4">
+                  <div className="flex-1 flex flex-col">
+                    <div className="relative mb-1" ref={partyDropdownRef}>
+                      <input
+                        value={buyerName}
+                        onChange={e => {
+                          handlePartyLookup(e.target.value, 'name');
+                          setPartySearch(e.target.value);
+                          setPartyDropdownOpen(true);
+                        }}
                         onFocus={() => setPartyDropdownOpen(true)}
-                        className="w-full py-1.5 outline-none text-xs bg-transparent"
-                        placeholder="Search Customer by Name or Phone..." 
+                        placeholder="Search & Enter Buyer Name or Phone..."
+                        className="font-bold w-full outline-none bg-transparent"
                       />
-                      <svg onClick={() => setPartyDropdownOpen(!partyDropdownOpen)} className="w-4 h-4 cursor-pointer text-gray-500 ml-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+
+                      {partyDropdownOpen && parties.filter(p => p.name.toLowerCase().includes(buyerName.toLowerCase()) || p.phone.includes(buyerName)).length > 0 && (
+                        <div className="absolute top-full left-0 mt-1 w-[400px] max-w-[90vw] bg-background border border-border shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
+                          {parties.filter(p => p.name.toLowerCase().includes(buyerName.toLowerCase()) || p.phone.includes(buyerName)).map(p => (
+                            <div
+                              key={p.id}
+                              className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-gray-100 last:border-0 flex justify-between items-center"
+                              onClick={() => {
+                                handlePartyLookup(p.phone, 'phone');
+                                setPartyDropdownOpen(false);
+                              }}
+                            >
+                              <div className="font-bold">{p.name}</div>
+                              <div className="text-xs opacity-90">{p.phone}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    
-                    {partyDropdownOpen && parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).length > 0 && (
-                      <div className="absolute top-full left-0 mt-1 w-full bg-background border border-border shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
-                        {parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).map(p => (
-                          <div
-                            key={p.id}
-                            className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-gray-100 last:border-0 flex justify-between items-center"
-                            onClick={() => {
-                              handlePartyLookup(p.phone, 'phone');
-                              setPartySearch('');
-                              setPartyDropdownOpen(false);
-                            }}
-                          >
-                            <div className="font-bold">{p.name}</div>
-                            <div className="text-xs opacity-90">{p.phone}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <input value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} placeholder="Buyer Address" className="w-full outline-none bg-transparent mt-1" />
+                    <input value={buyerPhone} onChange={e => setBuyerPhone(e.target.value)} placeholder="Buyer Phone" className="w-full outline-none bg-transparent mt-1" />
                   </div>
-                  <input value={buyerName} onChange={e => setBuyerName(e.target.value)} placeholder="Buyer Name" className="font-bold w-full outline-none bg-transparent" />
-                  <input value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} placeholder="Buyer Address" className="w-full outline-none bg-transparent" />
                   {partyId && (() => {
                     const selectedParty = parties.find(p => p.id === partyId);
                     if (!selectedParty) return null;
                     const hasBankDetails = selectedParty.bankName || selectedParty.bankAccountNo || selectedParty.bankIfsc;
                     if (!hasBankDetails) return null;
                     return (
-                      <div className="text-[11px] text-gray-700 mt-1 border-t border-gray-200 pt-1">
+                      <div className="text-[11px] text-gray-700 flex flex-col items-end text-right min-w-[200px]">
+                        <div className="font-bold underline mb-1">Bank Details:</div>
                         {selectedParty.bankName && <div>Bank: {selectedParty.bankName}</div>}
                         {selectedParty.bankAccountNo && <div>A/c No: {selectedParty.bankAccountNo}</div>}
                         {selectedParty.bankIfsc && <div>IFSC: {selectedParty.bankIfsc}</div>}
@@ -469,83 +487,80 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                 </div>
               </div>
             </div>
-            
-            </div>
-          </div>
           </div>
         </div>
 
         {/* Line Items */}
         <div className="flex-1 flex flex-col border-b-2 border-black min-h-[350px]">
           <div className="flex-1">
-            <BillEngine 
-              items={items} 
-              onChange={setItems} 
+            <BillEngine
+              items={items}
+              onChange={setItems}
               columns={['sno', 'name', 'hsn', 'qty', 'rate', 'per', 'amount']}
               globalDiscount={partyDiscount}
               maxItems={10}
             />
           </div>
-          
-           {/* Discount and Total Rows */}
-           <div className="flex border-t border-black text-sm border-r-0">
-             <div className="w-[85%] text-right pr-4 py-1 border-r border-black flex justify-end items-center gap-2">
-               <span className="no-print text-xs text-muted-foreground">Party Discount:</span>
-               <input 
-                 type="number" 
-                 min="0"
-                 value={partyDiscount} 
-                 onChange={e => setPartyDiscount(Math.max(0, parseFloat(e.target.value) || 0))} 
-                 className="w-16 border text-right no-print" 
-               />
-               Less: Discount
-             </div>
-             <div className="w-[15%] text-right pr-2 py-1">
-               {discountTotal.toFixed(2)}
-             </div>
-           </div>
-            <div className="flex border-t border-black text-sm">
-              <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
-                Round Off
+
+          {/* Discount and Total Rows */}
+          <div className="flex border-t border-black text-sm border-r-0">
+            <div className="w-[85%] text-right pr-4 py-1 border-r border-black flex justify-end items-center gap-2">
+              <span className="no-print text-xs text-muted-foreground">Party Discount:</span>
+              <input
+                type="number"
+                min="0"
+                value={partyDiscount}
+                onChange={e => setPartyDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
+                className="w-12 border-2 border-gray-300 rounded text-center font-bold no-print py-0.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+              Less: Discount
+            </div>
+            <div className="w-[15%] text-right pr-2 py-1">
+              {discountTotal.toFixed(2)}
+            </div>
+          </div>
+          <div className="flex border-t border-black text-sm">
+            <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
+              Round Off
+            </div>
+            <div className="w-[15%] text-right pr-2 py-1">
+              {roundOff.toFixed(2)}
+            </div>
+          </div>
+          <div className="flex border-t-2 border-black text-sm font-bold text-lg">
+            <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
+              Grand Total
+            </div>
+            <div className="w-[15%] text-right pr-2 py-1">
+              {grandTotal.toFixed(2)}
+            </div>
+          </div>
+
+          {partyOutstanding > 0 && (
+            <div className="flex border-t-2 border-black text-sm font-bold bg-yellow-50/50 dark:bg-yellow-900/20 print:bg-transparent">
+              <div className="w-[85%] text-right pr-4 py-1 border-r border-black flex justify-end items-center gap-2">
+                <label className="flex items-center gap-2 cursor-pointer no-print text-xs">
+                  <input type="checkbox" checked={useOutstanding} onChange={e => setUseOutstanding(e.target.checked)} className="w-3 h-3 accent-primary" />
+                  <span className="font-semibold text-amber-700 dark:text-amber-400">Use Advance (₹{partyOutstanding})</span>
+                </label>
+                <span className="hidden print:block text-xs font-semibold">Less Advance</span>
               </div>
-              <div className="w-[15%] text-right pr-2 py-1">
-                {roundOff.toFixed(2)}
+              <div className="w-[15%] text-right pr-2 py-1 text-red-600 dark:text-red-400">
+                - {deductedAmount.toFixed(2)}
               </div>
             </div>
-            <div className="flex border-t-2 border-black text-sm font-bold text-lg">
+          )}
+          {(useOutstanding && partyOutstanding > 0) && (
+            <div className="flex border-t-2 border-black text-sm font-bold text-lg bg-green-50 dark:bg-green-900/20 print:bg-transparent text-foreground">
               <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
-                Grand Total
+                NET PAYABLE
               </div>
               <div className="w-[15%] text-right pr-2 py-1">
-                {grandTotal.toFixed(2)}
+                {netPayable.toFixed(2)}
               </div>
             </div>
-            
-            {partyOutstanding > 0 && (
-              <div className="flex border-t-2 border-black text-sm font-bold bg-yellow-50/50 dark:bg-yellow-900/20 print:bg-transparent">
-                <div className="w-[85%] text-right pr-4 py-1 border-r border-black flex justify-end items-center gap-2">
-                  <label className="flex items-center gap-2 cursor-pointer no-print text-xs">
-                    <input type="checkbox" checked={useOutstanding} onChange={e => setUseOutstanding(e.target.checked)} className="w-3 h-3 accent-primary" />
-                    <span className="font-semibold text-amber-700 dark:text-amber-400">Use Advance (₹{partyOutstanding})</span>
-                  </label>
-                  <span className="hidden print:block text-xs font-semibold">Less Advance</span>
-                </div>
-                <div className="w-[15%] text-right pr-2 py-1 text-red-600 dark:text-red-400">
-                  - {deductedAmount.toFixed(2)}
-                </div>
-              </div>
-            )}
-            {(useOutstanding && partyOutstanding > 0) && (
-              <div className="flex border-t-2 border-black text-sm font-bold text-lg bg-green-50 dark:bg-green-900/20 print:bg-transparent text-foreground">
-                <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
-                  NET PAYABLE
-                </div>
-                <div className="w-[15%] text-right pr-2 py-1">
-                  {netPayable.toFixed(2)}
-                </div>
-              </div>
-            )}
-         </div>
+          )}
+        </div>
 
         {/* Amount in words */}
         <div className="border-b-2 border-black p-2 text-sm flex gap-4 items-center">
@@ -559,7 +574,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
             <p className="underline mb-1">Company's Bank Details :-</p>
             <div className="flex flex-wrap gap-x-6 gap-y-1 font-bold">
               <div className="flex gap-2"><span>Bank Name :-</span><input value={settings.bankName} onChange={e => { const val = e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''); if (val.replace(/ /g, '').length <= 44) updateSettings({ bankName: val }); }} className="outline-none bg-transparent" /></div>
-              <div className="flex gap-2"><span>A/c. No.</span><input value={settings.bankAccountNo} maxLength={17} onChange={e => { const val = e.target.value.replace(/\D/g, ''); updateSettings({bankAccountNo: val}) }} className="outline-none bg-transparent" /></div>
+              <div className="flex gap-2"><span>A/c. No.</span><input value={settings.bankAccountNo} maxLength={17} onChange={e => { const val = e.target.value.replace(/\D/g, ''); updateSettings({ bankAccountNo: val }) }} className="outline-none bg-transparent" /></div>
               <div className="flex gap-2"><span>IFS -</span><input value={settings.bankIfsc} maxLength={11} onChange={e => { let val = e.target.value.toUpperCase(); let formatted = ''; for (let i = 0; i < val.length; i++) { if (i < 4) { if (/[A-Z]/.test(val[i])) formatted += val[i]; } else { if (/[0-9]/.test(val[i])) formatted += val[i]; } } updateSettings({ bankIfsc: formatted }) }} className="outline-none bg-transparent uppercase" /></div>
             </div>
           </div>
@@ -580,7 +595,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
             </div>
           </div>
         </div>
-        
+
         <div className="text-center text-[11px] py-1">
           <p>SUBJECT TO KOLKATA JURISDICTION</p>
           <p>This is a Computer Generated Invoice</p>

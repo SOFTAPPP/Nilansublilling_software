@@ -75,10 +75,13 @@ export default function StockManagement() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isModalOpen, handleModalBarcodeScan]);
 
-  // Get unique categories
-  const categories = ['ALL', ...Array.from(new Set(products.map(p => p.category)))];
+  // Get unique categories, EXCLUDING Miscellaneous
+  const categories = ['ALL', ...Array.from(new Set(products.map(p => p.category)))].filter(c => c !== 'Miscellaneous');
 
   const filteredProducts = products.filter(p => {
+    // Hide Miscellaneous from stock
+    if (p.category === 'Miscellaneous') return false;
+
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (p.barcode && p.barcode.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -334,7 +337,7 @@ export default function StockManagement() {
                   <input type="number" value={formData.lowStockThreshold} onChange={e => setFormData({...formData, lowStockThreshold: Number(e.target.value)})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="10" />
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">HSN Code</label>
+                  <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">ISBN CODE</label>
                   <input value={formData.hsn || ''} onChange={e => setFormData({...formData, hsn: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="e.g. 1234" />
                 </div>
                 

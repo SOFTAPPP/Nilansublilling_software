@@ -60,6 +60,7 @@ export interface BillLineItem {
   amount: number;
   hsn?: string;
   rate?: number; // Pre-tax rate for chalan
+  discountManuallySet?: boolean; // track if user manually edited the discount
 }
 
 export interface DialogOptions {
@@ -325,7 +326,7 @@ export const useStore = create<AppState>((set) => ({
       bindingVariant: product.bindingVariant || undefined, hsn: product.hsn || undefined, barcode: product.barcode || undefined
     };
     // Optimistic: update UI instantly
-    set((state) => ({ products: [...state.products, newProduct] }));
+    set((state) => ({ products: [newProduct, ...state.products] }));
     // Background: persist to DB
     try {
       const db = await getDb();
@@ -392,7 +393,7 @@ export const useStore = create<AppState>((set) => ({
       discountPercentage: party.discountPercentage || 0, outstandingBalance: party.outstandingBalance || 0,
       bankName: party.bankName || '', bankAccountNo: party.bankAccountNo || '', bankIfsc: party.bankIfsc || ''
     };
-    set((state) => ({ parties: [...state.parties, newParty] }));
+    set((state) => ({ parties: [newParty, ...state.parties] }));
     try {
       const db = await getDb();
       await db.execute(
@@ -431,7 +432,7 @@ export const useStore = create<AppState>((set) => ({
   addTransporter: async (transporter) => {
     const id = transporter.id || crypto.randomUUID();
     const newT: Transporter = { id, name: transporter.name || '', phone: transporter.phone || '', address: transporter.address || '' };
-    set((state) => ({ transporters: [...state.transporters, newT] }));
+    set((state) => ({ transporters: [newT, ...state.transporters] }));
     const db = await getDb();
     await db.execute(
       'INSERT INTO "Transporter" (id, name, address, phone, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW())',

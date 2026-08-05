@@ -282,12 +282,10 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
         </div>
       </div>
 
-      {/* Printable Receipt - Two copies */}
+      {/* Printable Receipt - Single copy */}
       <div className="print:block" style={{ pageBreakInside: 'avoid' }}>
         <div className="w-[210mm] mx-auto space-y-6 print:space-y-4">
-          {receiptContent('OFFICE COPY')}
-          <div className="border-t-2 border-dashed border-gray-400 my-2 print:my-1"></div>
-          {receiptContent('CUSTOMER COPY')}
+          {receiptContent('')}
         </div>
       </div>
     </div>
