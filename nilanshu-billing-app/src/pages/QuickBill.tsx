@@ -6,7 +6,7 @@ import { getLocalDateString } from '../utils/dateUtils';
 import { getNextBillNumber } from '../utils/billNumber';
 
 export default function QuickBill({ viewBill }: { viewBill?: any }) {
-  const { settings, updateSettings, createBill, showDialog } = useStore();
+  const { settings, updateSettings, createBill, updateBill, showDialog } = useStore();
   const [items, setItems] = useState<BillLineItem[]>([]);
   const [billNo, setBillNo] = useState('');
 
@@ -45,28 +45,57 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
     return true;
   };
 
+  const [createdBillId, setCreatedBillId] = useState<string | null>(null);
+
   const handleSave = async () => {
     if (!validate()) return;
+
     try {
-      await createBill({
-        type: 'quick',
-        billNumber: billNo,
-        subtotal: totalAmount,
-        discount: 0,
-        total: grandTotal,
-        lineItems: items.map(i => ({
-          productId: i.productId,
-          productName: i.productName,
-          quantity: i.quantity,
-          mrp: i.mrp,
-          discountPercent: i.discountPercent,
-          amount: i.amount,
-          rate: i.rate,
-          hsn: i.hsn,
-        }))
-      });
-      showDialog({ title: 'Success', message: 'Quick Bill saved successfully!', type: 'alert' });
-      // Removed automatic clearing so user can print after saving
+      if (createdBillId) {
+        await updateBill(createdBillId, 'quick', {
+          billNumber: billNo,
+          date: billDate,
+          subtotal: totalAmount,
+          discount: 0,
+          cgst: 0,
+          sgst: 0,
+          total: grandTotal,
+          lineItems: items.map(i => ({
+            productId: i.productId,
+            productName: i.productName,
+            quantity: i.quantity,
+            mrp: i.mrp,
+            discountPercent: i.discountPercent,
+            amount: i.amount,
+            rate: i.rate,
+            hsn: i.hsn,
+          }))
+        });
+        showDialog({ title: 'Success', message: 'Quick Bill updated successfully!', type: 'alert' });
+      } else {
+        const id = await createBill({
+          type: 'quick',
+          billNumber: billNo,
+          date: billDate,
+          subtotal: totalAmount,
+          discount: 0,
+          cgst: 0,
+          sgst: 0,
+          total: grandTotal,
+          lineItems: items.map(i => ({
+            productId: i.productId,
+            productName: i.productName,
+            quantity: i.quantity,
+            mrp: i.mrp,
+            discountPercent: i.discountPercent,
+            amount: i.amount,
+            rate: i.rate,
+            hsn: i.hsn,
+          }))
+        });
+        setCreatedBillId(id);
+        showDialog({ title: 'Success', message: 'Quick Bill saved successfully!', type: 'alert' });
+      }
     } catch (err: any) {
       const msg = typeof err === 'string' ? err : err.message;
       showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
@@ -97,6 +126,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
               <button 
                 onClick={() => {
                   setItems([]);
+                  setCreatedBillId(null);
                   getNextBillNumber('QB-').then(setBillNo);
                 }}
                 className="whitespace-nowrap bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 font-medium shadow-sm transition-colors text-sm"
@@ -105,9 +135,9 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
               </button>
               <button 
                 onClick={handleSave} 
-                className="whitespace-nowrap bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium shadow-sm transition-colors text-sm"
+                className={`whitespace-nowrap ${createdBillId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors text-sm`}
               >
-                Save
+                {createdBillId ? 'Update' : 'Save'}
               </button>
             </>
           )}

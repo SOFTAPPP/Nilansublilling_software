@@ -6,7 +6,7 @@ import { getLocalDateString } from '../utils/dateUtils';
 import { numberToWords } from '../utils/numberToWords';
 
 export default function CreditBill({ type = 'credit', viewBill }: { type?: 'credit' | 'return', viewBill?: any }) {
-  const { parties, settings, updateSettings, createBill, showDialog } = useStore();
+  const { parties, settings, updateSettings, createBill, updateBill, showDialog } = useStore();
   const [items, setItems] = useState<BillLineItem[]>([]);
 
   // Consignee Details
@@ -222,33 +222,61 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
     return true;
   };
 
+  const [createdBillId, setCreatedBillId] = useState<string | null>(null);
+
   const handleSave = async () => {
     if (!validate()) return;
 
     try {
-      await createBill({
-        type: type,
-        billNumber: invoiceNo,
-        partyId: partyId,
-        date: billDate,
-        subtotal: totalAmount,
-        discount: discountTotal,
-        cgst: cgstAmount,
-        sgst: sgstAmount,
-        total: grandTotal,
-        deductedAmount: -addedAmount,
-        lineItems: items.map(i => ({
-          productId: i.productId,
-          productName: i.productName,
-          quantity: i.quantity,
-          mrp: i.mrp,
-          discountPercent: i.discountPercent,
-          amount: i.amount,
-          rate: i.rate,
-          hsn: i.hsn,
-        }))
-      });
-      showDialog({ title: 'Success', message: `${type === 'return' ? 'Return' : 'Credit'} Bill saved successfully!`, type: 'alert' });
+      if (createdBillId) {
+        await updateBill(createdBillId, type, {
+          billNumber: invoiceNo,
+          partyId: partyId,
+          date: billDate,
+          subtotal: totalAmount,
+          discount: discountTotal,
+          cgst: cgstAmount,
+          sgst: sgstAmount,
+          total: grandTotal,
+          deductedAmount: -addedAmount,
+          lineItems: items.map(i => ({
+            productId: i.productId,
+            productName: i.productName,
+            quantity: i.quantity,
+            mrp: i.mrp,
+            discountPercent: i.discountPercent,
+            amount: i.amount,
+            rate: i.rate,
+            hsn: i.hsn,
+          }))
+        });
+        showDialog({ title: 'Success', message: `${type === 'return' ? 'Return' : 'Credit'} Bill updated successfully!`, type: 'alert' });
+      } else {
+        const id = await createBill({
+          type: type,
+          billNumber: invoiceNo,
+          partyId: partyId,
+          date: billDate,
+          subtotal: totalAmount,
+          discount: discountTotal,
+          cgst: cgstAmount,
+          sgst: sgstAmount,
+          total: grandTotal,
+          deductedAmount: -addedAmount,
+          lineItems: items.map(i => ({
+            productId: i.productId,
+            productName: i.productName,
+            quantity: i.quantity,
+            mrp: i.mrp,
+            discountPercent: i.discountPercent,
+            amount: i.amount,
+            rate: i.rate,
+            hsn: i.hsn,
+          }))
+        });
+        setCreatedBillId(id);
+        showDialog({ title: 'Success', message: `${type === 'return' ? 'Return' : 'Credit'} Bill saved successfully!`, type: 'alert' });
+      }
 
       if (buyerPhone) {
         await handleSendSMS();
@@ -292,9 +320,29 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
         <h2 className="text-2xl font-bold">{type === 'return' ? 'Sales Return Bill' : 'Chalan / Credit Bill (Tax Invoice)'}</h2>
         <div className="flex flex-wrap gap-2 md:gap-3 justify-end flex-1">
           {!viewBill && (
-            <button onClick={handleSave} className="whitespace-nowrap bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium shadow-sm transition-colors text-sm">
-              Save
-            </button>
+            <>
+              <button 
+                onClick={() => {
+                  setItems([]);
+                  setCreatedBillId(null);
+                  setPartyId(null);
+                  setBuyerName('');
+                  setBuyerPhone('');
+                  setBuyerAddress('');
+                  setAdvanceAmount('');
+                  setConsigneeName('');
+                  setConsigneeAddress('');
+                  setPartyDiscount(0);
+                  getNextBillNumber('INV-').then(setInvoiceNo);
+                }}
+                className="whitespace-nowrap bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 font-medium shadow-sm transition-colors text-sm"
+              >
+                New Bill
+              </button>
+              <button onClick={handleSave} className={`whitespace-nowrap ${createdBillId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors text-sm`}>
+                {createdBillId ? 'Update' : 'Save'}
+              </button>
+            </>
           )}
           <button
             onClick={() => setShowPaidStamp(!showPaidStamp)}
@@ -370,7 +418,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
               <div className="flex flex-1 border-b border-black">
                 <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
                   <span className="text-[11px] text-gray-600 font-medium">Invoice No.</span>
-                  <input value={invoiceNo} onChange={e => handleInvoiceNoChange(e.target.value)} className="font-bold w-full max-w-[180px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                  <input value={invoiceNo} disabled={!!viewBill} onChange={e => handleInvoiceNoChange(e.target.value)} className="font-bold w-full max-w-[180px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0 disabled:opacity-50 disabled:cursor-not-allowed" />
                 </div>
                 <div className="w-1/2 p-2 flex flex-col justify-start">
                   <span className="text-[11px] text-gray-600 font-medium">Date:-</span>

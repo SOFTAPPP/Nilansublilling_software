@@ -118,7 +118,8 @@ interface AppState {
   addTransporter: (transporter: Partial<Transporter>) => Promise<void>;
   updateTransporter: (id: string, transporter: Partial<Transporter>) => Promise<void>;
   deleteTransporter: (id: string) => Promise<void>;
-  createBill: (billData: any) => Promise<void>;
+  createBill: (billData: any) => Promise<string>;
+  updateBill: (id: string, type: string, billData: any) => Promise<void>;
   deleteBill: (id: string) => Promise<void>;
   addProductsBulk: (products: Partial<Product>[]) => Promise<void>;
   findProductByBarcode: (barcode: string) => Product | undefined;
@@ -616,6 +617,174 @@ export const useStore = create<AppState>((set) => ({
         await useStore.getState().fetchBills();
       }
     });
+
+    return id;
+  },
+  updateBill: async (id, type, billData) => {
+    try {
+      const db = await getDb();
+      const oldBill = useStore.getState().bills.find(b => b.id === id);
+      if (!oldBill) throw new Error("Bill not found");
+
+      // Fetch old line items to accurately revert stock
+      const oldItemsResult = await db.select('SELECT * FROM "BillLineItem" WHERE "billId" = $1', [id]);
+      const oldLineItems = (Array.isArray(oldItemsResult) ? oldItemsResult : []) as any[];
+
+      // Fetch old bill's actual deducted amount if we saved it in DB? We don't save deductedAmount directly, 
+      // but we can just let background DB handle it, or we can approximate it. 
+      // Actually, since this is a local-first store, we must do optimistic UI updates.
+      set((state) => {
+        // 1. Revert Old Party Balance
+        let revertedParties = state.parties;
+        if (oldBill.partyId) {
+          revertedParties = revertedParties.map(p => {
+            if (p.id === oldBill.partyId) {
+              const revert = oldBill.type === 'credit' ? -oldBill.total : oldBill.type === 'return' ? oldBill.total : 0;
+              return { ...p, outstandingBalance: p.outstandingBalance + revert };
+            }
+            return p;
+          });
+        }
+
+        // 2. Apply New Party Balance
+        const updatedParties = billData.partyId ? revertedParties.map(p => {
+          if (p.id === billData.partyId) {
+            const deducted = billData.deductedAmount || 0;
+            const actualDeducted = deducted > 0 ? deducted : 0;
+            const effectiveTotal = billData.total || 0;
+            let balanceChange = 0;
+            if (type === 'credit') balanceChange = effectiveTotal - actualDeducted;
+            else if (type === 'return' || type === 'receipt') balanceChange = -effectiveTotal;
+            return { ...p, outstandingBalance: p.outstandingBalance + balanceChange };
+          }
+          return p;
+        }) : revertedParties;
+
+        // 3. Revert Old Stock & Apply New Stock
+        const updatedProducts = state.products.map(p => {
+          let stock = p.stock;
+          // Revert old
+          const oldItem = oldLineItems.find(li => li.productId === p.id);
+          if (oldItem) {
+            stock = oldBill.type === 'return' ? stock - (Number(oldItem.quantity)||0) : stock + (Number(oldItem.quantity)||0);
+          }
+          // Apply new
+          const newItem = (billData.lineItems || []).find((li: any) => li.productId === p.id);
+          if (newItem) {
+            stock = type === 'return' ? stock + (Number(newItem.quantity)||0) : stock - (Number(newItem.quantity)||0);
+          }
+          return { ...p, stock };
+        });
+
+        // 4. Update Bills List
+        const updatedBills = state.bills.map(b => b.id === id ? {
+          ...b,
+          type,
+          partyId: billData.partyId || undefined,
+          transporterId: billData.transporterId || undefined,
+          subtotal: billData.subtotal,
+          discount: billData.discount,
+          cgst: billData.cgst || 0,
+          sgst: billData.sgst || 0,
+          total: billData.total,
+          status: billData.status || 'completed',
+          date: billData.date || b.date
+        } : b);
+
+        return { products: updatedProducts, parties: updatedParties, bills: updatedBills };
+      });
+
+      // Background DB Sync
+      useStore.getState().enqueueSync(async () => {
+        try {
+          const db = await getDb();
+
+          // Revert old DB Party Balance
+          if (oldBill.partyId) {
+            const revert = oldBill.type === 'credit' ? -oldBill.total : oldBill.type === 'return' ? oldBill.total : 0;
+            if (revert !== 0) {
+              await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [revert, oldBill.partyId]);
+            }
+          }
+
+          // Revert old DB Stock
+          for (const oldItem of oldLineItems) {
+            if (oldItem.productId) {
+              if (oldBill.type === 'return') {
+                await db.execute('UPDATE "Product" SET stock = stock - $1, "updatedAt" = NOW() WHERE id = $2', [Number(oldItem.quantity) || 0, oldItem.productId]);
+              } else {
+                await db.execute('UPDATE "Product" SET stock = stock + $1, "updatedAt" = NOW() WHERE id = $2', [Number(oldItem.quantity) || 0, oldItem.productId]);
+              }
+            }
+          }
+
+          // Delete Old Line Items
+          await db.execute('DELETE FROM "BillLineItem" WHERE "billId" = $1', [id]);
+
+          // Update Bill Record
+          await db.execute(
+            `UPDATE "Bill" SET 
+              type = $1, "partyId" = $2, "transporterId" = $3, subtotal = $4, discount = $5, cgst = $6, sgst = $7, total = $8, status = $9, date = CAST($10 AS TIMESTAMP), 
+              "vehicleNo" = $11, destination = $12, "driverName" = $13, "lrNo" = $14, "updatedAt" = NOW()
+             WHERE id = $15`,
+            [
+              type, billData.partyId || null, billData.transporterId || null,
+              Number(billData.subtotal) || 0, Number(billData.discount) || 0, Number(billData.cgst) || 0, Number(billData.sgst) || 0, Number(billData.total) || 0,
+              billData.status || 'completed', billData.date ? new Date(billData.date).toISOString() : new Date().toISOString(),
+              billData.vehicleNo || null, billData.destination || null, billData.driverName || null, billData.lrNo || null,
+              id
+            ]
+          );
+
+          // Insert New Line Items
+          for (const item of (billData.lineItems || [])) {
+            const itemId = crypto.randomUUID();
+            await db.execute(
+              'INSERT INTO "BillLineItem" (id, "billId", "productId", quantity, mrp, "discountPercent", amount, rate, hsn) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+              [itemId, id, item.productId, Number(item.quantity) || 0, Number(item.mrp) || 0, Number(item.discountPercent) || 0, Number(item.amount) || 0, Number(item.rate) || 0, item.hsn || '']
+            );
+
+            // Apply new stock
+            if (item.productId) {
+              if (type === 'return') {
+                await db.execute('UPDATE "Product" SET stock = stock + $1, "updatedAt" = NOW() WHERE id = $2', [Number(item.quantity) || 0, item.productId]);
+              } else {
+                await db.execute('UPDATE "Product" SET stock = stock - $1, "updatedAt" = NOW() WHERE id = $2', [Number(item.quantity) || 0, item.productId]);
+              }
+            }
+          }
+
+          // Apply new party DB balance
+          if (billData.partyId) {
+            if (type === 'credit') {
+              const deducted = billData.deductedAmount || 0;
+              const actualDeducted = deducted > 0 ? deducted : 0;
+              const addedPayment = deducted < 0 ? Math.abs(deducted) : 0;
+              const change = (Number(billData.total) || 0) - actualDeducted - addedPayment;
+              await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [change, billData.partyId]);
+            } else if (type === 'cash') {
+              const deducted = billData.deductedAmount || 0;
+              const addedPayment = deducted < 0 ? Math.abs(deducted) : 0;
+              if (addedPayment > 0) {
+                await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [addedPayment, billData.partyId]);
+              }
+            } else if (type === 'return' || type === 'receipt') {
+              await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [Number(billData.total) || 0, billData.partyId]);
+            }
+          }
+
+        } catch (err: any) {
+          console.error('Update Bill Background Error:', err);
+          useStore.getState().showDialog({ title: 'Bill Update Error', message: err.message || 'Background sync failed', type: 'alert' });
+          await useStore.getState().fetchProducts();
+          await useStore.getState().fetchParties();
+          await useStore.getState().fetchBills();
+        }
+      });
+    } catch (err: any) {
+      console.error(err);
+      useStore.getState().showDialog({ title: 'Update Error', message: err.message, type: 'alert' });
+    }
   },
   deleteBill: async (id) => {
     try {

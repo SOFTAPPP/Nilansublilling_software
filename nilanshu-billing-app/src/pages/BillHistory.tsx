@@ -50,6 +50,7 @@ export default function BillHistory() {
   const [filterType, setFilterType] = useState('ALL');
   const [selectedBill, setSelectedBill] = useState<BillFull | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingBillId, setLoadingBillId] = useState<string | null>(null);
 
   // No need to fetch on mount, it's already in the global store!
   const fetchAllBills = async () => {
@@ -58,7 +59,9 @@ export default function BillHistory() {
   };
 
   const fetchBillDetails = async (bill: BillFull) => {
+    if (loadingBillId) return; // Prevent multiple clicks
     try {
+      setLoadingBillId(bill.id);
       const db = await getDb();
       const items = await db.select<any[]>(
         'SELECT bli.*, p.name as "productName" FROM "BillLineItem" bli LEFT JOIN "Product" p ON bli."productId" = p.id WHERE bli."billId" = $1',
@@ -72,6 +75,8 @@ export default function BillHistory() {
       });
     } catch (err) {
       console.error('Failed to fetch bill details', err);
+    } finally {
+      setLoadingBillId(null);
     }
   };
 
@@ -256,22 +261,26 @@ export default function BillHistory() {
                       </span>
                     </td>
                     <td className="p-4 text-center no-print">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={(e) => handlePrintBill(bill, e)}
-                          className="text-muted-foreground hover:text-primary transition-colors p-1"
-                          title="Print Bill"
-                        >
-                          <Printer size={16} />
-                        </button>
-                        <button
-                          onClick={(e) => handleDeleteBill(bill.id, e)}
-                          className="text-muted-foreground hover:text-destructive transition-colors p-1"
-                          title="Delete Bill"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                      {loadingBillId === bill.id ? (
+                        <span className="text-muted-foreground text-xs font-medium animate-pulse">Loading...</span>
+                      ) : (
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={(e) => handlePrintBill(bill, e)}
+                            className="text-muted-foreground hover:text-primary transition-colors p-1"
+                            title="Print Bill"
+                          >
+                            <Printer size={16} />
+                          </button>
+                          <button
+                            onClick={(e) => handleDeleteBill(bill.id, e)}
+                            className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                            title="Delete Bill"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );

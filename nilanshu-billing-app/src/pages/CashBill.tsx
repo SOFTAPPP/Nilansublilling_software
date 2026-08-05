@@ -6,7 +6,7 @@ import { getLocalDateString } from '../utils/dateUtils';
 import { numberToWords } from '../utils/numberToWords';
 
 export default function CashBill({ viewBill }: { viewBill?: any }) {
-  const { settings, updateSettings, createBill, parties, showDialog } = useStore();
+  const { settings, updateSettings, createBill, updateBill, parties, showDialog } = useStore();
   const [items, setItems] = useState<BillLineItem[]>([]);
   const [partyId, setPartyId] = useState<string | null>(null);
   const [partyName, setPartyName] = useState('');
@@ -58,6 +58,16 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         setAdvanceAmount(Math.abs(viewBill.deductedAmount).toString());
       } else {
         setAdvanceAmount('');
+      }
+      
+      // Calculate historical discount
+      if (viewBill.subtotal && viewBill.subtotal > 0) {
+        const historicalDiscount = viewBill.discount || Math.max(0, viewBill.subtotal - viewBill.total);
+        if (historicalDiscount > 0) {
+          setDefaultDiscount(Number(((historicalDiscount / viewBill.subtotal) * 100).toFixed(2)));
+        } else {
+          setDefaultDiscount(0);
+        }
       }
     }
   }, [viewBill, parties]);
@@ -142,32 +152,61 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
     }
   };
 
+  const [createdBillId, setCreatedBillId] = useState<string | null>(null);
+
   const handleSave = async () => {
     if (!validate()) return;
 
     try {
-      await createBill({
-        type: 'cash',
-        billNumber: memoNo,
-        partyId: partyId,
-        date: billDate,
-        subtotal: mrpTotal,
-        cgst: 0,
-        sgst: 0,
-        total: grandTotal,
-        deductedAmount: -addedAmount,
-        lineItems: items.map(i => ({
-          productId: i.productId,
-          productName: i.productName,
-          quantity: i.quantity,
-          mrp: i.mrp,
-          discountPercent: i.discountPercent,
-          amount: i.amount,
-          rate: i.rate,
-          hsn: i.hsn,
-        }))
-      });
-      showDialog({ title: 'Success', message: 'Bill saved successfully!', type: 'alert' });
+      if (createdBillId) {
+        await updateBill(createdBillId, 'cash', {
+          billNumber: memoNo,
+          partyId: partyId,
+          date: billDate,
+          subtotal: mrpTotal,
+          discount: discountTotal,
+          cgst: 0,
+          sgst: 0,
+          total: grandTotal,
+          deductedAmount: -addedAmount,
+          lineItems: items.map(i => ({
+            productId: i.productId,
+            productName: i.productName,
+            quantity: i.quantity,
+            mrp: i.mrp,
+            discountPercent: i.discountPercent,
+            amount: i.amount,
+            rate: i.rate,
+            hsn: i.hsn,
+          }))
+        });
+        showDialog({ title: 'Success', message: 'Bill updated successfully!', type: 'alert' });
+      } else {
+        const id = await createBill({
+          type: 'cash',
+          billNumber: memoNo,
+          partyId: partyId,
+          date: billDate,
+          subtotal: mrpTotal,
+          discount: discountTotal,
+          cgst: 0,
+          sgst: 0,
+          total: grandTotal,
+          deductedAmount: -addedAmount,
+          lineItems: items.map(i => ({
+            productId: i.productId,
+            productName: i.productName,
+            quantity: i.quantity,
+            mrp: i.mrp,
+            discountPercent: i.discountPercent,
+            amount: i.amount,
+            rate: i.rate,
+            hsn: i.hsn,
+          }))
+        });
+        setCreatedBillId(id);
+        showDialog({ title: 'Success', message: 'Bill saved successfully!', type: 'alert' });
+      }
     } catch (err: any) {
       const msg = typeof err === 'string' ? err : err.message;
       showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
@@ -190,9 +229,24 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         <h2 className="text-2xl font-bold">Cash Memo</h2>
         <div className="flex flex-wrap gap-2 md:gap-3 justify-end flex-1">
           {!viewBill && (
-            <button onClick={handleSave} className="whitespace-nowrap bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium shadow-sm transition-colors text-sm">
-              Save
-            </button>
+            <>
+              <button 
+                onClick={() => {
+                  setItems([]);
+                  setCreatedBillId(null);
+                  setPartyId(null);
+                  setPartyName('');
+                  setAdvanceAmount('');
+                  getNextBillNumber('CSH-').then(setMemoNo);
+                }}
+                className="whitespace-nowrap bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 font-medium shadow-sm transition-colors text-sm"
+              >
+                New Bill
+              </button>
+              <button onClick={handleSave} className={`whitespace-nowrap ${createdBillId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors text-sm`}>
+                {createdBillId ? 'Update' : 'Save'}
+              </button>
+            </>
           )}
           <button onClick={() => setShowPaidStamp(!showPaidStamp)} className="whitespace-nowrap border border-green-600 text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 font-medium shadow-sm transition-colors text-sm bg-background">
             Paid Stamp
@@ -316,7 +370,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
                 <span className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Memo No.</span>
                 <div className="flex items-center">
                   <span className="font-bold text-xs text-foreground">CSH-</span>
-                  <input value={memoNo.replace(/^CSH-/, '')} onChange={e => handleMemoNoChange(e.target.value)} className="outline-none w-16 bg-transparent font-bold text-xs text-foreground placeholder:text-muted-foreground" placeholder="178" />
+                  <input value={memoNo.replace(/^CSH-/, '')} disabled={!!viewBill} onChange={e => handleMemoNoChange(e.target.value)} className="outline-none w-16 bg-transparent font-bold text-xs text-foreground placeholder:text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed" placeholder="178" />
                 </div>
               </div>
 
