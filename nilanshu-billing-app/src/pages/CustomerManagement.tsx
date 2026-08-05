@@ -111,7 +111,7 @@ export default function CustomerManagement() {
       </div>
 
       {isAdding && (
-        <div className="bg-card p-6 md:p-8 rounded-2xl border border-border/50 shadow-lg mb-6 animate-in slide-in-from-top-4 fade-in duration-300">
+        <form onSubmit={(e) => { e.preventDefault(); handleAddManual(); }} className="bg-card p-6 md:p-8 rounded-2xl border border-border/50 shadow-lg mb-6 animate-in slide-in-from-top-4 fade-in duration-300">
           <h2 className="text-2xl font-bold mb-6 tracking-tight text-foreground">Add New Customer</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Buyer's Name */}
@@ -198,15 +198,15 @@ export default function CustomerManagement() {
             </div>
           </div>
           <div className="flex gap-3 mt-8">
-            <button onClick={handleAddManual} className="px-7 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-bold shadow-md transition-colors text-sm">Save Customer</button>
-            <button onClick={() => setIsAdding(false)} className="px-5 py-2.5 border border-border/50 rounded-xl hover:bg-muted font-bold transition-colors text-sm text-foreground shadow-sm">Cancel</button>
+            <button type="submit" className="px-7 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-bold shadow-md transition-colors text-sm">Save Customer</button>
+            <button type="button" onClick={() => setIsAdding(false)} className="px-5 py-2.5 border border-border/50 rounded-xl hover:bg-muted font-bold transition-colors text-sm text-foreground shadow-sm">Cancel</button>
           </div>
-        </div>
+        </form>
       )}
 
       {editingParty && (
         <div className="fixed inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center z-50 animate-in fade-in duration-200">
-          <div className="bg-card p-6 md:p-8 rounded-2xl w-full max-w-2xl shadow-2xl border border-border/50 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+          <form onSubmit={(e) => { e.preventDefault(); handleEditSave(); }} className="bg-card p-6 md:p-8 rounded-2xl w-full max-w-2xl shadow-2xl border border-border/50 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-6 tracking-tight text-foreground">Edit Customer: {editingParty.name}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Buyer's Name */}
@@ -293,10 +293,10 @@ export default function CustomerManagement() {
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-8">
-              <button onClick={() => { setEditingParty(null); setEditForm({}); }} className="px-5 py-2.5 border border-border/50 rounded-xl hover:bg-muted font-bold transition-colors text-sm text-foreground shadow-sm">Cancel</button>
-              <button onClick={handleEditSave} className="px-7 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-bold shadow-md transition-colors text-sm">Update Customer</button>
+              <button type="button" onClick={() => { setEditingParty(null); setEditForm({}); }} className="px-5 py-2.5 border border-border/50 rounded-xl hover:bg-muted font-bold transition-colors text-sm text-foreground shadow-sm">Cancel</button>
+              <button type="submit" className="px-7 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-bold shadow-md transition-colors text-sm">Update Customer</button>
             </div>
-          </div>
+          </form>
         </div>
       )}
 

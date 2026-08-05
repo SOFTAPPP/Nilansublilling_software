@@ -337,7 +337,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
 
         {/* Header */}
         <div className="relative text-center py-2 font-bold text-lg border-b-2 border-black tracking-wide">
-          <img src="/logo.png" alt="Logo" className="absolute left-2 top-1/2 -translate-y-1/2 w-14 h-14 object-contain print:block" />
+          <img src="/logo.png" alt="Logo" className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 object-contain print:block" />
           {type === 'return' ? 'RETURN CUM CHALLAN' : 'INVOICE CUM CHALLAN'}
           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[12px] font-normal italic text-gray-600">Original for Recipient</span>
         </div>

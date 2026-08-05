@@ -242,7 +242,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
             </div>
 
             {partyId && (
-              <div className="text-[14px] text-gray-600 font-normal mt-1 pl-12 flex flex-col gap-1">
+              <div className="text-[14px] text-foreground font-medium mt-1 pl-12 flex flex-col gap-1">
                 {parties.find(p => p.id === partyId)?.address && <div>{parties.find(p => p.id === partyId)?.address}</div>}
                 {parties.find(p => p.id === partyId)?.phone && <div>{parties.find(p => p.id === partyId)?.phone}</div>}
               </div>

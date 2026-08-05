@@ -300,7 +300,7 @@ export default function StockManagement() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center z-50 animate-in fade-in duration-200">
-          <div className="bg-card p-6 md:p-8 rounded-2xl w-full max-w-lg shadow-2xl border border-border/50 animate-in zoom-in-95 duration-200">
+          <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="bg-card p-6 md:p-8 rounded-2xl w-full max-w-lg shadow-2xl border border-border/50 animate-in zoom-in-95 duration-200">
             <h2 className="text-2xl font-bold mb-6 tracking-tight text-foreground">{editingId ? 'Edit Product' : 'Add Product'}</h2>
             <div className="space-y-5">
               <div>
@@ -371,10 +371,10 @@ export default function StockManagement() {
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-8">
-              <button onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 border border-border/50 rounded-xl hover:bg-muted font-bold transition-colors text-sm text-foreground shadow-sm">Cancel</button>
-              <button onClick={handleSave} className="px-7 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-bold shadow-md transition-colors text-sm">Save Product</button>
+              <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 border border-border/50 rounded-xl hover:bg-muted font-bold transition-colors text-sm text-foreground shadow-sm">Cancel</button>
+              <button type="submit" className="px-7 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-bold shadow-md transition-colors text-sm">Save Product</button>
             </div>
-          </div>
+          </form>
         </div>
       )}
     </div>
