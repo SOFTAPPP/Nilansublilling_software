@@ -169,7 +169,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
         <div className="flex justify-between items-end border-b border-black pb-2 mb-4 text-sm">
           <div className="flex gap-2">
              <span className="font-semibold">Date:</span> 
-             <input value={billDate} onChange={e => setBillDate(e.target.value)} className="outline-none bg-transparent w-24" placeholder="DD/MM/YYYY" />
+             <input value={billDate} onChange={e => setBillDate(e.target.value)} className="outline-none bg-transparent w-24" placeholder="DD/MM/YYYY" readOnly={!!viewBill} />
           </div>
           <div className="flex gap-2 items-center">
              <span className="font-semibold">Bill NO:</span> 
@@ -183,6 +183,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
                  }} 
                  className="outline-none bg-transparent w-24 pl-1 font-bold" 
                  placeholder="123" 
+                 readOnly={!!viewBill}
                />
              </div>
           </div>
@@ -194,6 +195,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
             onChange={setItems} 
             columns={['sno', 'name', 'qty', 'amount']}
             maxItems={5}
+            readOnly={!!viewBill}
           />
         </div>
 

@@ -35,6 +35,14 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true);
+
+  useEffect(() => {
+    if (!viewBill) {
+      setHasUnsavedChanges(true);
+    }
+  }, [items, partyId, partyName, billDate, memoNo, defaultDiscount, advanceAmount, settings]);
+
   useEffect(() => {
     if (viewBill) {
       setMemoNo(viewBill.billNumber || '');
@@ -207,6 +215,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         setCreatedBillId(id);
         showDialog({ title: 'Success', message: 'Bill saved successfully!', type: 'alert' });
       }
+      setHasUnsavedChanges(false);
     } catch (err: any) {
       const msg = typeof err === 'string' ? err : err.message;
       showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
@@ -243,7 +252,11 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
               >
                 New Bill
               </button>
-              <button onClick={handleSave} className={`whitespace-nowrap ${createdBillId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors text-sm`}>
+              <button 
+                onClick={handleSave} 
+                disabled={!hasUnsavedChanges}
+                className={`whitespace-nowrap ${createdBillId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
                 {createdBillId ? 'Update' : 'Save'}
               </button>
             </>
@@ -251,7 +264,11 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
           <button onClick={() => setShowPaidStamp(!showPaidStamp)} className="whitespace-nowrap border border-green-600 text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 font-medium shadow-sm transition-colors text-sm bg-background">
             Paid Stamp
           </button>
-          <button onClick={handlePrint} className="whitespace-nowrap bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors text-sm">
+          <button 
+            onClick={handlePrint} 
+            disabled={!viewBill && (hasUnsavedChanges || !createdBillId)}
+            className="whitespace-nowrap bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             Print Bill
           </button>
         </div>
@@ -314,6 +331,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
                   onFocus={() => setPartyDropdownOpen(true)}
                   className="outline-none w-full bg-transparent font-bold text-sm text-foreground"
                   placeholder="Search & Enter Buyer Name or Phone..."
+                  readOnly={!!viewBill}
                 />
               </div>
 
@@ -376,7 +394,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
 
               <div className="flex flex-col bg-background print:bg-transparent border border-border print:border-none rounded-lg px-4 py-2 shadow-sm print:shadow-none min-w-[120px]">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Date</span>
-                <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="outline-none bg-transparent font-bold text-xs text-foreground cursor-pointer" />
+                <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="outline-none bg-transparent font-bold text-xs text-foreground cursor-pointer" readOnly={!!viewBill} disabled={!!viewBill} />
               </div>
             </div>
           </div>
@@ -388,6 +406,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
             items={items}
             onChange={setItems}
             columns={['sno', 'qty', 'name', 'mrp', 'amount']}
+            readOnly={!!viewBill}
           />
         </div>
 
@@ -397,8 +416,8 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
           <div className="w-[60%] border-r border-black p-3 flex flex-col justify-between">
             <div>
               <p className="font-bold underline mb-1 text-xs">Bank Details:</p>
-              <div className="flex items-center gap-2 text-xs mb-1"><span className="font-semibold whitespace-nowrap flex-shrink-0">Bank Name:</span><input value={settings.bankName} onChange={e => { const val = e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''); if (val.replace(/ /g, '').length <= 44) updateSettings({ bankName: val }); }} className="outline-none bg-transparent w-full" placeholder="Bank Name" /></div>
-              <div className="flex items-center gap-2 text-xs"><span className="font-semibold whitespace-nowrap flex-shrink-0">A/c No:</span><input value={settings.bankAccountNo} maxLength={17} onChange={e => { const val = e.target.value.replace(/\D/g, ''); updateSettings({ bankAccountNo: val }) }} className="outline-none bg-transparent w-full" placeholder="A/c No" /> <span className="font-semibold whitespace-nowrap flex-shrink-0">IFSC Code:</span><input value={settings.bankIfsc} maxLength={11} onChange={e => { let val = e.target.value.toUpperCase(); let formatted = ''; for (let i = 0; i < val.length; i++) { if (i < 4) { if (/[A-Z]/.test(val[i])) formatted += val[i]; } else { if (/[0-9]/.test(val[i])) formatted += val[i]; } } updateSettings({ bankIfsc: formatted }) }} className="outline-none bg-transparent w-full uppercase" placeholder="IFSC Code" /></div>
+              <div className="flex items-center gap-2 text-xs mb-1"><span className="font-semibold whitespace-nowrap flex-shrink-0">Bank Name:</span><input value={settings.bankName} onChange={e => { const val = e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''); if (val.replace(/ /g, '').length <= 44) updateSettings({ bankName: val }); }} className="outline-none bg-transparent w-full" placeholder="Bank Name" readOnly={!!viewBill} /></div>
+              <div className="flex items-center gap-2 text-xs"><span className="font-semibold whitespace-nowrap flex-shrink-0">A/c No:</span><input value={settings.bankAccountNo} maxLength={17} onChange={e => { const val = e.target.value.replace(/\D/g, ''); updateSettings({ bankAccountNo: val }) }} className="outline-none bg-transparent w-full" placeholder="A/c No" readOnly={!!viewBill} /> <span className="font-semibold whitespace-nowrap flex-shrink-0">IFSC Code:</span><input value={settings.bankIfsc} maxLength={11} onChange={e => { let val = e.target.value.toUpperCase(); let formatted = ''; for (let i = 0; i < val.length; i++) { if (i < 4) { if (/[A-Z]/.test(val[i])) formatted += val[i]; } else { if (/[0-9]/.test(val[i])) formatted += val[i]; } } updateSettings({ bankIfsc: formatted }) }} className="outline-none bg-transparent w-full uppercase" placeholder="IFSC Code" readOnly={!!viewBill} /></div>
             </div>
 
             {/* QR Code in the middle space */}
@@ -430,7 +449,9 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
                   value={defaultDiscount}
                   onChange={e => setDefaultDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
                   className="w-12 border-2 border-gray-300 rounded text-center font-bold no-print text-xs py-0.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  readOnly={!!viewBill}
                 />
+                <span className="hidden print:inline font-bold pr-4">{defaultDiscount}%</span>
               </span>
               <span>Less: Discount</span>
               <span className="w-16 text-right">{discountTotal.toFixed(2)}</span>
@@ -460,6 +481,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
                     min="0"
                     className="w-16 px-1 py-0.5 border border-border rounded text-center outline-none bg-background text-foreground font-bold shrink-0 text-xs" 
                     placeholder="0.00"
+                    readOnly={!!viewBill}
                   />
                 </div>
                 <div className="hidden print:block text-xs font-semibold">Add: Previous Due</div>
