@@ -17,6 +17,8 @@ import QuickBill from './pages/QuickBill';
 import ReturnBill from './pages/ReturnBill';
 import TransportBill from './pages/TransportBill';
 import BillHistory from './pages/BillHistory';
+import ReceiptCopy from './pages/ReceiptCopy';
+import Voucher from './pages/Voucher';
 import { Titlebar } from './components/ui/Titlebar';
 import GlobalDialog from './components/GlobalDialog';
 import { useLiveSync } from './hooks/useLiveSync';
@@ -81,6 +83,8 @@ function App() {
               <Route path="party-statements" element={<PartyStatement />} />
               <Route path="bill-history" element={<BillHistory />} />
               <Route path="stock" element={<StockManagement />} />
+              <Route path="receipt" element={<ReceiptCopy />} />
+              <Route path="voucher" element={<Voucher />} />
             </Route>
           </Routes>
         </div>

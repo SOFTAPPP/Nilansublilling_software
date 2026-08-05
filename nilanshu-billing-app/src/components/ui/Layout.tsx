@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { Sun, Moon, Receipt, FileText, FileClock, RotateCcw, Truck, BookOpen, UserSquare2, LayoutDashboard, History, LogOut, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { Sun, Moon, Receipt, FileText, FileClock, RotateCcw, Truck, BookOpen, UserSquare2, LayoutDashboard, History, LogOut, ChevronLeft, ChevronRight, RefreshCw, Wallet, CreditCard } from 'lucide-react';
 
 export const Layout = () => {
   const { theme, toggleTheme, showDialog, closeDialog, fetchProducts, fetchParties, fetchTransporters, fetchBills, fetchSettings } = useStore();
@@ -54,6 +54,8 @@ export const Layout = () => {
     { name: 'Party Statements', path: '/party-statements', icon: <FileText size={20} className="text-pink-500" /> },
     { name: 'Bill History', path: '/bill-history', icon: <History size={20} className="text-teal-500" /> },
     { name: 'Stock Management', path: '/stock', icon: <BookOpen size={20} className="text-emerald-500" /> },
+    { name: 'Receipt Copy', path: '/receipt', icon: <Wallet size={20} className="text-lime-500" /> },
+    { name: 'Voucher', path: '/voucher', icon: <CreditCard size={20} className="text-rose-500" /> },
   ];
 
   return (

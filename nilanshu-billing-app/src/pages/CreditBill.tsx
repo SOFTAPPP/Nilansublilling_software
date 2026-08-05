@@ -3,6 +3,7 @@ import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
 import { getLocalDateString } from '../utils/dateUtils';
+import { getNextBillNumber, checkBillNumberExists } from '../utils/billNumber';
 
 export default function CreditBill({ type = 'credit', viewBill }: { type?: 'credit' | 'return', viewBill?: any }) {
   const { parties, settings, updateSettings, createBill, showDialog } = useStore();
@@ -15,7 +16,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
 
   // Invoice Meta
   const [invoiceMeta, setInvoiceMeta] = useState({
-    deliveryNote: '', termsOfPayment: '', refNo: '', otherRef: '', dispatchDocNo: '', deliveryNoteDate: '', dispatchedThrough: '', destination: '', termsOfDelivery: ''
+    deliveryNote: '', termsOfPayment: '', refNo: '', otherRef: '', dispatchDocNo: '', deliveryNoteDate: '', dispatchedThrough: '', destination: '', termsOfDelivery: '', orderDate: ''
   });
   
   // Buyer Details
@@ -24,6 +25,13 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   const [buyerAddress, setBuyerAddress] = useState('');
   const [buyerState, setBuyerState] = useState('');
   const [invoiceNo, setInvoiceNo] = useState('');
+
+  // Auto-fill next invoice number
+  useEffect(() => {
+    if (!viewBill) {
+      getNextBillNumber('INV-').then(setInvoiceNo);
+    }
+  }, [viewBill]);
   const [billDate, setBillDate] = useState(() => getLocalDateString());
   const [partyDiscount, setPartyDiscount] = useState(0);
   const [partyId, setPartyId] = useState<string | null>(null);
@@ -55,7 +63,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
         deliveryNote: viewBill.lrNo || '',
         destination: viewBill.destination || '',
         dispatchedThrough: viewBill.driverName || '',
-        termsOfPayment: '', refNo: '', otherRef: '', dispatchDocNo: '', deliveryNoteDate: '', termsOfDelivery: ''
+        termsOfPayment: '', refNo: '', otherRef: '', dispatchDocNo: '', deliveryNoteDate: '', termsOfDelivery: '', orderDate: ''
       });
     }
   }, [viewBill, parties]);
@@ -77,8 +85,8 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
       // Auto-fill consignee details
       setConsigneeName(foundParty.name);
       setConsigneeAddress(foundParty.address);
-      setConsigneeState(foundParty.gstin ? foundParty.gstin.substring(0, 2) : '19'); // Default WB state code 19
-      setBuyerState(foundParty.gstin ? foundParty.gstin.substring(0, 2) : '19');
+      setConsigneeState('19'); // Default WB state code
+      setBuyerState('19');
 
       // Retroactively apply the default discount to all existing items
       setItems(prevItems => prevItems.map(item => {
@@ -128,11 +136,37 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   const sgstRate = 9;
   const cgstAmount = (totalAmount * cgstRate) / 100;
   const sgstAmount = (totalAmount * sgstRate) / 100;
-  const grandTotal = totalAmount + cgstAmount + sgstAmount;
+  const subtotalBeforeRound = totalAmount + cgstAmount + sgstAmount;
+  const roundOff = Math.round(subtotalBeforeRound) - subtotalBeforeRound;
+  const grandTotal = Math.round(subtotalBeforeRound);
 
   const partyOutstanding = parties.find(p => p.id === partyId)?.outstandingBalance || 0;
   const deductedAmount = (useOutstanding && partyOutstanding > 0) ? Math.min(partyOutstanding, grandTotal) : 0;
   const netPayable = grandTotal - deductedAmount;
+
+  // Validate invoice number on change - check for duplicates
+  const handleInvoiceNoChange = async (val: string) => {
+    setInvoiceNo(val);
+    if (val.trim().length > 0) {
+      const exists = await checkBillNumberExists(val);
+      if (exists) {
+        showDialog({ title: 'Duplicate Invoice Number', message: `Invoice number ${val} already exists. Please use a different number.`, type: 'alert' });
+        getNextBillNumber('INV-').then(setInvoiceNo);
+      }
+    }
+  };
+
+  // When partyDiscount changes, recalculate all item amounts
+  useEffect(() => {
+    if (partyDiscount >= 0) {
+      setItems(prevItems => prevItems.map(item => {
+        const discountAmount = (item.mrp * partyDiscount) / 100;
+        const newRate = item.mrp - discountAmount;
+        const newAmount = newRate * item.quantity;
+        return { ...item, discountPercent: partyDiscount, rate: newRate, amount: newAmount };
+      }));
+    }
+  }, [partyDiscount]);
 
   const handlePrint = () => {
     if (!validate()) return;
@@ -286,14 +320,16 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           </div>
         )}
         {showCancelStamp && (
-          <div className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-12 text-red-600 border-4 border-red-600 rounded-full w-64 h-64 flex items-center justify-center opacity-30 pointer-events-none z-0">
-            <span className="text-5xl font-bold uppercase tracking-widest text-center">CANCELLED</span>
+          <div className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-12 text-blue-600 border-4 border-blue-600 rounded-full w-64 h-64 flex items-center justify-center opacity-30 pointer-events-none z-0">
+            <span className="text-5xl font-bold uppercase tracking-widest text-center">RECEIVED</span>
           </div>
         )}
 
         {/* Header */}
-        <div className="text-center py-2 font-bold text-lg border-b-2 border-black tracking-wide">
+        <div className="relative text-center py-2 font-bold text-lg border-b-2 border-black tracking-wide">
+          <img src="/logo.png" alt="Logo" className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 object-contain print:block" />
           {type === 'return' ? 'RETURN CUM CHALLAN' : 'INVOICE CUM CHALLAN'}
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-normal italic text-gray-600">Original for Recipient</span>
         </div>
 
         {/* Top Details Grid */}
@@ -315,14 +351,14 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
               <div className="flex flex-1 border-b border-black">
                 <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
                   <span className="text-[11px] text-gray-600 font-medium">Invoice No.</span>
-                  <input value={invoiceNo} onChange={e => setInvoiceNo(e.target.value)} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                  <input value={invoiceNo} onChange={e => handleInvoiceNoChange(e.target.value)} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
                 </div>
                 <div className="w-1/2 p-2 flex flex-col justify-start">
                   <span className="text-[11px] text-gray-600 font-medium">Date:-</span>
                   <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
                 </div>
               </div>
-              <div className="flex flex-1">
+              <div className="flex flex-1 border-b border-black">
                 <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
                   <span className="text-[11px] text-gray-600 font-medium">Transport no:</span>
                   <input value={invoiceMeta.dispatchedThrough} onChange={e => setInvoiceMeta({...invoiceMeta, dispatchedThrough: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
@@ -330,6 +366,47 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                 <div className="w-1/2 p-2 flex flex-col justify-start">
                   <span className="text-[11px] text-gray-600 font-medium">Delivery Note Date</span>
                   <input type="date" value={invoiceMeta.deliveryNoteDate} onChange={e => setInvoiceMeta({...invoiceMeta, deliveryNoteDate: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                </div>
+              </div>
+              <div className="flex flex-1">
+                <div className="w-1/4 border-r border-black p-2 flex flex-col justify-start">
+                  <span className="text-[11px] text-gray-600 font-medium">Order Date</span>
+                  <input type="date" value={invoiceMeta.orderDate} onChange={e => setInvoiceMeta({...invoiceMeta, orderDate: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
+                </div>
+                <div className="w-1/4 border-r border-black p-2 flex flex-col justify-start">
+                  <span className="text-[11px] text-gray-600 font-medium">Despatched through</span>
+                  <div className="relative w-full mt-1 print:hidden" ref={despatchDropdownRef}>
+                    <div 
+                      onClick={() => setDespatchDropdownOpen(!despatchDropdownOpen)}
+                      className="flex justify-between items-center font-bold w-full outline-none bg-background cursor-pointer border border-border rounded px-2 py-1.5 text-[12px] hover:border-gray-400 focus:border-blue-500 transition-all shadow-sm"
+                    >
+                      <span>{invoiceMeta.termsOfPayment || 'ROAD'}</span>
+                      <svg className={`fill-current h-4 w-4 text-gray-500 transition-transform ${despatchDropdownOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                    {despatchDropdownOpen && (
+                      <div className="absolute top-full left-0 mt-1 w-full bg-background border border-border shadow-xl rounded-md z-50 overflow-hidden text-sm">
+                        {['ROAD', 'TRAIN', 'AIR'].map((method) => (
+                          <div
+                            key={method}
+                            className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-border/50 last:border-0 font-medium"
+                            onClick={() => {
+                              setInvoiceMeta({...invoiceMeta, termsOfPayment: method});
+                              setDespatchDropdownOpen(false);
+                            }}
+                          >
+                            {method}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="hidden print:block font-bold w-full outline-none bg-transparent mt-1">
+                    {invoiceMeta.termsOfPayment || 'ROAD'}
+                  </div>
+                </div>
+                <div className="w-1/2 p-2 flex flex-col justify-start">
+                  <span className="text-[11px] text-gray-600 font-medium">Destination</span>
+                  <input value={invoiceMeta.destination} onChange={e => setInvoiceMeta({...invoiceMeta, destination: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
                 </div>
               </div>
             </div>
@@ -376,50 +453,25 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                   </div>
                   <input value={buyerName} onChange={e => setBuyerName(e.target.value)} placeholder="Buyer Name" className="font-bold w-full outline-none bg-transparent" />
                   <input value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} placeholder="Buyer Address" className="w-full outline-none bg-transparent" />
+                  {partyId && (() => {
+                    const selectedParty = parties.find(p => p.id === partyId);
+                    if (!selectedParty) return null;
+                    const hasBankDetails = selectedParty.bankName || selectedParty.bankAccountNo || selectedParty.bankIfsc;
+                    if (!hasBankDetails) return null;
+                    return (
+                      <div className="text-[11px] text-gray-700 mt-1 border-t border-gray-200 pt-1">
+                        {selectedParty.bankName && <div>Bank: {selectedParty.bankName}</div>}
+                        {selectedParty.bankAccountNo && <div>A/c No: {selectedParty.bankAccountNo}</div>}
+                        {selectedParty.bankIfsc && <div>IFSC: {selectedParty.bankIfsc}</div>}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
             
-            {/* Invoice Meta Bottom Row (Right) */}
-            <div className="w-1/2 flex flex-col text-[13px]">
-              <div className="flex flex-1">
-                <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
-                  <span className="text-[11px] text-gray-600 font-medium">Despatched through</span>
-                  <div className="relative w-full mt-1 print:hidden" ref={despatchDropdownRef}>
-                    <div 
-                      onClick={() => setDespatchDropdownOpen(!despatchDropdownOpen)}
-                      className="flex justify-between items-center font-bold w-full outline-none bg-background cursor-pointer border border-border rounded px-2 py-1.5 text-[12px] hover:border-gray-400 focus:border-blue-500 transition-all shadow-sm"
-                    >
-                      <span>{invoiceMeta.termsOfPayment || 'ROAD'}</span>
-                      <svg className={`fill-current h-4 w-4 text-gray-500 transition-transform ${despatchDropdownOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                    </div>
-                    {despatchDropdownOpen && (
-                      <div className="absolute top-full left-0 mt-1 w-full bg-background border border-border shadow-xl rounded-md z-50 overflow-hidden text-sm">
-                        {['ROAD', 'TRAIN', 'AIR'].map((method) => (
-                          <div
-                            key={method}
-                            className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-border/50 last:border-0 font-medium"
-                            onClick={() => {
-                              setInvoiceMeta({...invoiceMeta, termsOfPayment: method});
-                              setDespatchDropdownOpen(false);
-                            }}
-                          >
-                            {method}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="hidden print:block font-bold w-full outline-none bg-transparent mt-1">
-                    {invoiceMeta.termsOfPayment || 'ROAD'}
-                  </div>
-                </div>
-                <div className="w-1/2 p-2 flex flex-col justify-start">
-                  <span className="text-[11px] text-gray-600 font-medium">Destination</span>
-                  <input value={invoiceMeta.destination} onChange={e => setInvoiceMeta({...invoiceMeta, destination: e.target.value})} className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" />
-                </div>
-              </div>
             </div>
+          </div>
           </div>
         </div>
 
@@ -452,22 +504,14 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                {discountTotal.toFixed(2)}
              </div>
            </div>
-           <div className="flex border-t border-black text-sm font-bold">
-             <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
-               CGST @ 9%
-             </div>
-             <div className="w-[15%] text-right pr-2 py-1">
-               {cgstAmount.toFixed(2)}
-             </div>
-           </div>
-           <div className="flex border-t border-black text-sm font-bold">
-             <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
-               SGST @ 9%
-             </div>
-             <div className="w-[15%] text-right pr-2 py-1">
-               {sgstAmount.toFixed(2)}
-             </div>
-           </div>
+            <div className="flex border-t border-black text-sm">
+              <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
+                Round Off
+              </div>
+              <div className="w-[15%] text-right pr-2 py-1">
+                {roundOff.toFixed(2)}
+              </div>
+            </div>
             <div className="flex border-t-2 border-black text-sm font-bold text-lg">
               <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
                 Grand Total
@@ -506,7 +550,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
         {/* Amount in words */}
         <div className="border-b-2 border-black p-2 text-sm flex gap-4 items-center">
           <span className="text-[13px]">Amount Chargeable (in words)</span>
-          <span className="font-bold text-[13px]">{numberToWords(Math.round(netPayable > 0 ? netPayable : grandTotal))} only.</span>
+          <span className="font-bold text-[13px]">{numberToWords(netPayable > 0 ? netPayable : grandTotal)} only.</span>
         </div>
 
         {/* Footer info */}
@@ -516,7 +560,6 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
             <div className="flex flex-wrap gap-x-6 gap-y-1 font-bold">
               <div className="flex gap-2"><span>Bank Name :-</span><input value={settings.bankName} onChange={e => { const val = e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''); if (val.replace(/ /g, '').length <= 44) updateSettings({ bankName: val }); }} className="outline-none bg-transparent" /></div>
               <div className="flex gap-2"><span>A/c. No.</span><input value={settings.bankAccountNo} maxLength={17} onChange={e => { const val = e.target.value.replace(/\D/g, ''); updateSettings({bankAccountNo: val}) }} className="outline-none bg-transparent" /></div>
-              <div className="flex gap-2"><input value={settings.companyCity + " Br.,"} onChange={e => updateSettings({companyCity: e.target.value.replace(' Br.,', '')})} className="outline-none bg-transparent text-right" /></div>
               <div className="flex gap-2"><span>IFS -</span><input value={settings.bankIfsc} maxLength={11} onChange={e => { let val = e.target.value.toUpperCase(); let formatted = ''; for (let i = 0; i < val.length; i++) { if (i < 4) { if (/[A-Z]/.test(val[i])) formatted += val[i]; } else { if (/[0-9]/.test(val[i])) formatted += val[i]; } } updateSettings({ bankIfsc: formatted }) }} className="outline-none bg-transparent uppercase" /></div>
             </div>
           </div>
@@ -525,10 +568,11 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
               <p>We declare that this Invoice shows the actual</p>
               <p>price of the goods described and that all</p>
               <p>particulars are true and correct</p>
+              <p className="text-xs text-muted-foreground mt-1 font-semibold">Credit Limit: 90 Days</p>
             </div>
             <div className="w-1/2 p-2 relative min-h-[80px]">
-              <div className="flex text-sm justify-end absolute top-2 right-4">
-                <span>For </span><div className="font-bold ml-1 text-right w-48 truncate">{settings.companyName}</div>
+              <div className="flex flex-col text-sm items-end absolute top-2 right-4">
+                <div className="font-bold text-right">{settings.companyName}</div>
               </div>
               <div className="absolute bottom-2 right-4 text-sm">
                 Authorised Signatory

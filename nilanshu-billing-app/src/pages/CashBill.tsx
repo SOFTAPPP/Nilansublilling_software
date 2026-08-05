@@ -3,6 +3,7 @@ import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
 import { getLocalDateString } from '../utils/dateUtils';
+import { getNextBillNumber, checkBillNumberExists } from '../utils/billNumber';
 
 export default function CashBill({ viewBill }: { viewBill?: any }) {
   const { settings, updateSettings, createBill, parties, showDialog } = useStore();
@@ -10,6 +11,13 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
   const [partyId, setPartyId] = useState<string | null>(null);
   const [partyName, setPartyName] = useState('');
   const [memoNo, setMemoNo] = useState('CSH-');
+
+  // Auto-fill next bill number on mount
+  useEffect(() => {
+    if (!viewBill) {
+      getNextBillNumber('CSH-').then(setMemoNo);
+    }
+  }, [viewBill]);
   const [billDate, setBillDate] = useState(() => getLocalDateString());
   const [showPaidStamp, setShowPaidStamp] = useState(true);
   const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
@@ -116,6 +124,20 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
     return true;
   };
 
+  // Validate memo number on change - check for duplicates
+  const handleMemoNoChange = async (val: string) => {
+    const fullNo = 'CSH-' + val.replace(/^CSH-/, '');
+    setMemoNo(fullNo);
+    if (val.replace(/^CSH-/, '').length > 0) {
+      const exists = await checkBillNumberExists(fullNo);
+      if (exists) {
+        showDialog({ title: 'Duplicate Bill Number', message: `Bill number ${fullNo} already exists. Please use a different number.`, type: 'alert' });
+        // Reset back to next available
+        getNextBillNumber('CSH-').then(setMemoNo);
+      }
+    }
+  };
+
   const handleSave = async () => {
     if (!validate()) return;
 
@@ -187,7 +209,8 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         )}
 
         {/* Header */}
-        <div className="text-center flex flex-col items-center">
+        <div className="text-center flex flex-col items-center relative">
+          <img src="/logo.png" alt="Logo" className="absolute left-0 top-0 w-10 h-10 object-contain" />
           <div className="text-3xl font-bold uppercase tracking-wide text-center w-full">{settings.companyName}</div>
           <div className="text-sm mt-1 text-center w-full">{settings.companyAddress}</div>
           <div className="text-sm text-center w-full">{settings.companyCity}</div>
@@ -219,6 +242,13 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
               <svg onClick={() => setPartyDropdownOpen(!partyDropdownOpen)} className="w-4 h-4 cursor-pointer text-muted-foreground hover:text-foreground transition-colors print:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </div>
             
+            {partyId && (
+              <div className="text-[13px] text-foreground/90 font-medium mt-1.5 px-1.5">
+                {parties.find(p => p.id === partyId)?.address && <div>{parties.find(p => p.id === partyId)?.address}</div>}
+                {parties.find(p => p.id === partyId)?.phone && <div>Ph: {parties.find(p => p.id === partyId)?.phone}</div>}
+              </div>
+            )}
+            
             {partyDropdownOpen && parties.filter(p => {
               const isSelectedMatch = partyId && parties.find(x => x.id === partyId)?.name === partyName;
               if (isSelectedMatch) return true;
@@ -236,15 +266,16 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
                     onClick={() => {
                       setPartyName(p.name);
                       setPartyId(p.id);
-                      const discount = p.discountPercentage || 0;
-                      setDefaultDiscount(discount);
+                      const customerDiscount = p.discountPercentage || 0;
+                      setDefaultDiscount(customerDiscount);
                       setPartyDropdownOpen(false);
                       
+                      // Only apply customer default discount to items that have NO manually set discount
                       setItems(prevItems => prevItems.map(item => {
                         if (!item.discountPercent || item.discountPercent === 0) {
-                          const discountAmount = (item.mrp * discount) / 100;
+                          const discountAmount = (item.mrp * customerDiscount) / 100;
                           const newAmount = (item.mrp - discountAmount) * item.quantity;
-                          return { ...item, discountPercent: discount, amount: newAmount };
+                          return { ...item, discountPercent: customerDiscount, amount: newAmount };
                         }
                         return item;
                       }));
@@ -259,15 +290,18 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
           </div>
           
           <div className="flex flex-col items-end gap-3 print:flex-row-reverse print:items-center print:justify-end print:gap-4 print:mt-auto print:h-full">
-            <div className="bg-primary/10 text-primary print:bg-transparent print:text-black font-extrabold px-5 py-1.5 print:py-2 rounded-lg print:rounded-none text-lg tracking-widest border border-primary/20 print:border-black uppercase shadow-sm print:shadow-none print:flex print:items-center print:h-[42px]">
-              CASH MEMO
+            <div className="relative">
+              <span className="hidden print:block absolute -top-4 left-0 right-0 text-center text-[9px] italic text-gray-500">Original for Recipient</span>
+              <div className="bg-primary/10 text-primary print:bg-transparent print:text-black font-extrabold px-5 py-1.5 print:py-2 rounded-lg print:rounded-none text-lg tracking-widest border border-primary/20 print:border-black uppercase shadow-sm print:shadow-none print:flex print:items-center print:h-[42px]">
+                CASH MEMO
+              </div>
             </div>
             <div className="flex items-center gap-4 bg-background print:bg-transparent border border-border print:border-none rounded-lg px-4 py-2 shadow-sm print:shadow-none print:h-[42px]">
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Memo No.</span>
                 <div className="flex items-center">
                   <span className="font-bold text-xs text-foreground">CSH-</span>
-                  <input value={memoNo.replace(/^CSH-/, '')} onChange={e => setMemoNo('CSH-' + e.target.value.replace(/^CSH-/, ''))} className="outline-none w-16 bg-transparent font-bold text-xs text-foreground placeholder:text-muted-foreground" placeholder="178" />
+                  <input value={memoNo.replace(/^CSH-/, '')} onChange={e => handleMemoNoChange(e.target.value)} className="outline-none w-16 bg-transparent font-bold text-xs text-foreground placeholder:text-muted-foreground" placeholder="178" />
                 </div>
               </div>
               <div className="w-[1px] h-8 bg-border print:hidden"></div>
@@ -299,7 +333,15 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
               <div className="flex items-center gap-2 text-xs"><span className="font-semibold whitespace-nowrap flex-shrink-0">A/c No:</span><input value={settings.bankAccountNo} maxLength={17} onChange={e => { const val = e.target.value.replace(/\D/g, ''); updateSettings({ bankAccountNo: val }) }} className="outline-none bg-transparent w-full" placeholder="A/c No" /> <span className="font-semibold whitespace-nowrap flex-shrink-0">IFSC Code:</span><input value={settings.bankIfsc} maxLength={11} onChange={e => { let val = e.target.value.toUpperCase(); let formatted = ''; for (let i = 0; i < val.length; i++) { if (i < 4) { if (/[A-Z]/.test(val[i])) formatted += val[i]; } else { if (/[0-9]/.test(val[i])) formatted += val[i]; } } updateSettings({ bankIfsc: formatted }) }} className="outline-none bg-transparent w-full uppercase" placeholder="IFSC Code" /></div>
             </div>
 
-            <div className="mt-8">
+            {/* QR Code in the middle space */}
+            <div className="flex justify-center my-3">
+              <div className="w-20 h-20 border border-gray-300 p-1 flex items-center justify-center relative">
+                <div className="text-[8px] text-gray-400 text-center leading-tight">SCAN<br/>TO<br/>PAY</div>
+                <img src="/qr.png" alt="QR" className="absolute w-18 h-18 object-contain opacity-0" onError={(e) => (e.currentTarget.style.opacity = '0')} onLoad={(e) => (e.currentTarget.style.opacity = '1')} />
+              </div>
+            </div>
+
+            <div>
               <p className="font-bold text-xs">**THANKING YOU VISIT AGAIN**</p>
               <p className="italic text-xs mt-2">*Rupees {numberToWords(netPayable > 0 ? netPayable : grandTotal)} Only*</p>
             </div>
@@ -342,7 +384,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
             )}
 
             <div className="flex-1 p-2 flex flex-col items-end justify-between min-h-[80px]">
-              <div className="flex gap-1 text-xs justify-end w-full"><span>For</span><div className="font-bold flex-1 text-right truncate">{settings.companyName}</div></div>
+              <div className="text-xs font-bold text-right w-full">{settings.companyName}</div>
               <div className="text-xs">Authorised Signatory</div>
             </div>
           </div>

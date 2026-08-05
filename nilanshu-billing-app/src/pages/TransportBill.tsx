@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
+import { getNextBillNumber } from '../utils/billNumber';
 
 export default function TransportBill({ viewBill }: { viewBill?: any }) {
   const { transporters, createBill, showDialog } = useStore();
@@ -22,6 +23,13 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
   }, []);
   const [transporterName, setTransporterName] = useState('');
   const [billNo, setBillNo] = useState('');
+
+  // Auto-fill next bill number
+  useEffect(() => {
+    if (!viewBill) {
+      getNextBillNumber('TRN-').then(setBillNo);
+    }
+  }, [viewBill]);
 
   useEffect(() => {
     if (viewBill) {
@@ -72,6 +80,11 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         destination: dispatchDetails.destination,
         driverName: dispatchDetails.driverName,
         lrNo: dispatchDetails.lrNo,
+        metadata: {
+          proprietor: dispatchDetails.proprietor,
+          address: dispatchDetails.address,
+          packets: dispatchDetails.packets
+        },
         lineItems: items.map(i => ({
           productId: i.productId,
           productName: i.productName,
@@ -86,7 +99,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
       showDialog({ title: 'Success', message: 'Transport Bill saved successfully!', type: 'alert' });
       setItems([]);
       setBillNo('');
-      setDispatchDetails({ vehicleNo: '', destination: '', driverName: '', lrNo: '' });
+      setDispatchDetails({ proprietor: '', address: '', vehicleNo: '', destination: '', driverName: '', lrNo: '', packets: '' });
       setTransporterPhone('');
       setTransporterName('');
     } catch (err: any) {
@@ -106,10 +119,13 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
     }
   };
   const [dispatchDetails, setDispatchDetails] = useState({
+    proprietor: '',
+    address: '',
     vehicleNo: '',
     destination: '',
     driverName: '',
-    lrNo: ''
+    lrNo: '',
+    packets: ''
   });
 
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -202,6 +218,12 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
             <p className="font-semibold">Bill No:</p>
             <input value={billNo} onChange={e => setBillNo(e.target.value)} className="border-b border-gray-300 outline-none bg-transparent" placeholder="TRN-101" />
             
+            <p className="font-semibold">Proprietor:</p>
+            <input value={dispatchDetails.proprietor} onChange={e => setDispatchDetails({...dispatchDetails, proprietor: e.target.value})} className="border-b border-gray-300 outline-none bg-transparent" />
+            
+            <p className="font-semibold">Address:</p>
+            <input value={dispatchDetails.address} onChange={e => setDispatchDetails({...dispatchDetails, address: e.target.value})} className="border-b border-gray-300 outline-none bg-transparent" />
+
             <p className="font-semibold">Vehicle No:</p>
             <input value={dispatchDetails.vehicleNo} onChange={e => setDispatchDetails({...dispatchDetails, vehicleNo: e.target.value})} className="border-b border-gray-300 outline-none bg-transparent" />
             
@@ -213,6 +235,9 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
             
             <p className="font-semibold">L.R. No:</p>
             <input value={dispatchDetails.lrNo} onChange={e => setDispatchDetails({...dispatchDetails, lrNo: e.target.value})} className="border-b border-gray-300 outline-none bg-transparent" />
+            
+            <p className="font-semibold">Packets:</p>
+            <input value={dispatchDetails.packets} onChange={e => setDispatchDetails({...dispatchDetails, packets: e.target.value})} className="border-b border-gray-300 outline-none bg-transparent" />
           </div>
         </div>
 

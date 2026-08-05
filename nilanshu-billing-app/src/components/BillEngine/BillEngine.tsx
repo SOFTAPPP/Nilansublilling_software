@@ -290,7 +290,7 @@ export const BillEngine: React.FC<BillEngineProps> = ({
           <tr>
             {columns.includes('sno') && <th className="p-2 border border-border w-12 text-center">SI No.</th>}
             {columns.includes('name') && <th className="p-2 border border-border">Description of Goods</th>}
-            {columns.includes('hsn') && <th className="p-2 border border-border w-24">HSN/SAC</th>}
+            {columns.includes('hsn') && <th className="p-2 border border-border w-24">ISBN</th>}
             {columns.includes('qty') && <th className="p-2 border border-border w-24 text-center">Quantity</th>}
             {columns.includes('rate') && <th className="p-2 border border-border w-24 text-right">Rate</th>}
             {columns.includes('per') && <th className="p-2 border border-border w-16 text-center">Per</th>}

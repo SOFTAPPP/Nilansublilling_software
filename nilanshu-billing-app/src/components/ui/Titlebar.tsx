@@ -48,6 +48,7 @@ export const Titlebar = () => {
 
   return (
     <div
+      className="no-print"
       style={{
         height: '40px',
         display: 'flex',

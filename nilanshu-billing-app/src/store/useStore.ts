@@ -16,12 +16,16 @@ export interface Product {
 export interface Party {
   id: string;
   name: string;
+  proprietorName: string;
   address: string;
   phone: string;
   email?: string;
-  gstin?: string;
+  aadharNumber?: string;
   discountPercentage: number;
   outstandingBalance: number;
+  bankName: string;
+  bankAccountNo: string;
+  bankIfsc: string;
 }
 
 export interface Transporter {
@@ -247,7 +251,7 @@ export const useStore = create<AppState>((set) => ({
   fetchParties: async () => {
     try {
       const db = await getDb();
-      const parties = await db.select('SELECT id, name, address, phone, email, gstin, "discountPercentage", "outstandingBalance" FROM "Party"');
+      const parties = await db.select('SELECT id, name, "proprietorName", address, phone, email, "aadharNumber", "discountPercentage", "outstandingBalance", "bankName", "bankAccountNo", "bankIfsc" FROM "Party"');
       set({ parties: parties as Party[] });
     } catch (error: any) {
       console.error('Failed to fetch parties', error);
@@ -383,16 +387,17 @@ export const useStore = create<AppState>((set) => ({
   addParty: async (party) => {
     const id = party.id || crypto.randomUUID();
     const newParty: Party = {
-      id, name: party.name || '', address: party.address || '', phone: party.phone || '',
-      email: party.email || undefined, gstin: party.gstin || undefined,
-      discountPercentage: party.discountPercentage || 0, outstandingBalance: party.outstandingBalance || 0
+      id, name: party.name || '', proprietorName: party.proprietorName || '', address: party.address || '', phone: party.phone || '',
+      email: party.email || undefined, aadharNumber: party.aadharNumber || undefined,
+      discountPercentage: party.discountPercentage || 0, outstandingBalance: party.outstandingBalance || 0,
+      bankName: party.bankName || '', bankAccountNo: party.bankAccountNo || '', bankIfsc: party.bankIfsc || ''
     };
     set((state) => ({ parties: [...state.parties, newParty] }));
     try {
       const db = await getDb();
       await db.execute(
-        'INSERT INTO "Party" (id, name, address, phone, email, gstin, "discountPercentage", "outstandingBalance", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())',
-        [id, newParty.name, newParty.address, newParty.phone, newParty.email || null, newParty.gstin || null, Number(newParty.discountPercentage) || 0, Number(newParty.outstandingBalance) || 0]
+        'INSERT INTO "Party" (id, name, "proprietorName", address, phone, email, "aadharNumber", "discountPercentage", "outstandingBalance", "bankName", "bankAccountNo", "bankIfsc", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())',
+        [id, newParty.name, newParty.proprietorName, newParty.address, newParty.phone, newParty.email || null, newParty.aadharNumber || null, Number(newParty.discountPercentage) || 0, Number(newParty.outstandingBalance) || 0, newParty.bankName, newParty.bankAccountNo, newParty.bankIfsc]
       );
     } catch (err: any) {
       console.error('Add Party DB Error:', err);
@@ -405,12 +410,12 @@ export const useStore = create<AppState>((set) => ({
     try {
       const db = await getDb();
       await db.execute(
-        'UPDATE "Party" SET name=$1, address=$2, phone=$3, email=$4, gstin=$5, "discountPercentage"=$6, "outstandingBalance"=$7, "updatedAt"=NOW() WHERE id=$8',
-        [party.name, party.address, party.phone, party.email || null, party.gstin || null, Number(party.discountPercentage) || 0, Number(party.outstandingBalance) || 0, id]
+        'UPDATE "Party" SET name=$1, "proprietorName"=$2, address=$3, phone=$4, email=$5, "aadharNumber"=$6, "discountPercentage"=$7, "outstandingBalance"=$8, "bankName"=$9, "bankAccountNo"=$10, "bankIfsc"=$11, "updatedAt"=NOW() WHERE id=$12',
+        [party.name, party.proprietorName || '', party.address, party.phone, party.email || null, party.aadharNumber || null, Number(party.discountPercentage) || 0, Number(party.outstandingBalance) || 0, party.bankName || '', party.bankAccountNo || '', party.bankIfsc || '', id]
       );
     } catch (err: any) {
       console.error('Update Party Error:', err);
-      useStore.getState().showDialog({ title: 'Add Party Failed', message: err.message || 'Database error', type: 'alert' });
+      useStore.getState().showDialog({ title: 'Update Party Failed', message: err.message || 'Database error', type: 'alert' });
       useStore.getState().fetchParties(); // Rollback
     }
   },
@@ -528,12 +533,12 @@ export const useStore = create<AppState>((set) => ({
       const updatedParties = billData.partyId ? state.parties.map(p => {
         if (p.id === billData.partyId) {
           const deducted = billData.deductedAmount || 0;
-          const newBalance = p.outstandingBalance - deducted;
-          const effectiveTotal = billData.total; 
-          const balanceChange = type === 'credit' ? effectiveTotal : type === 'return' ? -effectiveTotal : 0;
-          // If credit, balance increases by total, but decreases by deducted
-          // If cash, balance just decreases by deducted
-          return { ...p, outstandingBalance: newBalance + balanceChange };
+          const effectiveTotal = billData.total || 0;
+          let balanceChange = 0;
+          if (type === 'credit') balanceChange = effectiveTotal - deducted;
+          else if (type === 'return' || type === 'receipt') balanceChange = -effectiveTotal;
+          
+          return { ...p, outstandingBalance: p.outstandingBalance + balanceChange };
         }
         return p;
       }) : state.parties;
@@ -584,8 +589,10 @@ export const useStore = create<AppState>((set) => ({
 
         if (billData.partyId) {
           if (type === 'credit') {
-            await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [Number(billData.total) || 0, billData.partyId]);
-          } else if (type === 'return') {
+            const deducted = billData.deductedAmount || 0;
+            const change = (Number(billData.total) || 0) - deducted;
+            await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [change, billData.partyId]);
+          } else if (type === 'return' || type === 'receipt') {
             await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [Number(billData.total) || 0, billData.partyId]);
           }
         }

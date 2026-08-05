@@ -3,11 +3,19 @@ import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
 import { getLocalDateString } from '../utils/dateUtils';
+import { getNextBillNumber } from '../utils/billNumber';
 
 export default function QuickBill({ viewBill }: { viewBill?: any }) {
   const { settings, updateSettings, createBill, showDialog } = useStore();
   const [items, setItems] = useState<BillLineItem[]>([]);
   const [billNo, setBillNo] = useState('');
+
+  // Auto-fill next bill number
+  useEffect(() => {
+    if (!viewBill) {
+      getNextBillNumber('QB-').then(setBillNo);
+    }
+  }, [viewBill]);
   const [billDate, setBillDate] = useState(() => getLocalDateString());
   const [showPaidStamp, setShowPaidStamp] = useState(true);
 

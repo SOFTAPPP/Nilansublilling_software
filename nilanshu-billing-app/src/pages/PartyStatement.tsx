@@ -54,7 +54,7 @@ export default function PartyStatement() {
   const selectedParty = parties.find(p => p.id === selectedPartyId);
 
   // Compute Ledger
-  const partyBills = bills.filter(b => b.partyId === selectedPartyId && (b.type === 'credit' || b.type === 'return'));
+  const partyBills = bills.filter(b => b.partyId === selectedPartyId && (b.type === 'credit' || b.type === 'return' || b.type === 'receipt'));
   
   // Sort ascending by date
   const sortedBills = [...partyBills].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -69,6 +69,7 @@ export default function PartyStatement() {
     const bill = sortedBills[i];
     const isCredit = bill.type === 'credit';
     const isReturn = bill.type === 'return';
+    const isReceipt = bill.type === 'receipt';
     
     if (isCredit) {
       const before = running - bill.total;
@@ -81,12 +82,13 @@ export default function PartyStatement() {
         balance: running
       });
       running = before;
-    } else if (isReturn) {
+    } else if (isReturn || isReceipt) {
       const before = running + bill.total;
+      const particulars = isReturn ? `Sales Return No. ${bill.billNumber}` : `Receipt No. ${bill.billNumber}`;
       rawHistory.unshift({
         date: new Date(bill.date),
         vNo: bill.billNumber,
-        particulars: `Sales Return No. ${bill.billNumber}`,
+        particulars: particulars,
         debit: 0,
         credit: bill.total,
         balance: running
@@ -192,45 +194,44 @@ export default function PartyStatement() {
       </div>
 
       {/* Ledger Canvas */}
-      <div className="a4-page border border-border p-6 relative mx-auto font-mono text-sm">
+      <div className="a4-page border-2 border-black p-8 relative mx-auto bg-white text-black font-serif text-[13px] shadow-sm print:border-none print:shadow-none">
         
         {/* Header */}
-        <div className="text-center mb-8 flex flex-col items-center">
-          <div className="text-xl font-bold tracking-wider text-center w-full uppercase">{settings.companyName}</div>
-          <div className="text-center w-full mt-1">{settings.companyAddress}</div>
-          <div className="text-center w-full">{settings.companyCity}</div>
-          <div className="flex justify-center gap-4 w-full mt-1">
-            <div className="flex gap-2 font-semibold"><span>IT PAN :</span><span className="font-normal">{settings.companyPan}</span></div>
-            <div className="flex gap-2 font-semibold"><span>Phone :</span><span className="font-normal">{settings.companyContact}</span></div>
-            <div className="flex gap-2 font-semibold"><span>E-Mail :</span><span className="font-normal">{settings.companyEmail}</span></div>
+        <div className="text-center mb-6 flex flex-col items-center border-b-2 border-black pb-4">
+          <div className="text-3xl font-black tracking-wide text-center w-full uppercase text-blue-900">{settings.companyName}</div>
+          <div className="text-center w-full mt-2 font-semibold">{settings.companyAddress}</div>
+          <div className="text-center w-full font-semibold">{settings.companyCity}</div>
+          <div className="flex justify-center gap-6 w-full mt-2 text-xs">
+            <div className="flex gap-1 font-bold"><span>IT PAN:</span><span className="font-semibold">{settings.companyPan}</span></div>
+            <div className="flex gap-1 font-bold"><span>Phone:</span><span className="font-semibold">{settings.companyContact}</span></div>
+            <div className="flex gap-1 font-bold"><span>E-Mail:</span><span className="font-semibold">{settings.companyEmail}</span></div>
           </div>
         </div>
 
         {/* Ledger Info */}
-        <div className="flex justify-between items-end mb-4 border-b border-black border-dashed pb-2">
+        <div className="flex justify-between items-end mb-4 border-b-2 border-black pb-3">
           <div>
-            <div className="flex gap-2">
-              <span>Ledger Account :</span>
-              <span className="font-bold">{selectedParty ? selectedParty.name : 'NO CUSTOMER SELECTED'}</span>
+            <div className="flex gap-2 text-lg">
+              <span className="font-semibold">Ledger Account:</span>
+              <span className="font-black uppercase text-blue-900">{selectedParty ? selectedParty.name : 'NO CUSTOMER SELECTED'}</span>
             </div>
-            {selectedParty && <div className="text-xs text-muted-foreground mt-1">Address: {selectedParty.address} | Phone: {selectedParty.phone}</div>}
+            {selectedParty && <div className="text-xs text-gray-700 mt-1 font-medium">Address: {selectedParty.address} | Phone: {selectedParty.phone}</div>}
           </div>
-          <div className="text-right">
-            <div>{new Date(fromDate).toLocaleDateString('en-GB')} - {new Date(toDate).toLocaleDateString('en-GB')}</div>
-            <div>Page No.: 1</div>
+          <div className="text-right font-semibold">
+            <div>Period: {new Date(fromDate).toLocaleDateString('en-GB')} - {new Date(toDate).toLocaleDateString('en-GB')}</div>
           </div>
         </div>
 
         {/* Period Summary */}
         {selectedPartyId && (
-          <div className="flex justify-between border-b border-black border-dashed pb-4 mb-4">
+          <div className="flex justify-between border-b-2 border-black pb-4 mb-4 bg-gray-50/50 print:bg-transparent p-3 rounded-lg print:p-0 print:rounded-none">
             <div>
-              <p className="font-bold underline mb-1">Period Summary</p>
+              <p className="font-black mb-1 uppercase text-blue-900 tracking-wider text-xs">Period Summary</p>
               <p>Total Sales (Debit): <span className="font-bold">₹ {filteredHistory.reduce((sum, h) => sum + (h.debit || 0), 0).toFixed(2)}</span></p>
-              <p>Total Business/Receipts (Credit): <span className="font-bold">₹ {filteredHistory.reduce((sum, h) => sum + (h.credit || 0), 0).toFixed(2)}</span></p>
+              <p>Total Receipts (Credit): <span className="font-bold">₹ {filteredHistory.reduce((sum, h) => sum + (h.credit || 0), 0).toFixed(2)}</span></p>
             </div>
             <div className="text-right">
-              <p className="font-bold underline mb-1">Balance Summary</p>
+              <p className="font-black mb-1 uppercase text-blue-900 tracking-wider text-xs">Balance Summary</p>
               <p>Opening Balance: <span className="font-bold">₹ {Math.abs(balanceBeforePeriod).toFixed(2)} {balanceBeforePeriod >= 0 ? 'Dr' : 'Cr'}</span></p>
               <p>Closing Balance: <span className="font-bold">₹ {Math.abs(finalBalance).toFixed(2)} {finalBalance >= 0 ? 'Dr' : 'Cr'}</span></p>
             </div>
@@ -238,18 +239,18 @@ export default function PartyStatement() {
         )}
 
         {/* Table */}
-        <table className="w-full text-left whitespace-pre">
+        <table className="w-full text-left whitespace-pre border-collapse">
           <thead>
-            <tr className="border-b border-black border-dashed">
-              <th className="py-2 font-normal w-24">Date</th>
-              <th className="py-2 font-normal w-16 text-center">V No.</th>
-              <th className="py-2 font-normal">Particulars</th>
-              <th className="py-2 font-normal text-right w-28">Debit</th>
-              <th className="py-2 font-normal text-right w-28">Credit</th>
-              <th className="py-2 font-normal text-right w-36">Balance</th>
+            <tr className="border-y-2 border-black bg-gray-50 print:bg-transparent">
+              <th className="py-2 px-1 font-bold w-24">Date</th>
+              <th className="py-2 px-1 font-bold w-16 text-center">V No.</th>
+              <th className="py-2 px-1 font-bold">Particulars</th>
+              <th className="py-2 px-1 font-bold text-right w-28">Debit</th>
+              <th className="py-2 px-1 font-bold text-right w-28">Credit</th>
+              <th className="py-2 px-1 font-bold text-right w-36">Balance</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-300 print:divide-black">
             {selectedPartyId ? (
               entries.map((entry, i) => (
                 <tr key={i}>
@@ -271,13 +272,13 @@ export default function PartyStatement() {
           </tbody>
           {selectedPartyId && (
             <tfoot>
-              <tr className="border-t border-b border-black border-dashed font-bold">
-                <td className="py-2">Total</td>
+              <tr className="border-y-2 border-black font-bold bg-gray-50 print:bg-transparent">
+                <td className="py-2 px-1">Total</td>
                 <td></td>
                 <td></td>
-                <td className="py-2 text-right">{totalDebit.toFixed(2)}</td>
-                <td className="py-2 text-right">{totalCredit.toFixed(2)}</td>
-                <td className="py-2 text-right">{Math.abs(finalBalance).toFixed(2)} {finalBalance >= 0 ? 'Dr' : 'Cr'}</td>
+                <td className="py-2 px-1 text-right">{totalDebit.toFixed(2)}</td>
+                <td className="py-2 px-1 text-right">{totalCredit.toFixed(2)}</td>
+                <td className="py-2 px-1 text-right">{Math.abs(finalBalance).toFixed(2)} {finalBalance >= 0 ? 'Dr' : 'Cr'}</td>
               </tr>
             </tfoot>
           )}

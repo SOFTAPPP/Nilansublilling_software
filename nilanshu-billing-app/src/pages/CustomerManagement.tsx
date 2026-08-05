@@ -1,11 +1,9 @@
 import { useState, useRef } from 'react';
 import { useStore, Party } from '../store/useStore';
-import { Upload, Plus, Trash2, Edit2, ChevronDown } from 'lucide-react';
-import { parseCustomersFile } from '../utils/dataImport';
+import { Plus, Trash2, Edit2, ChevronDown } from 'lucide-react';
 
 export default function CustomerManagement() {
-  const { parties, addParty, deleteParty, setParties, updateParty, showDialog } = useStore();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { parties, addParty, deleteParty, updateParty, showDialog } = useStore();
   const [isAdding, setIsAdding] = useState(false);
   const [editingParty, setEditingParty] = useState<Party | null>(null);
   const [editForm, setEditForm] = useState<Partial<Party>>({});
@@ -30,7 +28,7 @@ export default function CustomerManagement() {
   const handleEditSave = async () => {
     if (!editingParty) return;
     if (!editForm.name) {
-      showDialog({ title: 'Validation Error', message: 'Name is required', type: 'alert' });
+      showDialog({ title: 'Validation Error', message: 'Buyer\'s Name is required', type: 'alert' });
       return;
     }
     const currentId = editingParty.id;
@@ -44,43 +42,21 @@ export default function CustomerManagement() {
 
   const [newParty, setNewParty] = useState<Partial<Party>>({
     name: '',
+    proprietorName: '',
     address: '',
     phone: '',
     email: '',
-    gstin: '',
+    aadharNumber: '',
     discountPercentage: 0,
     outstandingBalance: 0,
+    bankName: '',
+    bankAccountNo: '',
+    bankIfsc: '',
   });
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const importedParties = await parseCustomersFile(file);
-      // Merge with existing avoiding duplicates by phone or name
-      const merged = [...parties];
-      importedParties.forEach(imported => {
-        const exists = merged.find(p => p.phone === imported.phone || p.name === imported.name);
-        if (!exists) {
-          merged.push(imported);
-        }
-      });
-      setParties(merged);
-      showDialog({ title: 'Success', message: `Successfully imported ${importedParties.length} customers.`, type: 'alert' });
-    } catch (err) {
-      showDialog({ title: 'Import Failed', message: (err as Error).message, type: 'alert' });
-    }
-    
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
 
   const handleAddManual = () => {
     if (!newParty.name) {
-      showDialog({ title: 'Validation Error', message: 'Name is required', type: 'alert' });
+      showDialog({ title: 'Validation Error', message: 'Buyer\'s Name is required', type: 'alert' });
       return;
     }
     
@@ -88,17 +64,21 @@ export default function CustomerManagement() {
     const party: Party = {
       id: `PARTY-${Date.now()}`,
       name: newParty.name || '',
+      proprietorName: newParty.proprietorName || '',
       address: newParty.address || '',
       phone: finalPhone,
       email: newParty.email || '',
-      gstin: newParty.gstin || '',
+      aadharNumber: newParty.aadharNumber || '',
       discountPercentage: Number(newParty.discountPercentage) || 0,
       outstandingBalance: Number(newParty.outstandingBalance) || 0,
+      bankName: newParty.bankName || '',
+      bankAccountNo: newParty.bankAccountNo || '',
+      bankIfsc: newParty.bankIfsc || '',
     };
 
     addParty(party);
     setIsAdding(false);
-    setNewParty({ name: '', address: '', phone: '', email: '', gstin: '', discountPercentage: 0, outstandingBalance: 0 });
+    setNewParty({ name: '', proprietorName: '', address: '', phone: '', email: '', aadharNumber: '', discountPercentage: 0, outstandingBalance: 0, bankName: '', bankAccountNo: '', bankIfsc: '' });
     setNewPhoneCode('+91');
   };
 
@@ -113,24 +93,14 @@ export default function CustomerManagement() {
     });
   };
 
+  const inputClass = "w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground";
+  const labelClass = "block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5";
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Customers / Parties</h1>
         <div className="flex gap-4">
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/90 flex items-center gap-2"
-          >
-            <Upload size={18} /> Import (.json/.xlsx)
-          </button>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileUpload} 
-            accept=".json,.xlsx,.xls" 
-            className="hidden" 
-          />
           <button 
             onClick={() => setIsAdding(true)}
             className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2"
@@ -144,12 +114,19 @@ export default function CustomerManagement() {
         <div className="bg-card p-6 md:p-8 rounded-2xl border border-border/50 shadow-lg mb-6 animate-in slide-in-from-top-4 fade-in duration-300">
           <h2 className="text-2xl font-bold mb-6 tracking-tight text-foreground">Add New Customer</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="col-span-2 md:col-span-1">
-              <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Name <span className="text-red-500">*</span></label>
-              <input type="text" placeholder="e.g. Suresh Kumar" value={newParty.name} onChange={e => setNewParty({...newParty, name: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
+            {/* Buyer's Name */}
+            <div>
+              <label className={labelClass}>Buyer's Name <span className="text-red-500">*</span></label>
+              <input type="text" placeholder="e.g. Suresh Kumar" value={newParty.name} onChange={e => setNewParty({...newParty, name: e.target.value})} className={inputClass} />
             </div>
-            <div className="col-span-2 md:col-span-1">
-              <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Phone</label>
+            {/* Buyer's Proprietor Name */}
+            <div>
+              <label className={labelClass}>Buyer's Proprietor Name</label>
+              <input type="text" placeholder="Proprietor Name" value={newParty.proprietorName} onChange={e => setNewParty({...newParty, proprietorName: e.target.value})} className={inputClass} />
+            </div>
+            {/* Phone */}
+            <div>
+              <label className={labelClass}>Phone</label>
               <div className="flex">
                 <div className="relative">
                   <button 
@@ -175,25 +152,49 @@ export default function CustomerManagement() {
                 <input type="text" placeholder="Contact Number" value={newParty.phone} onChange={e => setNewParty({...newParty, phone: e.target.value.replace(/\D/g, '')})} className="w-full border border-border/50 p-3 rounded-r-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
               </div>
             </div>
-            <div className="col-span-2 md:col-span-1">
-              <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Email</label>
-              <input type="text" placeholder="Email Address" value={newParty.email} onChange={e => setNewParty({...newParty, email: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
+            {/* Email */}
+            <div>
+              <label className={labelClass}>Email</label>
+              <input type="text" placeholder="Email Address" value={newParty.email} onChange={e => setNewParty({...newParty, email: e.target.value})} className={inputClass} />
             </div>
-            <div className="col-span-2 md:col-span-1">
-              <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">GSTIN</label>
-              <input type="text" placeholder="GST Number" value={newParty.gstin} onChange={e => setNewParty({...newParty, gstin: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
-            </div>
+            {/* Address */}
             <div className="col-span-2">
-              <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Address</label>
-              <input type="text" placeholder="Full Address" value={newParty.address} onChange={e => setNewParty({...newParty, address: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
+              <label className={labelClass}>Address</label>
+              <input type="text" placeholder="Full Address" value={newParty.address} onChange={e => setNewParty({...newParty, address: e.target.value})} className={inputClass} />
             </div>
+            {/* Aadhar Number */}
             <div>
-              <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Default Discount %</label>
-              <input type="number" placeholder="0" value={newParty.discountPercentage} onChange={e => setNewParty({...newParty, discountPercentage: parseFloat(e.target.value) || 0})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
+              <label className={labelClass}>Aadhar Number</label>
+              <input type="text" placeholder="XXXX XXXX XXXX" value={newParty.aadharNumber} onChange={e => setNewParty({...newParty, aadharNumber: e.target.value})} className={inputClass} />
             </div>
+            {/* Default Discount */}
             <div>
-              <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Opening Balance (₹)</label>
-              <input type="number" placeholder="0" value={newParty.outstandingBalance !== undefined ? Number(Number(newParty.outstandingBalance).toFixed(2)) : 0} onChange={e => setNewParty({...newParty, outstandingBalance: parseFloat(e.target.value) || 0})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
+              <label className={labelClass}>Default Discount %</label>
+              <input type="number" placeholder="0" value={newParty.discountPercentage} onChange={e => setNewParty({...newParty, discountPercentage: parseFloat(e.target.value) || 0})} className={inputClass} />
+            </div>
+            {/* Outstanding Balance */}
+            <div>
+              <label className={labelClass}>Amount to receive (₹)</label>
+              <input type="number" placeholder="0" value={newParty.outstandingBalance !== undefined ? Number(Number(newParty.outstandingBalance).toFixed(2)) : 0} onChange={e => setNewParty({...newParty, outstandingBalance: parseFloat(e.target.value) || 0})} className={inputClass} />
+            </div>
+
+            {/* Bank Details Section */}
+            <div className="col-span-2 border-t border-border/30 pt-4 mt-2">
+              <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Bank Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div>
+                  <label className={labelClass}>Bank Name</label>
+                  <input type="text" placeholder="e.g. State Bank of India" value={newParty.bankName} onChange={e => setNewParty({...newParty, bankName: e.target.value})} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Account Number</label>
+                  <input type="text" placeholder="Account Number" value={newParty.bankAccountNo} onChange={e => setNewParty({...newParty, bankAccountNo: e.target.value})} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>IFSC Code</label>
+                  <input type="text" placeholder="IFSC Code" value={newParty.bankIfsc} onChange={e => setNewParty({...newParty, bankIfsc: e.target.value})} className={inputClass} />
+                </div>
+              </div>
             </div>
           </div>
           <div className="flex gap-3 mt-8">
@@ -205,15 +206,22 @@ export default function CustomerManagement() {
 
       {editingParty && (
         <div className="fixed inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center z-50 animate-in fade-in duration-200">
-          <div className="bg-card p-6 md:p-8 rounded-2xl w-full max-w-lg shadow-2xl border border-border/50 animate-in zoom-in-95 duration-200">
+          <div className="bg-card p-6 md:p-8 rounded-2xl w-full max-w-2xl shadow-2xl border border-border/50 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-6 tracking-tight text-foreground">Edit Customer: {editingParty.name}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="col-span-2 md:col-span-1">
-                <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Name <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="Name *" value={editForm.name || ''} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
+              {/* Buyer's Name */}
+              <div>
+                <label className={labelClass}>Buyer's Name <span className="text-red-500">*</span></label>
+                <input type="text" placeholder="Name *" value={editForm.name || ''} onChange={e => setEditForm({...editForm, name: e.target.value})} className={inputClass} />
               </div>
-              <div className="col-span-2 md:col-span-1">
-                <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Phone</label>
+              {/* Buyer's Proprietor Name */}
+              <div>
+                <label className={labelClass}>Buyer's Proprietor Name</label>
+                <input type="text" placeholder="Proprietor Name" value={editForm.proprietorName || ''} onChange={e => setEditForm({...editForm, proprietorName: e.target.value})} className={inputClass} />
+              </div>
+              {/* Phone */}
+              <div>
+                <label className={labelClass}>Phone</label>
                 <div className="flex">
                   <div className="relative">
                     <button 
@@ -239,25 +247,49 @@ export default function CustomerManagement() {
                   <input type="text" placeholder="Phone" value={editForm.phone || ''} onChange={e => setEditForm({...editForm, phone: e.target.value.replace(/\D/g, '')})} className="w-full border border-border/50 p-3 rounded-r-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
                 </div>
               </div>
-              <div className="col-span-2 md:col-span-1">
-                <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Email</label>
-                <input type="text" placeholder="Email" value={editForm.email || ''} onChange={e => setEditForm({...editForm, email: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
+              {/* Email */}
+              <div>
+                <label className={labelClass}>Email</label>
+                <input type="text" placeholder="Email" value={editForm.email || ''} onChange={e => setEditForm({...editForm, email: e.target.value})} className={inputClass} />
               </div>
-              <div className="col-span-2 md:col-span-1">
-                <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">GSTIN</label>
-                <input type="text" placeholder="GSTIN" value={editForm.gstin || ''} onChange={e => setEditForm({...editForm, gstin: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
-              </div>
+              {/* Address */}
               <div className="col-span-2">
-                <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Address</label>
-                <input type="text" placeholder="Address" value={editForm.address || ''} onChange={e => setEditForm({...editForm, address: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
+                <label className={labelClass}>Address</label>
+                <input type="text" placeholder="Address" value={editForm.address || ''} onChange={e => setEditForm({...editForm, address: e.target.value})} className={inputClass} />
               </div>
+              {/* Aadhar Number */}
               <div>
-                <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Default Discount %</label>
-                <input type="number" value={editForm.discountPercentage || 0} onChange={e => setEditForm({...editForm, discountPercentage: parseFloat(e.target.value) || 0})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
+                <label className={labelClass}>Aadhar Number</label>
+                <input type="text" placeholder="XXXX XXXX XXXX" value={editForm.aadharNumber || ''} onChange={e => setEditForm({...editForm, aadharNumber: e.target.value})} className={inputClass} />
               </div>
+              {/* Default Discount */}
               <div>
-                <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Outstanding Balance (₹)</label>
-                <input type="number" value={editForm.outstandingBalance !== undefined ? Number(Number(editForm.outstandingBalance).toFixed(2)) : 0} onChange={e => setEditForm({...editForm, outstandingBalance: parseFloat(e.target.value) || 0})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" />
+                <label className={labelClass}>Default Discount %</label>
+                <input type="number" value={editForm.discountPercentage || 0} onChange={e => setEditForm({...editForm, discountPercentage: parseFloat(e.target.value) || 0})} className={inputClass} />
+              </div>
+              {/* Outstanding Balance */}
+              <div>
+                <label className={labelClass}>Amount to receive (₹)</label>
+                <input type="number" value={editForm.outstandingBalance !== undefined ? Number(Number(editForm.outstandingBalance).toFixed(2)) : 0} onChange={e => setEditForm({...editForm, outstandingBalance: parseFloat(e.target.value) || 0})} className={inputClass} />
+              </div>
+
+              {/* Bank Details */}
+              <div className="col-span-2 border-t border-border/30 pt-4 mt-2">
+                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Bank Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  <div>
+                    <label className={labelClass}>Bank Name</label>
+                    <input type="text" placeholder="Bank Name" value={editForm.bankName || ''} onChange={e => setEditForm({...editForm, bankName: e.target.value})} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Account Number</label>
+                    <input type="text" placeholder="Account Number" value={editForm.bankAccountNo || ''} onChange={e => setEditForm({...editForm, bankAccountNo: e.target.value})} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>IFSC Code</label>
+                    <input type="text" placeholder="IFSC Code" value={editForm.bankIfsc || ''} onChange={e => setEditForm({...editForm, bankIfsc: e.target.value})} className={inputClass} />
+                  </div>
+                </div>
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-8">
@@ -272,7 +304,8 @@ export default function CustomerManagement() {
         <table className="w-full text-left text-sm">
           <thead className="bg-muted text-muted-foreground">
             <tr>
-              <th className="p-4 font-medium">Customer Name</th>
+              <th className="p-4 font-medium">Buyer's Name</th>
+              <th className="p-4 font-medium">Proprietor</th>
               <th className="p-4 font-medium">Contact</th>
               <th className="p-4 font-medium">Address</th>
               <th className="p-4 font-medium text-right">Discount %</th>
@@ -285,8 +318,9 @@ export default function CustomerManagement() {
               <tr key={party.id} className="hover:bg-muted/50 transition-colors">
                 <td className="p-4 font-medium">
                   {party.name}
-                  {party.gstin && <div className="text-xs text-muted-foreground mt-1">GST: {party.gstin}</div>}
+                  {party.aadharNumber && <div className="text-xs text-muted-foreground mt-1">Aadhar: {party.aadharNumber}</div>}
                 </td>
+                <td className="p-4 text-muted-foreground">{party.proprietorName || '-'}</td>
                 <td className="p-4">
                   <div>{party.phone || '-'}</div>
                   <div className="text-xs text-muted-foreground">{party.email}</div>
@@ -314,8 +348,8 @@ export default function CustomerManagement() {
             ))}
             {parties.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                  No customers found. Import from a file or add manually.
+                <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                  No customers found. Click "Add Manually" to add a customer.
                 </td>
               </tr>
             )}
