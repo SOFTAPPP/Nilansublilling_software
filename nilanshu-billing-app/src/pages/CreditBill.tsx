@@ -36,7 +36,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   const [billDate, setBillDate] = useState(() => getLocalDateString());
   const [partyDiscount, setPartyDiscount] = useState(0);
   const [partyId, setPartyId] = useState<string | null>(null);
-  const [useOutstanding, setUseOutstanding] = useState(false);
+  const [advanceAmount, setAdvanceAmount] = useState<string>('');
 
   useEffect(() => {
     if (viewBill) {
@@ -142,7 +142,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   const grandTotal = Math.round(subtotalBeforeRound);
 
   const partyOutstanding = parties.find(p => p.id === partyId)?.outstandingBalance || 0;
-  const deductedAmount = (useOutstanding && partyOutstanding > 0) ? Math.min(partyOutstanding, grandTotal) : 0;
+  const deductedAmount = Number(advanceAmount) || 0;
   const netPayable = grandTotal - deductedAmount;
 
   // Validate invoice number on change - check for duplicates
@@ -531,45 +531,41 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
               {roundOff.toFixed(2)}
             </div>
           </div>
-          <div className="flex border-t-2 border-black text-sm font-bold text-lg">
-            <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
-              Grand Total
-            </div>
-            <div className="w-[15%] text-right pr-2 py-1">
-              {grandTotal.toFixed(2)}
-            </div>
-          </div>
-
           {partyOutstanding > 0 && (
-            <div className="flex border-t-2 border-black text-sm font-bold bg-yellow-50/50 dark:bg-yellow-900/20 print:bg-transparent">
+            <div className="flex border-t-2 border-black text-sm font-bold bg-muted/50 print:bg-transparent">
               <div className="w-[85%] text-right pr-4 py-1 border-r border-black flex justify-end items-center gap-2">
-                <label className="flex items-center gap-2 cursor-pointer no-print text-xs">
-                  <input type="checkbox" checked={useOutstanding} onChange={e => setUseOutstanding(e.target.checked)} className="w-3 h-3 accent-primary" />
-                  <span className="font-semibold text-amber-700 dark:text-amber-400">Use Advance (₹{partyOutstanding})</span>
-                </label>
-                <span className="hidden print:block text-xs font-semibold">Less Advance</span>
+                <div className="flex items-center gap-2 no-print text-xs">
+                  <span className="font-bold text-foreground">Amount to receive (₹{partyOutstanding}) | Less: Advance / Paid Amount</span>
+                  <input 
+                    type="number" 
+                    value={advanceAmount} 
+                    onChange={e => setAdvanceAmount(e.target.value)} 
+                    className="w-24 px-2 py-0.5 border border-border rounded text-center outline-none bg-background text-foreground font-bold" 
+                    placeholder="0.00"
+                  />
+                </div>
+                <span className="hidden print:block text-xs font-semibold">Less: Advance / Paid</span>
               </div>
               <div className="w-[15%] text-right pr-2 py-1 text-red-600 dark:text-red-400">
                 - {deductedAmount.toFixed(2)}
               </div>
             </div>
           )}
-          {(useOutstanding && partyOutstanding > 0) && (
-            <div className="flex border-t-2 border-black text-sm font-bold text-lg bg-green-50 dark:bg-green-900/20 print:bg-transparent text-foreground">
-              <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
-                NET PAYABLE
-              </div>
-              <div className="w-[15%] text-right pr-2 py-1">
-                {netPayable.toFixed(2)}
-              </div>
+
+          <div className="flex border-t-2 border-black text-sm font-bold text-lg">
+            <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
+              GRAND TOTAL
             </div>
-          )}
+            <div className="w-[15%] text-right pr-2 py-1">
+              {netPayable.toFixed(2)}
+            </div>
+          </div>
         </div>
 
         {/* Amount in words */}
         <div className="border-b-2 border-black p-2 text-sm flex gap-4 items-center">
           <span className="text-[13px]">Amount Chargeable (in words)</span>
-          <span className="font-bold text-[13px]">{numberToWords(netPayable > 0 ? netPayable : grandTotal)} only.</span>
+          <span className="font-bold text-[13px]">{numberToWords(netPayable)} only.</span>
         </div>
 
         {/* Footer info */}

@@ -22,7 +22,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
   const [showPaidStamp, setShowPaidStamp] = useState(true);
   const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
   const [defaultDiscount, setDefaultDiscount] = useState<number>(0);
-  const [useOutstanding, setUseOutstanding] = useState(false);
+  const [advanceAmount, setAdvanceAmount] = useState<string>('');
   const partyDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -80,7 +80,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
   const grandTotal = Math.round(subtotalBeforeRound);
 
   const partyOutstanding = parties.find(p => p.id === partyId)?.outstandingBalance || 0;
-  const deductedAmount = (useOutstanding && partyOutstanding > 0) ? Math.min(partyOutstanding, grandTotal) : 0;
+  const deductedAmount = Number(advanceAmount) || 0;
   const netPayable = grandTotal - deductedAmount;
 
   const validate = () => {
@@ -381,27 +381,27 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
               <span>Round Off</span>
               <span>{roundOff.toFixed(2)}</span>
             </div>
+            {partyOutstanding > 0 && (
+              <div className="flex items-center justify-between border-b border-black p-2 bg-muted/50 print:bg-transparent gap-2">
+                <div className="flex items-center gap-2 no-print text-[10px] flex-1">
+                  <span className="font-bold text-foreground leading-tight flex-1">Amount to receive (₹{partyOutstanding}) | Less: Advance</span>
+                  <input 
+                    type="number" 
+                    value={advanceAmount} 
+                    onChange={e => setAdvanceAmount(e.target.value)} 
+                    className="w-16 px-1 py-0.5 border border-border rounded text-center outline-none bg-background text-foreground font-bold shrink-0 text-xs" 
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="hidden print:block text-xs font-semibold">Less: Advance / Paid</div>
+                <span className="text-xs font-bold text-red-600 dark:text-red-400 shrink-0 w-16 text-right">- {deductedAmount.toFixed(2)}</span>
+              </div>
+            )}
+
             <div className="flex justify-between border-b border-black p-2 font-bold text-lg">
               <span>GRAND TOTAL</span>
-              <span>{grandTotal.toFixed(2)}</span>
+              <span>{netPayable.toFixed(2)}</span>
             </div>
-
-            {partyOutstanding > 0 && (
-              <div className="flex items-center justify-between border-b border-black p-2 bg-yellow-50/50 dark:bg-yellow-900/20 print:bg-transparent">
-                <label className="flex items-center gap-2 cursor-pointer no-print text-xs">
-                  <input type="checkbox" checked={useOutstanding} onChange={e => setUseOutstanding(e.target.checked)} className="w-3 h-3 accent-primary" />
-                  <span className="font-semibold text-amber-700 dark:text-amber-400">Use Advance (₹{partyOutstanding})</span>
-                </label>
-                <div className="hidden print:block text-xs font-semibold">Less Advance</div>
-                <span className="text-xs font-bold text-red-600 dark:text-red-400">- {deductedAmount.toFixed(2)}</span>
-              </div>
-            )}
-            {(useOutstanding && partyOutstanding > 0) && (
-              <div className="flex justify-between border-b border-black p-2 font-bold text-lg bg-green-50 dark:bg-green-900/20 print:bg-transparent text-foreground">
-                <span>NET PAYABLE</span>
-                <span>{netPayable.toFixed(2)}</span>
-              </div>
-            )}
 
             <div className="flex-1 p-2 flex flex-col items-end justify-between min-h-[80px]">
               <div className="text-xs font-bold text-right w-full">{settings.companyName}</div>

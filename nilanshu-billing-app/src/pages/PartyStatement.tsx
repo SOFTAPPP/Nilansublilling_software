@@ -28,6 +28,47 @@ export default function PartyStatement() {
   });
   const [toDate, setToDate] = useState(() => getLocalDateString());
 
+  const [itemSummary, setItemSummary] = useState<{productName: string, total: number}[]>([]);
+
+  useEffect(() => {
+    if (!selectedPartyId) {
+      setItemSummary([]);
+      return;
+    }
+    
+    const fetchSummary = async () => {
+      try {
+        const db = await getDb();
+        const relevantBills = bills.filter(b => b.partyId === selectedPartyId && b.type === 'credit');
+        
+        if (relevantBills.length === 0) {
+          setItemSummary([]);
+          return;
+        }
+        
+        // SQLite has a limit on the number of variables (usually 999 or 32766). 
+        // We will batch if necessary, or just use string interpolation for UUIDs since they are safe.
+        // To be absolutely safe and standard, we use parameterized queries.
+        const placeholders = relevantBills.map((_, i) => `$${i + 1}`).join(',');
+        const query = `
+          SELECT "productName", SUM(quantity) as total 
+          FROM "BillLineItem" 
+          WHERE "billId" IN (${placeholders}) 
+          GROUP BY "productName"
+          ORDER BY "productName" ASC
+        `;
+        
+        const ids = relevantBills.map(b => b.id);
+        const results = await db.select(query, ids);
+        setItemSummary(results as any[]);
+        
+      } catch (err) {
+        console.error('Failed to fetch item summary', err);
+      }
+    };
+    fetchSummary();
+  }, [selectedPartyId, bills]);
+
   useEffect(() => {
     fetchParties();
     fetchBills();
@@ -231,8 +272,8 @@ export default function PartyStatement() {
           <div className="flex justify-between border-b-2 border-black pb-4 mb-4 bg-gray-50/50 print:bg-transparent p-3 rounded-lg print:p-0 print:rounded-none">
             <div>
               <p className="font-black mb-1 uppercase text-blue-900 tracking-wider text-xs">Period Summary</p>
-              <p>Total Sales (Debit): <span className="font-bold">₹ {filteredHistory.reduce((sum, h) => sum + (h.debit || 0), 0).toFixed(2)}</span></p>
-              <p>Total Receipts (Credit): <span className="font-bold">₹ {filteredHistory.reduce((sum, h) => sum + (h.credit || 0), 0).toFixed(2)}</span></p>
+              <p>Total Credit Purchase: <span className="font-bold">₹ {filteredHistory.reduce((sum, h) => sum + (h.debit || 0), 0).toFixed(2)}</span></p>
+              <p>Total Cash Purchase: <span className="font-bold">₹ {filteredHistory.reduce((sum, h) => sum + (h.credit || 0), 0).toFixed(2)}</span></p>
             </div>
             <div className="text-right">
               <p className="font-black mb-1 uppercase text-blue-900 tracking-wider text-xs">Balance Summary</p>
@@ -249,9 +290,9 @@ export default function PartyStatement() {
               <th className="py-2 px-1 font-bold w-24">Date</th>
               <th className="py-2 px-1 font-bold w-16 text-center">V No.</th>
               <th className="py-2 px-1 font-bold">Particulars</th>
-              <th className="py-2 px-1 font-bold text-right w-28">Debit</th>
-              <th className="py-2 px-1 font-bold text-right w-28">Credit</th>
-              <th className="py-2 px-1 font-bold text-right w-36">Balance</th>
+              <th className="py-2 px-1 font-bold text-right w-28">Credit Purchase</th>
+              <th className="py-2 px-1 font-bold text-right w-28">Cash Purchase</th>
+              <th className="py-2 px-1 font-bold text-right w-36">Outstanding Balance</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-300 print:divide-black">
@@ -287,6 +328,29 @@ export default function PartyStatement() {
             </tfoot>
           )}
         </table>
+
+        {/* Item Summary */}
+        {selectedPartyId && itemSummary.length > 0 && (
+          <div className="mt-8 border-2 border-black print:border-t-2 print:border-black print:mt-6 print:pt-0">
+            <h3 className="font-black text-center border-b-2 border-black bg-gray-50 print:bg-transparent py-2 uppercase text-blue-900 tracking-wider">Book Purchase Summary (All Time)</h3>
+            <table className="w-full text-left whitespace-pre border-collapse">
+              <thead>
+                <tr className="border-b-2 border-black bg-gray-50 print:bg-transparent">
+                  <th className="py-2 px-3 font-bold">Book Name</th>
+                  <th className="py-2 px-3 font-bold text-right w-32">Total Quantity</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-300 print:divide-black">
+                {itemSummary.map((item, idx) => (
+                  <tr key={idx}>
+                    <td className="py-1 px-3">{item.productName}</td>
+                    <td className="py-1 px-3 text-right font-semibold">{item.total}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
       </div>
     </div>

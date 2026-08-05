@@ -258,7 +258,7 @@ export default function StockManagement() {
                 <td className="p-4 text-muted-foreground font-medium whitespace-nowrap">{product.id}</td>
                 <td className="p-4 font-medium">{product.name}</td>
                 <td className="p-4">
-                  <span className="bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-xs font-medium">
+                  <span className="bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap inline-block">
                     {product.category}
                   </span>
                 </td>
