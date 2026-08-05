@@ -25,6 +25,14 @@
       "csp": null
     }
   },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://raw.githubusercontent.com/SOFTAPPP/Nilansublilling_software/main/latest.json"
+      ],
+      "pubkey": "UPDATE_PUBKEY_PLACEHOLDER"
+    }
+  },
   "bundle": {
     "active": true,
     "targets": [

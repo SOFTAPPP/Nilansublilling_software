@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { check } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
 import { Layout } from './components/ui/Layout';
 import { useStore } from './store/useStore';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -59,6 +61,47 @@ function App() {
       }
     };
     window.addEventListener('keydown', handleKeyDown);
+
+    // Auto Updater Logic
+    const checkForUpdates = async () => {
+      try {
+        const update = await check();
+        if (update) {
+          useStore.getState().showDialog({
+            title: 'Update Available!',
+            message: `Version ${update.version} is available. Do you want to download and install it now?`,
+            type: 'confirm',
+            onConfirm: async () => {
+              useStore.getState().showDialog({
+                title: 'Downloading Update...',
+                message: 'Please wait while the update is downloading. The software will automatically restart when finished.',
+                type: 'alert'
+              });
+              let downloaded = 0;
+              let contentLength = 0;
+              await update.downloadAndInstall((event) => {
+                switch (event.event) {
+                  case 'Started':
+                    contentLength = event.data.contentLength || 0;
+                    break;
+                  case 'Progress':
+                    downloaded += event.data.chunkLength;
+                    break;
+                  case 'Finished':
+                    break;
+                }
+              });
+              await relaunch();
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Failed to check for updates:", err);
+      }
+    };
+    // Delay check slightly so app loads first
+    setTimeout(checkForUpdates, 3000);
+
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [fetchProducts, fetchParties, fetchSettings, fetchBills, fetchTransporters, token]);
 
