@@ -256,6 +256,7 @@ export const BillEngine: React.FC<BillEngineProps> = ({
       .filter(p => p.category !== 'Miscellaneous') // Hide Miscellaneous one-off items from suggestions
       .filter(p => !items.some((it, idx) => idx !== index && it.productId === p.id))
       .filter(p => !query || 
+        p.id.toLowerCase().includes(query) ||
         p.name.toLowerCase().includes(query) || 
         p.category.toLowerCase().includes(query) ||
         (p.barcode && p.barcode.toLowerCase().includes(query))
@@ -275,7 +276,7 @@ export const BillEngine: React.FC<BillEngineProps> = ({
               setActiveRow(null);
             }}
           >
-            <span className="flex-1 truncate">{p.name}</span>
+            <span className="flex-1 truncate"><span className="text-muted-foreground font-mono text-xs mr-2">{p.id}</span>{p.name}</span>
             <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
               {p.barcode ? `🏷${p.barcode} | ` : ''}{p.category} | Stock: {p.stock} | ₹{p.price}
             </span>

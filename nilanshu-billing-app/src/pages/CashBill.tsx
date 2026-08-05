@@ -226,7 +226,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         <div className="h-1 bg-black w-full my-4"></div>
 
         {/* Bill Meta */}
-        <div className="flex justify-between items-end mb-4 bg-muted/20 print:bg-transparent rounded-xl p-4 print:p-0 border border-border print:border-none">
+        <div className="flex justify-between items-start mb-4 bg-muted/20 print:bg-transparent rounded-xl p-4 print:p-0 border border-border print:border-none">
           <div className="flex flex-col gap-1 relative w-[380px]" ref={partyDropdownRef}>
             <div className="flex items-baseline gap-2">
               <span className="text-sm">Buyer:-</span>
@@ -238,6 +238,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
                 className="outline-none w-full bg-transparent font-bold text-sm text-foreground"
                 placeholder="Search & Enter Buyer Name or Phone..."
               />
+
             </div>
 
             {partyId && (
@@ -286,27 +287,27 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
                 </div>
               )}
           </div>
-
           <div className="flex flex-col items-end gap-3 print:flex-row-reverse print:items-center print:justify-end print:gap-4 print:mt-auto print:h-full">
-            <div className="relative">
-              <span className="hidden print:block absolute -top-5 left-0 text-[12px] italic text-gray-500">Original for Recipient</span>
-              <div className="bg-primary/10 text-primary print:bg-transparent print:text-black font-extrabold px-5 py-1.5 print:py-2 rounded-lg print:rounded-none text-lg tracking-widest border border-primary/20 print:border-black uppercase shadow-sm print:shadow-none print:flex print:items-center print:h-[42px]">
-                CASH MEMO
-              </div>
-            </div>
-            <div className="flex items-center gap-4 bg-background print:bg-transparent border border-border print:border-none rounded-lg px-4 py-2 shadow-sm print:shadow-none print:h-[42px]">
-              <div className="flex flex-col">
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col bg-background print:bg-transparent border border-border print:border-none rounded-lg px-4 py-2 shadow-sm print:shadow-none print:h-[42px] min-w-[120px]">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Memo No.</span>
                 <div className="flex items-center">
                   <span className="font-bold text-xs text-foreground">CSH-</span>
                   <input value={memoNo.replace(/^CSH-/, '')} onChange={e => handleMemoNoChange(e.target.value)} className="outline-none w-16 bg-transparent font-bold text-xs text-foreground placeholder:text-muted-foreground" placeholder="178" />
                 </div>
               </div>
-              <div className="w-[1px] h-8 bg-border print:hidden"></div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Date</span>
-                <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="outline-none bg-transparent font-bold text-xs text-foreground cursor-pointer" />
+              
+              <div className="relative">
+                <span className="hidden print:block absolute -top-5 left-0 text-[12px] italic text-gray-500">Original for Recipient</span>
+                <div className="bg-primary/10 text-primary print:bg-transparent print:text-black font-extrabold px-5 py-1.5 print:py-2 print:px-4 rounded-lg print:rounded-none text-lg tracking-widest border border-primary/20 print:border-black uppercase shadow-sm print:shadow-none print:flex print:items-center print:whitespace-nowrap h-full">
+                  CASH MEMO
+                </div>
               </div>
+            </div>
+
+            <div className="flex flex-col bg-background print:bg-transparent border border-border print:border-none rounded-lg px-4 py-2 shadow-sm print:shadow-none print:h-[42px] min-w-[120px]">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Date</span>
+              <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="outline-none bg-transparent font-bold text-xs text-foreground cursor-pointer" />
             </div>
           </div>
         </div>
