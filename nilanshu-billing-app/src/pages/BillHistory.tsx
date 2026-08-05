@@ -299,10 +299,11 @@ export default function BillHistory() {
 
       {/* Bill Detail View (Reuses Original Bill Layouts) */}
       {selectedBill && (
-        <div className="fixed print:relative print:h-auto print:overflow-visible inset-0 bg-white z-50 overflow-y-auto w-full h-full">
+        <div className="fixed print:relative print:h-auto print:overflow-visible inset-0 pt-10 bg-white z-50 overflow-y-auto w-full h-full">
           <button 
             onClick={() => setSelectedBill(null)} 
-            className="fixed top-4 right-4 z-[60] bg-red-600 text-white p-2 rounded-full shadow-lg hover:bg-red-700 no-print"
+            className="fixed top-14 right-6 z-[60] bg-red-600 text-white p-2 rounded-full shadow-lg hover:bg-red-700 no-print transition-transform hover:scale-110"
+            title="Close Preview"
           >
             <X size={24} />
           </button>
