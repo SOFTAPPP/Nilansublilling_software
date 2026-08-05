@@ -54,6 +54,11 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
           discountPercent: li.discountPercent || 0,
         })));
       }
+      if (viewBill.deductedAmount && viewBill.deductedAmount < 0) {
+        setAdvanceAmount(Math.abs(viewBill.deductedAmount).toString());
+      } else {
+        setAdvanceAmount('');
+      }
     }
   }, [viewBill, parties]);
 
@@ -80,8 +85,8 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
   const grandTotal = Math.round(subtotalBeforeRound);
 
   const partyOutstanding = parties.find(p => p.id === partyId)?.outstandingBalance || 0;
-  const deductedAmount = Number(advanceAmount) || 0;
-  const netPayable = grandTotal - deductedAmount;
+  const addedAmount = Number(advanceAmount) || 0;
+  const netPayable = grandTotal + addedAmount;
 
   const validate = () => {
     const bankName = settings.bankName || '';
@@ -147,9 +152,10 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         partyId: partyId,
         date: billDate,
         subtotal: mrpTotal,
-        discount: discountTotal,
+        cgst: 0,
+        sgst: 0,
         total: grandTotal,
-        deductedAmount: deductedAmount,
+        deductedAmount: -addedAmount,
         lineItems: items.map(i => ({
           productId: i.productId,
           productName: i.productName,
@@ -384,17 +390,28 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
             {partyOutstanding > 0 && (
               <div className="flex items-center justify-between border-b border-black p-2 bg-muted/50 print:bg-transparent gap-2">
                 <div className="flex items-center gap-2 no-print text-[10px] flex-1">
-                  <span className="font-bold text-foreground leading-tight flex-1">Amount to receive (₹{partyOutstanding}) | Less: Advance</span>
+                  <span className="font-bold text-foreground leading-tight flex-1">Amount to receive (₹{partyOutstanding}) | Add: Previous Due</span>
                   <input 
                     type="number" 
                     value={advanceAmount} 
-                    onChange={e => setAdvanceAmount(e.target.value)} 
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (Number(val) > partyOutstanding) {
+                        setAdvanceAmount(partyOutstanding.toString());
+                      } else if (Number(val) < 0) {
+                        setAdvanceAmount('0');
+                      } else {
+                        setAdvanceAmount(val);
+                      }
+                    }}
+                    max={partyOutstanding}
+                    min="0"
                     className="w-16 px-1 py-0.5 border border-border rounded text-center outline-none bg-background text-foreground font-bold shrink-0 text-xs" 
                     placeholder="0.00"
                   />
                 </div>
-                <div className="hidden print:block text-xs font-semibold">Less: Advance / Paid</div>
-                <span className="text-xs font-bold text-red-600 dark:text-red-400 shrink-0 w-16 text-right">- {deductedAmount.toFixed(2)}</span>
+                <div className="hidden print:block text-xs font-semibold">Add: Previous Due</div>
+                <span className="text-xs font-bold text-green-600 dark:text-green-400 shrink-0 w-16 text-right">+ {addedAmount.toFixed(2)}</span>
               </div>
             )}
 

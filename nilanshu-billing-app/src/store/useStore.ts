@@ -535,9 +535,10 @@ export const useStore = create<AppState>((set) => ({
       const updatedParties = billData.partyId ? state.parties.map(p => {
         if (p.id === billData.partyId) {
           const deducted = billData.deductedAmount || 0;
+          const actualDeducted = deducted > 0 ? deducted : 0;
           const effectiveTotal = billData.total || 0;
           let balanceChange = 0;
-          if (type === 'credit') balanceChange = effectiveTotal - deducted;
+          if (type === 'credit') balanceChange = effectiveTotal - actualDeducted;
           else if (type === 'return' || type === 'receipt') balanceChange = -effectiveTotal;
           
           return { ...p, outstandingBalance: p.outstandingBalance + balanceChange };
@@ -592,7 +593,8 @@ export const useStore = create<AppState>((set) => ({
         if (billData.partyId) {
           if (type === 'credit') {
             const deducted = billData.deductedAmount || 0;
-            const change = (Number(billData.total) || 0) - deducted;
+            const actualDeducted = deducted > 0 ? deducted : 0;
+            const change = (Number(billData.total) || 0) - actualDeducted;
             await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [change, billData.partyId]);
           } else if (type === 'return' || type === 'receipt') {
             await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [Number(billData.total) || 0, billData.partyId]);
