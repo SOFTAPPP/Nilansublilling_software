@@ -41,13 +41,16 @@ function App() {
 
   useEffect(() => {
     const isToken = sessionStorage.getItem('token');
-    if (isToken) {
-      fetchProducts();
-      fetchParties();
-      fetchSettings();
-      fetchBills();
-      fetchTransporters();
-    }
+    const loadInitialData = async () => {
+      if (isToken) {
+        await fetchProducts();
+        await fetchParties();
+        await fetchSettings();
+        await fetchBills();
+        await fetchTransporters();
+      }
+    };
+    loadInitialData();
 
     const handleKeyDown = async (e: KeyboardEvent) => {
       if (e.key === 'F11') {

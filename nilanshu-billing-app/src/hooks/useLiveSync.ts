@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useStore } from '../store/useStore';
 
-const POLL_INTERVAL_MS = 5000; // 5 seconds
+const POLL_INTERVAL_MS = 15000; // 15 seconds
 
 /**
  * useLiveSync — Keeps the app data in sync with the database in real-time.
@@ -24,14 +24,12 @@ export const useLiveSync = () => {
     try {
       const { fetchProducts, fetchParties, fetchTransporters, fetchBills, fetchSettings } = useStore.getState();
       
-      // Run all fetches in parallel for speed
-      await Promise.allSettled([
-        fetchProducts(),
-        fetchParties(),
-        fetchTransporters(),
-        fetchBills(),
-        fetchSettings(),
-      ]);
+      // Run fetches sequentially to prevent exhausting the remote database connection pool
+      await fetchProducts();
+      await fetchParties();
+      await fetchTransporters();
+      await fetchBills();
+      await fetchSettings();
     } catch (err) {
       console.error('[LiveSync] Sync failed:', err);
     } finally {

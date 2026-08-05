@@ -372,27 +372,27 @@ export default function PartyStatement() {
         )}
 
         {/* Table */}
-        <table className="w-full text-left whitespace-pre border-collapse">
+        <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-y-2 border-black bg-gray-50 print:bg-transparent">
-              <th className="py-2 px-1 font-bold w-24">Date</th>
-              <th className="py-2 px-1 font-bold w-16 text-center">V No.</th>
-              <th className="py-2 px-1 font-bold">Particulars</th>
-              <th className="py-2 px-1 font-bold text-right w-28">Credit Purchase</th>
-              <th className="py-2 px-1 font-bold text-right w-28">Debit Purchase</th>
-              <th className="py-2 px-1 font-bold text-right w-36">Outstanding Due</th>
+              <th className="py-2 px-2 font-bold w-24">Date</th>
+              <th className="py-2 px-2 font-bold w-24 text-center">V No.</th>
+              <th className="py-2 px-2 font-bold">Particulars</th>
+              <th className="py-2 px-2 font-bold text-right w-28">Credit Purchase</th>
+              <th className="py-2 px-2 font-bold text-right w-28">Debit Purchase</th>
+              <th className="py-2 px-2 font-bold text-right w-32">Outstanding Due</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-300 print:divide-black">
             {selectedPartyId ? (
               entries.map((entry, i) => (
                 <tr key={i}>
-                  <td className="py-1">{entry.date}</td>
-                  <td className="py-1 text-center">{entry.vNo || '-'}</td>
-                  <td className="py-1">{entry.particulars}</td>
-                  <td className="py-1 text-right">{entry.debit ? entry.debit.toFixed(2) : ''}</td>
-                  <td className="py-1 text-right">{entry.credit ? entry.credit.toFixed(2) : ''}</td>
-                  <td className="py-1 text-right">{entry.balance !== undefined ? entry.balance.toFixed(2) : '0.00'}</td>
+                  <td className="py-1 px-2">{entry.date}</td>
+                  <td className="py-1 px-2 text-center">{entry.vNo || '-'}</td>
+                  <td className="py-1 px-2 break-words whitespace-normal">{entry.particulars}</td>
+                  <td className="py-1 px-2 text-right">{entry.debit ? entry.debit.toFixed(2) : ''}</td>
+                  <td className="py-1 px-2 text-right">{entry.credit ? entry.credit.toFixed(2) : ''}</td>
+                  <td className="py-1 px-2 text-right">{entry.balance !== undefined ? entry.balance.toFixed(2) : '0.00'}</td>
                 </tr>
               ))
             ) : (
@@ -406,12 +406,12 @@ export default function PartyStatement() {
           {selectedPartyId && (
             <tfoot>
               <tr className="border-y-2 border-black font-bold bg-gray-50 print:bg-transparent">
-                <td className="py-2 px-1">Total</td>
+                <td className="py-2 px-2">Total</td>
                 <td></td>
                 <td></td>
-                <td className="py-2 px-1 text-right">{totalDebit.toFixed(2)}</td>
-                <td className="py-2 px-1 text-right">{totalCredit.toFixed(2)}</td>
-                <td className="py-2 px-1 text-right">{finalBalance.toFixed(2)}</td>
+                <td className="py-2 px-2 text-right">{totalDebit.toFixed(2)}</td>
+                <td className="py-2 px-2 text-right">{totalCredit.toFixed(2)}</td>
+                <td className="py-2 px-2 text-right">{finalBalance.toFixed(2)}</td>
               </tr>
             </tfoot>
           )}
