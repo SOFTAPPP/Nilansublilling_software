@@ -40,11 +40,16 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true);
 
+  const formStateStr = JSON.stringify({ items, partyId, buyerName, buyerAddress, buyerPhone, billDate, invoiceNo, invoiceMeta, partyDiscount, advanceAmount, settings });
+  const lastSavedStateRef = useRef(formStateStr);
+
   useEffect(() => {
     if (!viewBill) {
-      setHasUnsavedChanges(true);
+      if (lastSavedStateRef.current !== formStateStr) {
+        setHasUnsavedChanges(true);
+      }
     }
-  }, [items, partyId, buyerName, buyerAddress, buyerPhone, billDate, invoiceNo, invoiceMeta, partyDiscount, advanceAmount, settings]);
+  }, [formStateStr, viewBill]);
 
   useEffect(() => {
     if (viewBill) {
@@ -286,6 +291,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
         showDialog({ title: 'Success', message: `${type === 'return' ? 'Return' : 'Credit'} Bill saved successfully!`, type: 'alert' });
       }
       setHasUnsavedChanges(false);
+      lastSavedStateRef.current = formStateStr;
 
       if (buyerPhone) {
         await handleSendSMS();
@@ -343,6 +349,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                   setConsigneeAddress('');
                   setPartyDiscount(0);
                   getNextBillNumber('INV-').then(setInvoiceNo);
+                  setHasUnsavedChanges(true);
                 }}
                 className="whitespace-nowrap bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 font-medium shadow-sm transition-colors text-sm"
               >

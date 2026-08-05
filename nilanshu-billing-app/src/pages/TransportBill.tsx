@@ -3,7 +3,7 @@ import { useStore } from '../store/useStore';
 import { getNextBillNumber } from '../utils/billNumber';
 
 export default function TransportBill({ viewBill }: { viewBill?: any }) {
-  const { parties, transporters, createBill, showDialog } = useStore();
+  const { parties, transporters, createBill, updateBill, showDialog } = useStore();
   
   const [billNo, setBillNo] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -37,6 +37,19 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
   const [transporterSearch, setTransporterSearch] = useState('');
   const [transporterDropdownOpen, setTransporterDropdownOpen] = useState(false);
   const transporterDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true);
+
+  const formStateStr = JSON.stringify({ billNo, date, buyerName, buyerProprietor, buyerAddress, buyerDistrict, buyerPin, buyerState, buyerMob, transporterName, transporterAddress, transporterPhone, totalPacket, value, material });
+  const lastSavedStateRef = useRef(formStateStr);
+
+  useEffect(() => {
+    if (!viewBill) {
+      if (lastSavedStateRef.current !== formStateStr) {
+        setHasUnsavedChanges(true);
+      }
+    }
+  }, [formStateStr, viewBill]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -114,10 +127,12 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
     }
   };
 
+  const [createdBillId, setCreatedBillId] = useState<string | null>(null);
+
   const handleSave = async () => {
     try {
-      await createBill({
-        type: 'transport',
+      const payload = {
+        type: 'transport' as const,
         billNumber: billNo,
         partyId: partyId,
         transporterId: transporterId,
@@ -132,14 +147,18 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
           transporterName, transporterAddress, transporterPhone
         }),
         lineItems: []
-      });
-      showDialog({ title: 'Success', message: 'Transport Bill saved successfully!', type: 'alert' });
-      // Reset
-      getNextBillNumber('TRN-').then(setBillNo);
-      setBuyerName(''); setBuyerProprietor(''); setBuyerAddress(''); setBuyerDistrict(''); setBuyerPin(''); setBuyerState(''); setBuyerMob('');
-      setTransporterName(''); setTransporterAddress(''); setTransporterPhone('');
-      setTotalPacket(''); setValue(''); setMaterial('');
-      setPartyId(null); setTransporterId(null);
+      };
+
+      if (createdBillId) {
+        await updateBill(createdBillId, 'transport', payload);
+        showDialog({ title: 'Success', message: 'Transport Bill updated successfully!', type: 'alert' });
+      } else {
+        const id = await createBill(payload);
+        setCreatedBillId(id);
+        showDialog({ title: 'Success', message: 'Transport Bill saved successfully!', type: 'alert' });
+      }
+      setHasUnsavedChanges(false);
+      lastSavedStateRef.current = formStateStr;
     } catch (err: any) {
       showDialog({ title: 'Save Failed', message: err.message || 'Failed to save bill.', type: 'alert' });
     }
@@ -155,16 +174,34 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         <h2 className="text-2xl font-bold">Transport / Dispatch Bill</h2>
         <div className="flex flex-wrap gap-2 md:gap-3 justify-end flex-1">
           {!viewBill && (
-            <button 
-              onClick={handleSave} 
-              className="whitespace-nowrap bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium shadow-sm transition-colors text-sm"
-            >
-              Save
-            </button>
+            <>
+              <button 
+                onClick={() => {
+                  setCreatedBillId(null);
+                  getNextBillNumber('TRN-').then(setBillNo);
+                  setBuyerName(''); setBuyerProprietor(''); setBuyerAddress(''); setBuyerDistrict(''); setBuyerPin(''); setBuyerState(''); setBuyerMob('');
+                  setTransporterName(''); setTransporterAddress(''); setTransporterPhone('');
+                  setTotalPacket(''); setValue(''); setMaterial('');
+                  setPartyId(null); setTransporterId(null);
+                  setHasUnsavedChanges(true);
+                }}
+                className="whitespace-nowrap bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 font-medium shadow-sm transition-colors text-sm"
+              >
+                New Bill
+              </button>
+              <button 
+                onClick={handleSave} 
+                disabled={!hasUnsavedChanges}
+                className={`whitespace-nowrap ${createdBillId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {createdBillId ? 'Update' : 'Save'}
+              </button>
+            </>
           )}
           <button 
             onClick={handlePrint}
-            className="whitespace-nowrap bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors text-sm"
+            disabled={!viewBill && (hasUnsavedChanges || !createdBillId)}
+            className="whitespace-nowrap bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Print
           </button>

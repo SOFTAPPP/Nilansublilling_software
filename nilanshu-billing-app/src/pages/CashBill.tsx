@@ -36,12 +36,17 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
   }, []);
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true);
+  
+  const formStateStr = JSON.stringify({ items, partyId, partyName, billDate, memoNo, defaultDiscount, advanceAmount, settings });
+  const lastSavedStateRef = useRef(formStateStr);
 
   useEffect(() => {
     if (!viewBill) {
-      setHasUnsavedChanges(true);
+      if (lastSavedStateRef.current !== formStateStr) {
+        setHasUnsavedChanges(true);
+      }
     }
-  }, [items, partyId, partyName, billDate, memoNo, defaultDiscount, advanceAmount, settings]);
+  }, [formStateStr, viewBill]);
 
   useEffect(() => {
     if (viewBill) {
@@ -216,6 +221,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         showDialog({ title: 'Success', message: 'Bill saved successfully!', type: 'alert' });
       }
       setHasUnsavedChanges(false);
+      lastSavedStateRef.current = formStateStr;
     } catch (err: any) {
       const msg = typeof err === 'string' ? err : err.message;
       showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
@@ -247,6 +253,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
                   setPartyName('');
                   setAdvanceAmount('');
                   getNextBillNumber('CSH-').then(setMemoNo);
+                  setHasUnsavedChanges(true);
                 }}
                 className="whitespace-nowrap bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 font-medium shadow-sm transition-colors text-sm"
               >

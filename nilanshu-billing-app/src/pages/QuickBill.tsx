@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BillEngine } from '../components/BillEngine/BillEngine';
 import { BillLineItem, useStore } from '../store/useStore';
 import { numberToWords } from '../utils/numberToWords';
@@ -18,6 +18,19 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
   }, [viewBill]);
   const [billDate, setBillDate] = useState(() => getLocalDateString());
   const [showPaidStamp, setShowPaidStamp] = useState(true);
+
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true);
+
+  const formStateStr = JSON.stringify({ items, billDate, billNo, settings });
+  const lastSavedStateRef = useRef(formStateStr);
+
+  useEffect(() => {
+    if (!viewBill) {
+      if (lastSavedStateRef.current !== formStateStr) {
+        setHasUnsavedChanges(true);
+      }
+    }
+  }, [formStateStr, viewBill]);
 
   useEffect(() => {
     if (viewBill) {
@@ -96,6 +109,8 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
         setCreatedBillId(id);
         showDialog({ title: 'Success', message: 'Quick Bill saved successfully!', type: 'alert' });
       }
+      setHasUnsavedChanges(false);
+      lastSavedStateRef.current = formStateStr;
     } catch (err: any) {
       const msg = typeof err === 'string' ? err : err.message;
       showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
@@ -128,6 +143,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
                   setItems([]);
                   setCreatedBillId(null);
                   getNextBillNumber('QB-').then(setBillNo);
+                  setHasUnsavedChanges(true);
                 }}
                 className="whitespace-nowrap bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 font-medium shadow-sm transition-colors text-sm"
               >
@@ -135,7 +151,8 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
               </button>
               <button 
                 onClick={handleSave} 
-                className={`whitespace-nowrap ${createdBillId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors text-sm`}
+                disabled={!hasUnsavedChanges}
+                className={`whitespace-nowrap ${createdBillId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {createdBillId ? 'Update' : 'Save'}
               </button>
@@ -143,7 +160,8 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
           )}
           <button 
             onClick={handlePrint}
-            className="whitespace-nowrap bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors text-sm"
+            disabled={!viewBill && (hasUnsavedChanges || !createdBillId)}
+            className="whitespace-nowrap bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Print Bill
           </button>
