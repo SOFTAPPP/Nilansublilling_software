@@ -368,7 +368,7 @@ export default function PartyStatement() {
       </div>
 
       {/* Ledger Canvas */}
-      <div className="w-[210mm] min-h-[297mm] bg-white p-10 relative mx-auto text-slate-800 font-sans shadow-xl rounded-2xl border border-slate-200 print:shadow-none print:border-none print:p-0 print:rounded-none">
+      <div className="w-[210mm] min-h-[297mm] bg-[#fdfbf7] p-10 pl-16 relative mx-auto text-slate-800 font-serif shadow-2xl border border-amber-200/60 print:shadow-none print:border-none print:p-0 print:rounded-none before:content-[''] before:absolute before:left-12 before:top-0 before:bottom-0 before:w-[2px] before:bg-red-400/50">
         
         {/* Header */}
         <div className="flex flex-col items-center border-b border-slate-200 pb-8 mb-8">
@@ -404,7 +404,7 @@ export default function PartyStatement() {
 
         {/* Period Summary */}
         {selectedPartyId && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 rounded-2xl p-6 mb-8 border border-slate-100 print:bg-transparent print:p-0 print:border-none print:border-y print:border-slate-300 print:py-4 print:rounded-none">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-amber-50/50 rounded-lg p-6 mb-8 border border-amber-100 print:bg-transparent print:p-0 print:border-none print:border-y print:border-slate-300 print:py-4 print:rounded-none">
             
             {/* Sales Summary */}
             <div>
@@ -458,28 +458,28 @@ export default function PartyStatement() {
         )}
 
         {/* Table */}
-        <table className="w-full text-left border-collapse text-[13px]">
+        <table className="w-full text-left border-collapse text-[13px] relative z-10">
           <thead>
-            <tr className="border-b-2 border-slate-200 text-slate-500">
-              <th className="py-3 px-2 font-bold uppercase tracking-wider w-20">Date</th>
-              <th className="py-3 px-1 font-bold uppercase tracking-wider w-12 text-center">Type</th>
-              <th className="py-3 px-2 font-bold uppercase tracking-wider w-16 text-center">Ref No.</th>
-              <th className="py-3 px-2 font-bold uppercase tracking-wider">Particulars</th>
-              <th className="py-3 px-2 font-bold uppercase tracking-wider text-right w-24">Invoice (₹)</th>
-              <th className="py-3 px-2 font-bold uppercase tracking-wider text-right w-24">Paid (₹)</th>
-              <th className="py-3 px-2 font-bold uppercase tracking-wider text-right w-24">Running Due (₹)</th>
+            <tr className="border-y-2 border-blue-300 text-blue-900 bg-blue-50/30">
+              <th className="py-2 px-2 font-bold uppercase tracking-wider w-20 border-r border-blue-200/50">Date</th>
+              <th className="py-2 px-1 font-bold uppercase tracking-wider w-12 text-center border-r border-blue-200/50">Type</th>
+              <th className="py-2 px-2 font-bold uppercase tracking-wider w-16 text-center border-r border-blue-200/50">Ref No.</th>
+              <th className="py-2 px-2 font-bold uppercase tracking-wider border-r border-blue-200/50">Particulars</th>
+              <th className="py-2 px-2 font-bold uppercase tracking-wider text-right w-24 border-r border-blue-200/50">Invoice (₹)</th>
+              <th className="py-2 px-2 font-bold uppercase tracking-wider text-right w-24 border-r border-blue-200/50">Paid (₹)</th>
+              <th className="py-2 px-2 font-bold uppercase tracking-wider text-right w-24">Running Due (₹)</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 print:divide-slate-300">
+          <tbody className="divide-y divide-blue-200/60 print:divide-slate-300">
             {selectedPartyId ? (
               groupedEntriesList.length > 0 ? (
                 groupedEntriesList.map((group, gIdx) => (
                   <React.Fragment key={gIdx}>
-                    <tr className="bg-slate-50/50 print:bg-transparent text-slate-500">
-                      <td colSpan={6} className="py-2 px-2 font-semibold text-xs uppercase tracking-wider">
+                    <tr className="bg-amber-100/30 print:bg-transparent text-slate-600">
+                      <td colSpan={6} className="py-1 px-2 font-bold text-xs uppercase tracking-wider border-r border-blue-200/50">
                         Opening Due ({group.date})
                       </td>
-                      <td className="py-2 px-2 text-right font-semibold text-slate-600">
+                      <td className="py-1 px-2 text-right font-semibold text-slate-600">
                         {group.openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
@@ -490,34 +490,34 @@ export default function PartyStatement() {
                         parts += ` - <span class="text-slate-400 font-medium">${lineItemCache[baseId]}</span>`;
                       }
                       return (
-                        <tr key={`${gIdx}-${i}`} className="hover:bg-slate-50/50 transition-colors group">
-                          <td className="py-3 px-2 whitespace-nowrap align-top">
-                            <span className="font-semibold text-slate-700">{entry.dateStr}</span><br/><span className="text-[11px] text-slate-400 font-medium">{entry.time}</span>
+                        <tr key={`${gIdx}-${i}`} className="hover:bg-amber-50 transition-colors group text-blue-900/90 font-medium">
+                          <td className="py-1 px-2 whitespace-nowrap align-top border-r border-blue-200/50">
+                            <span className="font-bold">{entry.dateStr}</span><br/><span className="text-[11px] text-blue-900/60 font-medium">{entry.time}</span>
                           </td>
-                          <td className="py-3 px-1 text-center align-top">
-                             <span className="bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider print:bg-transparent print:border print:border-slate-300">{entry.type}</span>
+                          <td className="py-1 px-1 text-center align-top border-r border-blue-200/50">
+                             <span className="bg-blue-100/50 text-blue-800 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider print:bg-transparent print:border print:border-slate-300">{entry.type}</span>
                           </td>
-                          <td className="py-3 px-2 text-center font-medium text-slate-500 align-top">{entry.vNo || '-'}</td>
-                          <td className="py-3 px-2 break-words whitespace-normal align-top leading-relaxed text-slate-700" dangerouslySetInnerHTML={{ __html: parts }}></td>
-                          <td className="py-3 px-2 text-right font-medium align-top">{entry.debit ? entry.debit.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}</td>
-                          <td className="py-3 px-2 text-right font-medium align-top">{entry.credit ? entry.credit.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}</td>
-                          <td className="py-3 px-2 text-right font-semibold text-slate-800 align-top">{entry.balance !== undefined ? entry.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}</td>
+                          <td className="py-1 px-2 text-center font-bold text-blue-900/70 align-top border-r border-blue-200/50">{entry.vNo || '-'}</td>
+                          <td className="py-1 px-2 break-words whitespace-normal align-top leading-relaxed border-r border-blue-200/50" dangerouslySetInnerHTML={{ __html: parts }}></td>
+                          <td className="py-1 px-2 text-right align-top border-r border-blue-200/50 text-red-700 font-semibold">{entry.debit ? entry.debit.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}</td>
+                          <td className="py-1 px-2 text-right align-top border-r border-blue-200/50 text-green-700 font-semibold">{entry.credit ? entry.credit.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}</td>
+                          <td className="py-1 px-2 text-right font-bold text-slate-900 align-top">{entry.balance !== undefined ? entry.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}</td>
                         </tr>
                       );
                     })}
-                    <tr className="bg-slate-50 print:bg-transparent font-semibold border-b-2 border-slate-200 print:border-slate-400">
-                      <td colSpan={4} className="py-3 px-2 text-right text-slate-500 text-xs uppercase tracking-wider">Daily Summary</td>
-                      <td className="py-3 px-2 text-right">
-                         <div className="text-[10px] text-slate-400 uppercase">Invoices Raised</div>
-                         <div className="text-slate-700">{group.totalDebit > 0 ? group.totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-'}</div>
+                    <tr className="bg-amber-100/50 print:bg-transparent font-bold border-b-2 border-blue-300 print:border-slate-400 text-blue-900">
+                      <td colSpan={4} className="py-1.5 px-2 text-right text-blue-900/60 text-xs uppercase tracking-wider border-r border-blue-200/50">Daily Summary</td>
+                      <td className="py-1.5 px-2 text-right border-r border-blue-200/50">
+                         <div className="text-[10px] text-red-700/70 uppercase">Invoices Raised</div>
+                         <div className="text-red-700">{group.totalDebit > 0 ? group.totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-'}</div>
                       </td>
-                      <td className="py-3 px-2 text-right">
-                         <div className="text-[10px] text-slate-400 uppercase">Payments Rcvd</div>
-                         <div className="text-slate-700">{group.totalCredit > 0 ? group.totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-'}</div>
+                      <td className="py-1.5 px-2 text-right border-r border-blue-200/50">
+                         <div className="text-[10px] text-green-700/70 uppercase">Payments Rcvd</div>
+                         <div className="text-green-700">{group.totalCredit > 0 ? group.totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-'}</div>
                       </td>
-                      <td className="py-3 px-2 text-right">
-                         <div className="text-[10px] text-blue-500 uppercase">Closing Due</div>
-                         <div className="text-blue-700">{group.closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                      <td className="py-1.5 px-2 text-right">
+                         <div className="text-[10px] text-slate-500 uppercase">Closing Due</div>
+                         <div className="text-slate-900">{group.closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
                       </td>
                     </tr>
                   </React.Fragment>
@@ -545,11 +545,11 @@ export default function PartyStatement() {
           </tbody>
           {selectedPartyId && (
             <tfoot>
-              <tr className="bg-slate-900 text-white print:bg-transparent print:text-black print:border-y-2 print:border-black">
-                <td colSpan={4} className="py-4 px-3 text-right uppercase tracking-widest text-xs font-bold opacity-90 print:opacity-100">Period Total</td>
-                <td className="py-4 px-2 text-right font-bold">{totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                <td className="py-4 px-2 text-right font-bold">{totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                <td className="py-4 px-3 text-right font-black text-sm">{finalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+              <tr className="bg-blue-900 text-amber-50 print:bg-transparent print:text-black print:border-y-2 print:border-black">
+                <td colSpan={4} className="py-2.5 px-3 text-right uppercase tracking-widest text-xs font-bold opacity-90 print:opacity-100 border-r border-blue-800/50">Period Total</td>
+                <td className="py-2.5 px-2 text-right font-bold border-r border-blue-800/50">{totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                <td className="py-2.5 px-2 text-right font-bold border-r border-blue-800/50">{totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                <td className="py-2.5 px-3 text-right font-black text-sm">{finalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
               </tr>
             </tfoot>
           )}
