@@ -1,0 +1,11 @@
+{
+  "version": "0.0.2",
+  "notes": "Added the ability to edit and update existing bills directly from the Bill History page!",
+  "pub_date": "2026-08-06T00:00:00Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTY2xQMmhpRXNkaVBpMzFTa3k3Z2w0dmNrTHM2RzBjZE5BK1lDMGtqMFFvcWhqeDlRM0xpS3dsRVF5S2wvU1k3T3M1YWgzQTJva2N3U3JEaytDNGg1SG8wMUo2YjJYYXdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1OTk4MTE5CWZpbGU6TlAtQmlsbGluZ18wLjAuMl94NjQtc2V0dXAuZXhlCmJkVkdzdHRUYzlzSEw4Qk9ITE9PMVIvMzFHcGd4TWRmNFY3UHMzMWV4cUFoblUvRjVkUWVpc2c5MlJtZEdYSjZZN2haT0xoLzlyMnUycjY2WCs1cERBPT0K",
+      "url": "https://github.com/SOFTAPPP/Nilansublilling_software/releases/download/v0.0.2/NP-Billing_0.0.2_x64-setup.exe"
+    }
+  }
+}
