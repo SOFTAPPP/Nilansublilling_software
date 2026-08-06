@@ -29,19 +29,21 @@ export default function GlobalDialog() {
               <h2 className="text-xl font-bold mb-2 text-foreground">{dialog.title}</h2>
               <p className="text-muted-foreground text-sm">{dialog.message}</p>
             </div>
-            <button onClick={handleCancel} className="text-muted-foreground hover:text-foreground transition-colors">
-              <X size={20} />
-            </button>
+            {!dialog.hideCancel && (
+              <button onClick={handleCancel} className="text-muted-foreground hover:text-foreground transition-colors">
+                <X size={20} />
+              </button>
+            )}
           </div>
         </div>
         
         <div className="bg-muted/50 p-4 px-6 flex justify-end gap-3 border-t border-border">
-          {dialog.type === 'confirm' && (
+          {dialog.type === 'confirm' && !dialog.hideCancel && (
             <button
               onClick={handleCancel}
               className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition-colors text-foreground"
             >
-              Cancel
+              {dialog.cancelText || 'Cancel'}
             </button>
           )}
           <button
@@ -49,7 +51,7 @@ export default function GlobalDialog() {
             onClick={handleConfirm}
             className={`px-4 py-2 rounded-lg text-sm font-medium text-white shadow-sm transition-colors ${dialog.type === 'confirm' ? 'bg-red-600 hover:bg-red-700' : 'bg-primary hover:bg-primary/90'}`}
           >
-            {dialog.type === 'confirm' ? 'Yes, I am sure' : 'Okay'}
+            {dialog.confirmText || (dialog.type === 'confirm' ? 'Yes, I am sure' : 'Okay')}
           </button>
         </div>
       </div>

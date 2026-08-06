@@ -70,6 +70,9 @@ export interface DialogOptions {
   title: string;
   message: string;
   type: 'alert' | 'confirm';
+  confirmText?: string;
+  cancelText?: string;
+  hideCancel?: boolean;
   onConfirm?: () => void;
   onCancel?: () => void;
 }

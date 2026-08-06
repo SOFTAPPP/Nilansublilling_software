@@ -67,14 +67,17 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
 
     // Auto Updater Logic
-    const checkForUpdates = async () => {
+    const runUpdateCheck = async (isStartup: boolean) => {
       try {
         const update = await check();
         if (update) {
           useStore.getState().showDialog({
-            title: 'Update Available!',
-            message: `Version ${update.version} is available. Do you want to download and install it now?`,
+            title: isStartup ? 'Mandatory Update Available!' : 'Update Available!',
+            message: `Version ${update.version} is available. ${isStartup ? 'You must install this update to continue using the software.' : 'Do you want to download and install it now?'}`,
             type: 'confirm',
+            hideCancel: isStartup,
+            confirmText: 'Update Now',
+            cancelText: 'Do it later',
             onConfirm: async () => {
               let downloaded = 0;
               let contentLength = 0;
@@ -82,7 +85,8 @@ function App() {
               useStore.getState().showDialog({
                 title: 'Downloading Update...',
                 message: 'Starting download... Please wait.',
-                type: 'alert'
+                type: 'alert',
+                hideCancel: true
               });
 
               await update.downloadAndInstall((event) => {
@@ -97,7 +101,8 @@ function App() {
                       useStore.getState().showDialog({
                         title: 'Downloading Update...',
                         message: `Downloading: ${percent}% (Please wait, the app will close and restart automatically when finished)`,
-                        type: 'alert'
+                        type: 'alert',
+                        hideCancel: true
                       });
                     }
                     break;
@@ -105,7 +110,8 @@ function App() {
                     useStore.getState().showDialog({
                       title: 'Installing Update...',
                       message: 'Download complete! Applying the update in the background. The app will restart momentarily...',
-                      type: 'alert'
+                      type: 'alert',
+                      hideCancel: true
                     });
                     break;
                 }
@@ -118,10 +124,17 @@ function App() {
         console.error("Failed to check for updates:", err);
       }
     };
-    // Delay check slightly so app loads first
-    setTimeout(checkForUpdates, 3000);
+    
+    // Delay initial startup check slightly so app loads first
+    setTimeout(() => runUpdateCheck(true), 3000);
 
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    // Periodic check every 15 minutes (900000 ms) while the app is running
+    const updateInterval = setInterval(() => runUpdateCheck(false), 900000);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      clearInterval(updateInterval);
+    };
   }, [fetchProducts, fetchParties, fetchSettings, fetchBills, fetchTransporters, token]);
 
   return (
