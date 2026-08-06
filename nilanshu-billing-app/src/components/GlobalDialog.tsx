@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from '../store/useStore';
-import { AlertTriangle, CheckCircle, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle, X, Loader2 } from 'lucide-react';
 
 export default function GlobalDialog() {
   const { dialog, closeDialog } = useStore();
@@ -22,14 +22,20 @@ export default function GlobalDialog() {
       <div className="bg-card w-full max-w-md mx-4 rounded-xl shadow-2xl overflow-hidden border border-border zoom-in-95 animate-in duration-200">
         <div className="p-6">
           <div className="flex gap-4 items-start">
-            <div className={`p-3 rounded-full ${dialog.type === 'confirm' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'}`}>
-              {dialog.type === 'confirm' ? <AlertTriangle size={24} /> : <CheckCircle size={24} />}
+            <div className={`p-3 rounded-full ${dialog.hideAllButtons ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : dialog.type === 'confirm' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+              {dialog.hideAllButtons ? (
+                <Loader2 size={24} className="animate-spin" />
+              ) : dialog.type === 'confirm' ? (
+                <AlertTriangle size={24} />
+              ) : (
+                <CheckCircle size={24} />
+              )}
             </div>
             <div className="flex-1 mt-1">
               <h2 className="text-xl font-bold mb-2 text-foreground">{dialog.title}</h2>
               <p className="text-muted-foreground text-sm">{dialog.message}</p>
             </div>
-            {!dialog.hideCancel && (
+            {!dialog.hideCancel && !dialog.hideAllButtons && (
               <button onClick={handleCancel} className="text-muted-foreground hover:text-foreground transition-colors">
                 <X size={20} />
               </button>
@@ -37,23 +43,25 @@ export default function GlobalDialog() {
           </div>
         </div>
         
-        <div className="bg-muted/50 p-4 px-6 flex justify-end gap-3 border-t border-border">
-          {dialog.type === 'confirm' && !dialog.hideCancel && (
+        {!dialog.hideAllButtons && (
+          <div className="bg-muted/50 p-4 px-6 flex justify-end gap-3 border-t border-border">
+            {dialog.type === 'confirm' && !dialog.hideCancel && (
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition-colors text-foreground"
+              >
+                {dialog.cancelText || 'Cancel'}
+              </button>
+            )}
             <button
-              onClick={handleCancel}
-              className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition-colors text-foreground"
+              autoFocus
+              onClick={handleConfirm}
+              className={`px-4 py-2 rounded-lg text-sm font-medium text-white shadow-sm transition-colors ${dialog.type === 'confirm' ? 'bg-red-600 hover:bg-red-700' : 'bg-primary hover:bg-primary/90'}`}
             >
-              {dialog.cancelText || 'Cancel'}
+              {dialog.confirmText || (dialog.type === 'confirm' ? 'Yes, I am sure' : 'Okay')}
             </button>
-          )}
-          <button
-            autoFocus
-            onClick={handleConfirm}
-            className={`px-4 py-2 rounded-lg text-sm font-medium text-white shadow-sm transition-colors ${dialog.type === 'confirm' ? 'bg-red-600 hover:bg-red-700' : 'bg-primary hover:bg-primary/90'}`}
-          >
-            {dialog.confirmText || (dialog.type === 'confirm' ? 'Yes, I am sure' : 'Okay')}
-          </button>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

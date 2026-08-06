@@ -73,6 +73,7 @@ export interface DialogOptions {
   confirmText?: string;
   cancelText?: string;
   hideCancel?: boolean;
+  hideAllButtons?: boolean;
   onConfirm?: () => void;
   onCancel?: () => void;
 }

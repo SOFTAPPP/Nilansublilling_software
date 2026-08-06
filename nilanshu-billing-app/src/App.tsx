@@ -67,7 +67,10 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
 
     // Auto Updater Logic
+    let isUpdateInProgress = false;
+
     const runUpdateCheck = async (isStartup: boolean) => {
+      if (isUpdateInProgress) return; // Prevent duplicate checks
       try {
         const update = await check();
         if (update) {
@@ -79,44 +82,64 @@ function App() {
             confirmText: 'Update Now',
             cancelText: 'Do it later',
             onConfirm: async () => {
+              isUpdateInProgress = true;
               let downloaded = 0;
               let contentLength = 0;
 
+              // Show progress dialog IMMEDIATELY with no buttons
               useStore.getState().showDialog({
                 title: 'Downloading Update...',
-                message: 'Starting download... Please wait.',
+                message: 'Connecting to server... Please wait.',
                 type: 'alert',
-                hideCancel: true
+                hideAllButtons: true
               });
 
-              await update.downloadAndInstall((event) => {
-                switch (event.event) {
-                  case 'Started':
-                    contentLength = event.data.contentLength || 0;
-                    break;
-                  case 'Progress':
-                    downloaded += event.data.chunkLength;
-                    if (contentLength > 0) {
-                      const percent = Math.round((downloaded / contentLength) * 100);
+              try {
+                await update.downloadAndInstall((event) => {
+                  switch (event.event) {
+                    case 'Started':
+                      contentLength = event.data.contentLength || 0;
                       useStore.getState().showDialog({
                         title: 'Downloading Update...',
-                        message: `Downloading: ${percent}% (Please wait, the app will close and restart automatically when finished)`,
+                        message: `Download started (0%)... Please do not close the app.`,
                         type: 'alert',
-                        hideCancel: true
+                        hideAllButtons: true
                       });
-                    }
-                    break;
-                  case 'Finished':
-                    useStore.getState().showDialog({
-                      title: 'Installing Update...',
-                      message: 'Download complete! Applying the update in the background. The app will restart momentarily...',
-                      type: 'alert',
-                      hideCancel: true
-                    });
-                    break;
-                }
-              });
-              // The NSIS installer on Windows will automatically close the app and restart it.
+                      break;
+                    case 'Progress':
+                      downloaded += event.data.chunkLength;
+                      if (contentLength > 0) {
+                        const percent = Math.round((downloaded / contentLength) * 100);
+                        useStore.getState().showDialog({
+                          title: 'Downloading Update...',
+                          message: `Downloading: ${percent}% — Please do not close the app.`,
+                          type: 'alert',
+                          hideAllButtons: true
+                        });
+                      }
+                      break;
+                    case 'Finished':
+                      useStore.getState().showDialog({
+                        title: 'Installing Update...',
+                        message: 'Download complete! Installing now... The app will restart automatically.',
+                        type: 'alert',
+                        hideAllButtons: true
+                      });
+                      break;
+                  }
+                });
+
+                // Force restart the app after install completes
+                await relaunch();
+              } catch (installErr) {
+                console.error("Update install failed:", installErr);
+                isUpdateInProgress = false;
+                useStore.getState().showDialog({
+                  title: 'Update Failed',
+                  message: 'The update could not be installed. Please check your internet connection and try again later.',
+                  type: 'alert'
+                });
+              }
             }
           });
         }
