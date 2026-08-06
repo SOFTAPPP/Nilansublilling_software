@@ -76,13 +76,15 @@ function App() {
             message: `Version ${update.version} is available. Do you want to download and install it now?`,
             type: 'confirm',
             onConfirm: async () => {
-              useStore.getState().showDialog({
-                title: 'Downloading Update...',
-                message: 'Please wait while the update is downloading. The software will automatically restart when finished.',
-                type: 'alert'
-              });
               let downloaded = 0;
               let contentLength = 0;
+
+              useStore.getState().showDialog({
+                title: 'Downloading Update...',
+                message: 'Starting download... Please wait.',
+                type: 'alert'
+              });
+
               await update.downloadAndInstall((event) => {
                 switch (event.event) {
                   case 'Started':
@@ -90,12 +92,25 @@ function App() {
                     break;
                   case 'Progress':
                     downloaded += event.data.chunkLength;
+                    if (contentLength > 0) {
+                      const percent = Math.round((downloaded / contentLength) * 100);
+                      useStore.getState().showDialog({
+                        title: 'Downloading Update...',
+                        message: `Downloading: ${percent}% (Please wait, the app will close and restart automatically when finished)`,
+                        type: 'alert'
+                      });
+                    }
                     break;
                   case 'Finished':
+                    useStore.getState().showDialog({
+                      title: 'Installing Update...',
+                      message: 'Download complete! Applying the update in the background. The app will restart momentarily...',
+                      type: 'alert'
+                    });
                     break;
                 }
               });
-              await relaunch();
+              // The NSIS installer on Windows will automatically close the app and restart it.
             }
           });
         }
