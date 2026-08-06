@@ -8,13 +8,15 @@ export default function GlobalDialog() {
   if (!dialog.isOpen) return null;
 
   const handleConfirm = () => {
-    if (dialog.onConfirm) dialog.onConfirm();
+    const onConfirmCb = dialog.onConfirm;
     closeDialog();
+    if (onConfirmCb) onConfirmCb();
   };
 
   const handleCancel = () => {
-    if (dialog.onCancel) dialog.onCancel();
+    const onCancelCb = dialog.onCancel;
     closeDialog();
+    if (onCancelCb) onCancelCb();
   };
 
   return (
