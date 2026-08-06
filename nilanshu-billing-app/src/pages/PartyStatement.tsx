@@ -490,7 +490,7 @@ export default function PartyStatement() {
                         parts += ` - <span class="text-slate-400 font-medium">${lineItemCache[baseId]}</span>`;
                       }
                       return (
-                        <tr key={`${gIdx}-${i}`} className="hover:bg-amber-50 transition-colors group text-blue-900/90 font-medium">
+                        <tr key={`${gIdx}-${i}`} className="hover:bg-amber-50 transition-colors group text-blue-900/90 font-medium leading-tight">
                           <td className="py-1 px-2 whitespace-nowrap align-top border-r border-blue-200/50">
                             <span className="font-bold">{entry.dateStr}</span><br/><span className="text-[11px] text-blue-900/60 font-medium">{entry.time}</span>
                           </td>
@@ -498,7 +498,7 @@ export default function PartyStatement() {
                              <span className="bg-blue-100/50 text-blue-800 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider print:bg-transparent print:border print:border-slate-300">{entry.type}</span>
                           </td>
                           <td className="py-1 px-2 text-center font-bold text-blue-900/70 align-top border-r border-blue-200/50">{entry.vNo || '-'}</td>
-                          <td className="py-1 px-2 break-words whitespace-normal align-top leading-relaxed border-r border-blue-200/50" dangerouslySetInnerHTML={{ __html: parts }}></td>
+                          <td className="py-1 px-2 break-words whitespace-normal align-top leading-tight border-r border-blue-200/50" dangerouslySetInnerHTML={{ __html: parts }}></td>
                           <td className="py-1 px-2 text-right align-top border-r border-blue-200/50 text-red-700 font-semibold">{entry.debit ? entry.debit.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}</td>
                           <td className="py-1 px-2 text-right align-top border-r border-blue-200/50 text-green-700 font-semibold">{entry.credit ? entry.credit.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}</td>
                           <td className="py-1 px-2 text-right font-bold text-slate-900 align-top">{entry.balance !== undefined ? entry.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}</td>
