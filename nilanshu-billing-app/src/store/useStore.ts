@@ -276,7 +276,7 @@ export const useStore = create<AppState>((set) => ({
     return useStore.getState().enqueueSync(async () => {
       try {
         const db = await getDb();
-        const bills = await db.select('SELECT id, type, "billNumber", "partyId", "transporterId", subtotal, discount, cgst, sgst, total, "paymentAmount", status, CAST(date AS TEXT) as date FROM "Bill" ORDER BY date DESC');
+        const bills = await db.select('SELECT id, type, "billNumber", "partyId", "transporterId", subtotal, discount, cgst, sgst, total, "paymentAmount", status, CAST(date AS TEXT) as date FROM "Bill" ORDER BY date DESC, "createdAt" DESC');
         const normalizedBills = (bills as any[]).map(b => {
           let dateStr = String(b.date);
           if (dateStr.includes(' ') && !dateStr.includes('T')) {
