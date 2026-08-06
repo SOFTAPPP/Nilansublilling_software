@@ -9,21 +9,27 @@ cd C:\Users\ARITRA\Desktop\Nilansublilling_software\nilanshu-billing-app
 
 **Step 2:** Tell PowerShell your secret key by typing:
 ```powershell
-$env:TAURI_PRIVATE_KEY="YOUR_PRIVATE_KEY_HERE"
+$env:TAURI_SIGNING_PRIVATE_KEY="YOUR_PRIVATE_KEY_HERE"
 ```
 *(replace `YOUR_PRIVATE_KEY_HERE` with the actual key you saved)* and press Enter.
 
-**Step 3:** Open `tauri.conf.json`, find `"version": "0.0.1"`, and change it to `"0.0.2"` (or whatever the next number is). Save the file.
+**Step 3:** Open `tauri.conf.json`, find `"version": "0.0.X"`, and change it to your new version number (e.g., `"0.0.3"`). Save the file.
 
-**Step 4:** Type the following command in PowerShell and press Enter:
+**Step 4:** Build the update by typing this in PowerShell and pressing Enter:
 ```powershell
 npm run tauri build
 ```
-It will take a few minutes to create the new `.msi` installer.
+It will take a few minutes to create the new `.exe` installer.
 
-**Step 5:** When it finishes, go to the folder `src-tauri/target/release/bundle/msi/`. You will see two files:
-- Your `.msi` installer file.
-- A `.sig` file. *(If you open the .sig file in Notepad, you will see a signature code. Keep this handy.)*
+**Step 5:** Because your secret key has a password, you must sign the file manually. After the build finishes, run this exact command, but MAKE SURE to change `0.0.2` to your actual new version number at the very end of the command:
+```powershell
+npx tauri signer sign -k "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5YzNVdVBMUGl1K0tNQWVnNk81ZXp0QVMyalNPT2lFSjNHNWhraWZDa1VLd0FBQkFBQUFBQUFBQUFBQUlBQUFBQVF3aHBLYytrM2hSblB3OVRCRUEvVDdIZkkwT3ptam1HWWRrOUtFNGhqNmhWSjNyRzN2RnRucDRWOWNtdG1wcnVncmdWc0hjMEM4OE1ua2ZiOXpoK0tpY1d4TXVZZ2I4MVV4dFp4NTVTNmtWOFhIWWkvU3JWcEc3aVFMY1l0c3hwZVRla1Exb1BYQ3c9Cg==" "C:\Users\ARITRA\Desktop\Nilansublilling_software\nilanshu-billing-app\src-tauri\target\release\bundle\nsis\NP-Billing_YOUR_NEW_VERSION_HERE_x64-setup.exe"
+```
+*(Press Enter when it asks for the password, or type your password if you set one.)*
+
+**Step 6:** When it finishes, go to the folder `src-tauri/target/release/bundle/nsis/`. You will see two files:
+- Your `.exe` installer file.
+- A `.sig` file. *(Open the .sig file in Notepad and copy the signature text. Keep this handy.)*
 
 **Step 6:** Go to your GitHub page (`SOFTAPPP/Nilansublilling_software`). Click on **Releases** on the right side and create a new Release called `v0.0.2`. Upload your `.msi` file there and publish it.
 
