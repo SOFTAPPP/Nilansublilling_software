@@ -90,9 +90,11 @@
   * {
     border-color: hsl(var(--border));
   }
-  body {
+  html, body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+    overflow: hidden;
+    overscroll-behavior: none;
   }
 }
 
