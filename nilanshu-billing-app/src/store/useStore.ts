@@ -323,7 +323,7 @@ export const useStore = create<AppState>((set, get) => ({
       await apiClient.delete(`/products/${id}`);
     } catch (err) {
       set({ products: prev }); // Revert
-      get().showDialog({ title: 'Delete Failed', message: 'Cannot delete this product because it is already used in existing bills or records.', type: 'alert' });
+      get().showDialog({ title: 'Delete Failed', message: err.message || 'Failed to delete product', type: 'alert' });
     }
   },
   

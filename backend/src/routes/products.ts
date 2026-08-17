@@ -45,8 +45,9 @@ router.delete('/:id', async (req, res) => {
       where: { id: req.params.id },
     });
     res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to delete product' });
+  } catch (error: any) {
+    console.error('DELETE Error:', error);
+    res.status(500).json({ error: 'Failed to delete product', details: error.message || String(error) });
   }
 });
 

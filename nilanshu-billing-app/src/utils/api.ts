@@ -20,7 +20,10 @@ export const apiClient = {
       window.location.href = '/login';
       throw new Error('Unauthorized');
     }
-    if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.details || errBody.error || `API Error: ${res.statusText}`);
+    }
     return res.json();
   },
   post: async (endpoint: string, body: any) => {
@@ -35,7 +38,10 @@ export const apiClient = {
       window.location.href = '/login';
       throw new Error('Unauthorized');
     }
-    if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.details || errBody.error || `API Error: ${res.statusText}`);
+    }
     return res.json();
   },
   put: async (endpoint: string, body: any) => {
@@ -50,7 +56,10 @@ export const apiClient = {
       window.location.href = '/login';
       throw new Error('Unauthorized');
     }
-    if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.details || errBody.error || `API Error: ${res.statusText}`);
+    }
     return res.json();
   },
   delete: async (endpoint: string) => {
@@ -64,7 +73,10 @@ export const apiClient = {
       window.location.href = '/login';
       throw new Error('Unauthorized');
     }
-    if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.details || errBody.error || `API Error: ${res.statusText}`);
+    }
     return res.json();
   },
 };
