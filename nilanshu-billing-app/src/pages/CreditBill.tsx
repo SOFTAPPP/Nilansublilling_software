@@ -73,12 +73,23 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           discountPercent: li.discountPercent || 0,
         })));
       }
-      setInvoiceMeta({
-        deliveryNote: viewBill.lrNo || '',
-        destination: viewBill.destination || '',
-        dispatchedThrough: viewBill.driverName || '',
-        termsOfPayment: '', refNo: '', otherRef: '', dispatchDocNo: '', deliveryNoteDate: '', termsOfDelivery: '', orderDate: ''
-      });
+      let parsedMeta = {
+        deliveryNote: '', destination: '', dispatchedThrough: '', termsOfPayment: '',
+        refNo: '', otherRef: '', dispatchDocNo: '', deliveryNoteDate: '', termsOfDelivery: '', orderDate: ''
+      };
+      if (viewBill.lrNo) {
+        try {
+          const parsed = JSON.parse(viewBill.lrNo);
+          parsedMeta = { ...parsedMeta, ...parsed };
+        } catch (e) {
+          // Fallback if lrNo was just a string
+          parsedMeta.deliveryNote = viewBill.lrNo;
+        }
+      }
+      if (viewBill.destination) parsedMeta.destination = viewBill.destination;
+      if (viewBill.driverName) parsedMeta.dispatchedThrough = viewBill.driverName;
+
+      setInvoiceMeta(parsedMeta);
       if (viewBill.paymentAmount) {
         setAdvanceAmount(viewBill.paymentAmount.toString());
       } else {
@@ -263,6 +274,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           sgst: sgstAmount,
           total: grandTotal,
           paymentAmount: addedAmount,
+          lrNo: JSON.stringify(invoiceMeta),
           lineItems: items.map(i => ({
             productId: i.productId,
             productName: i.productName,
@@ -287,6 +299,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           sgst: sgstAmount,
           total: grandTotal,
           paymentAmount: addedAmount,
+          lrNo: JSON.stringify(invoiceMeta),
           lineItems: items.map(i => ({
             productId: i.productId,
             productName: i.productName,
