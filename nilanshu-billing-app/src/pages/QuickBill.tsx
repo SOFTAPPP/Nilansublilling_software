@@ -214,14 +214,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
 
       {/* Bill Canvas */}
       <div className="half-a4-page border border-border p-6 relative flex flex-col">
-        {showPaidStamp && (
-          <div className="absolute bottom-16 left-16 pointer-events-none z-0 opacity-20 print:opacity-30">
-            <div className="border-[4px] border-green-600 rounded-full w-40 h-40 flex items-center justify-center transform -rotate-12">
-              <span className="text-4xl font-bold uppercase tracking-widest text-green-600">PAID</span>
-            </div>
-          </div>
-        )}
-        
+
         <div className="text-center flex flex-col items-center relative z-10">
           <img src="/logo.png" alt="Logo" className="absolute left-0 top-0 w-12 h-12 object-contain" />
           <input 
@@ -276,8 +269,17 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
           />
         </div>
 
-        <div className="flex justify-end border border-black z-10 relative">
-          <div className="w-64 border-l border-black flex flex-col">
+        <div className="flex border border-black z-10 relative">
+          <div className="flex-1 flex items-center justify-center overflow-hidden">
+            {showPaidStamp && (
+              <div className="pointer-events-none z-0 opacity-50 print:opacity-60">
+                <div className="border-[4px] border-green-600 rounded-full w-40 h-40 flex items-center justify-center transform -rotate-12">
+                  <span className="text-4xl font-bold uppercase tracking-widest text-green-600">PAID</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="w-64 border-l border-black flex flex-col bg-background">
             <div className="flex justify-between p-2 text-sm border-b border-black font-semibold">
               <span>SUBTOTAL</span>
               <span>{totalAmount.toFixed(2)}</span>
