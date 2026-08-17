@@ -88,7 +88,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
   const applyGlobalDiscount = (discount: number) => {
     setDefaultDiscount(discount);
     setItems(prevItems => prevItems.map(item => {
-      if (!item.productId) return item;
+      if (!item.productId && !item.productName) return item;
       const basePrice = item.rate || item.mrp;
       const discountAmount = (basePrice * discount) / 100;
       const newAmount = (basePrice - discountAmount) * item.quantity;
