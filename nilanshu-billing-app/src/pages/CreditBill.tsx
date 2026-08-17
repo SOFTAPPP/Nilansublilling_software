@@ -436,7 +436,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           {/* Top Half */}
           <div className="flex border-b-2 border-black">
             {/* Seller Details (Left) */}
-            <div className="w-1/2 border-r-2 border-black p-2 flex flex-col justify-center min-h-[140px]">
+            <div className="w-1/2 border-r-2 border-black p-2 flex flex-col justify-start min-h-[140px]">
               <input 
                 value={settings.companyName} 
                 onChange={e => updateSettings({ companyName: e.target.value })} 
