@@ -27,12 +27,8 @@ const Login: React.FC = () => {
         useStore.setState({ token: res.token, isAuthenticated: true });
         const store = useStore.getState();
         
-        // Fetch sequentially to prevent Tauri sqlx from opening 5 concurrent TLS connections (no longer sqlx, but still good practice)
-        await store.fetchSettings();
-        await store.fetchProducts();
-        await store.fetchParties();
-        await store.fetchBills();
-        await store.fetchTransporters();
+        // Fetch ALL data in a single request for Lite-Speed instant login
+        await store.fetchInitialData();
 
         navigate('/');
         return;

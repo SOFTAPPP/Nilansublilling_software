@@ -7,6 +7,8 @@ import partyRoutes from './routes/parties';
 import billRoutes from './routes/bills';
 import settingRoutes from './routes/settings';
 import smsRoutes from './routes/sms';
+import transporterRoutes from './routes/transporters';
+import syncRoutes from './routes/sync';
 import { authenticate } from './middleware/auth';
 
 dotenv.config();
@@ -23,6 +25,8 @@ app.use('/api/products', authenticate, productRoutes);
 app.use('/api/parties', authenticate, partyRoutes);
 app.use('/api/bills', authenticate, billRoutes);
 app.use('/api/settings', authenticate, settingRoutes);
+app.use('/api/transporters', authenticate, transporterRoutes);
+app.use('/api/sync', authenticate, syncRoutes);
 app.use('/api/sms', smsRoutes); // Local SMS simulator - no auth needed
 
 // Health check

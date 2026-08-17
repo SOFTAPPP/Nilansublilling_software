@@ -114,6 +114,7 @@ interface AppState {
   fetchTransporters: () => Promise<void>;
   fetchBills: () => Promise<void>;
   fetchSettings: () => Promise<void>;
+  fetchInitialData: () => Promise<void>;
   addProduct: (product: Partial<Product>) => Promise<void>;
   updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
@@ -240,10 +241,30 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
   
+  fetchInitialData: async () => {
+    try {
+      const data = await apiClient.get('/sync/initial');
+      set({
+        settings: data.settings,
+        products: data.products,
+        parties: data.parties,
+        transporters: data.transporters,
+        bills: data.bills
+      });
+    } catch (error: any) {
+      console.error('Failed to fetch initial sync data', error);
+      get().showDialog({ 
+        title: 'Network Error', 
+        message: 'Could not connect to the server to fetch initial data. ' + (error.message || String(error)), 
+        type: 'alert' 
+      });
+    }
+  },
+  
   addProduct: async (product) => {
     try {
-      await apiClient.post('/products', product);
-      await get().fetchProducts();
+      const newProduct = await apiClient.post('/products', product);
+      set(state => ({ products: [...state.products, newProduct] }));
     } catch (err: any) {
       console.error('Add Product DB Error:', err);
       get().showDialog({ title: 'Add Product Failed', message: err.message || 'Database error', type: 'alert' });
@@ -251,21 +272,20 @@ export const useStore = create<AppState>((set, get) => ({
   },
   
   addProductsBulk: async (productsList) => {
-    // Basic bulk insert fallback via sequential API calls (or implement a bulk endpoint in backend)
+    // Basic bulk insert fallback
     for (const product of productsList) {
       try {
-        await apiClient.post('/products', product);
+        const newProduct = await apiClient.post('/products', product);
+        set(state => ({ products: [...state.products, newProduct] }));
       } catch (err) {
-        console.error('Failed to insert product bulk', product.name, err);
+        console.error('Failed to insert product bulk', product?.name, err);
       }
     }
-    await get().fetchProducts();
   },
-  
   updateProduct: async (id, product) => {
     try {
-      await apiClient.put(`/products/${id}`, product);
-      await get().fetchProducts();
+      const updated = await apiClient.put(`/products/${id}`, product);
+      set(state => ({ products: state.products.map(p => p.id === id ? updated : p) }));
     } catch (err: any) {
       console.error('Update Product Error:', err);
       get().showDialog({ title: 'Update Error', message: err.message || 'Failed to update product', type: 'alert' });
@@ -273,18 +293,20 @@ export const useStore = create<AppState>((set, get) => ({
   },
   
   deleteProduct: async (id) => {
+    const prev = get().products;
+    set(state => ({ products: state.products.filter(p => p.id !== id) })); // Optimistic delete
     try {
       await apiClient.delete(`/products/${id}`);
-      await get().fetchProducts();
     } catch (err) {
+      set({ products: prev }); // Revert
       get().showDialog({ title: 'Delete Failed', message: 'Cannot delete this product because it is already used in existing bills or records.', type: 'alert' });
     }
   },
   
   addParty: async (party) => {
     try {
-      await apiClient.post('/parties', party);
-      await get().fetchParties();
+      const newParty = await apiClient.post('/parties', party);
+      set(state => ({ parties: [...state.parties, newParty] }));
     } catch (err: any) {
       console.error('Add Party DB Error:', err);
       get().showDialog({ title: 'Add Party Failed', message: err.message || 'Database error', type: 'alert' });
@@ -293,8 +315,8 @@ export const useStore = create<AppState>((set, get) => ({
   
   updateParty: async (id, party) => {
     try {
-      await apiClient.put(`/parties/${id}`, party);
-      await get().fetchParties();
+      const updated = await apiClient.put(`/parties/${id}`, party);
+      set(state => ({ parties: state.parties.map(p => p.id === id ? updated : p) }));
     } catch (err: any) {
       console.error('Update Party Error:', err);
       get().showDialog({ title: 'Update Party Failed', message: err.message || 'Database error', type: 'alert' });
@@ -302,18 +324,20 @@ export const useStore = create<AppState>((set, get) => ({
   },
   
   deleteParty: async (id) => {
+    const prev = get().parties;
+    set(state => ({ parties: state.parties.filter(p => p.id !== id) })); // Optimistic delete
     try {
       await apiClient.delete(`/parties/${id}`);
-      await get().fetchParties();
     } catch (err) {
+      set({ parties: prev }); // Revert
       get().showDialog({ title: 'Delete Failed', message: 'Cannot delete this customer because they have existing bills or records.', type: 'alert' });
     }
   },
   
   addTransporter: async (transporter) => {
     try {
-      await apiClient.post('/transporters', transporter);
-      await get().fetchTransporters();
+      const newTransporter = await apiClient.post('/transporters', transporter);
+      set(state => ({ transporters: [...state.transporters, newTransporter] }));
     } catch (err: any) {
       get().showDialog({ title: 'Add Transporter Failed', message: err.message || 'Database error', type: 'alert' });
     }
@@ -321,18 +345,20 @@ export const useStore = create<AppState>((set, get) => ({
   
   updateTransporter: async (id, transporter) => {
     try {
-      await apiClient.put(`/transporters/${id}`, transporter);
-      await get().fetchTransporters();
+      const updated = await apiClient.put(`/transporters/${id}`, transporter);
+      set(state => ({ transporters: state.transporters.map(t => t.id === id ? updated : t) }));
     } catch (err: any) {
       get().showDialog({ title: 'Update Transporter Failed', message: err.message || 'Database error', type: 'alert' });
     }
   },
   
   deleteTransporter: async (id) => {
+    const prev = get().transporters;
+    set(state => ({ transporters: state.transporters.filter(t => t.id !== id) })); // Optimistic delete
     try {
       await apiClient.delete(`/transporters/${id}`);
-      await get().fetchTransporters();
     } catch (err) {
+      set({ transporters: prev }); // Revert
       get().showDialog({ title: 'Delete Failed', message: 'Cannot delete this transporter.', type: 'alert' });
     }
   },
@@ -371,10 +397,8 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const res = await apiClient.post('/bills', billData);
       
-      // Refresh state to grab updated stock, party balances, and bills
-      await get().fetchProducts();
-      await get().fetchParties();
-      await get().fetchBills();
+      // Background refetch for updated stock, party balances, and bills
+      get().fetchInitialData();
       
       return res.id;
     } catch (err: any) {
@@ -386,13 +410,9 @@ export const useStore = create<AppState>((set, get) => ({
   
   updateBill: async (id, type, billData) => {
     try {
-      // billData contains the updated payload
       await apiClient.put(`/bills/${id}`, { ...billData, type });
-      
-      // Refresh state
-      await get().fetchProducts();
-      await get().fetchParties();
-      await get().fetchBills();
+      // Background refetch
+      get().fetchInitialData();
     } catch (err: any) {
       console.error('Update Bill Error:', err);
       get().showDialog({ title: 'Update Error', message: err.message, type: 'alert' });
@@ -400,14 +420,14 @@ export const useStore = create<AppState>((set, get) => ({
   },
   
   deleteBill: async (id) => {
+    const prev = get().bills;
+    set(state => ({ bills: state.bills.filter(b => b.id !== id) })); // Optimistic delete
     try {
       await apiClient.delete(`/bills/${id}`);
-      
-      // Refresh state
-      await get().fetchProducts();
-      await get().fetchParties();
-      await get().fetchBills();
+      // Background refetch for stock
+      get().fetchInitialData();
     } catch (err: any) {
+      set({ bills: prev }); // Revert
       console.error("Delete Bill Error", err);
       get().showDialog({ title: 'Delete Failed', message: err.message || 'Failed to delete bill.', type: 'alert' });
     }
