@@ -67,6 +67,10 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const data = pickProductFields(req.body);
+    // Allow updating the Product ID itself
+    if (req.body.id && req.body.id.trim() !== '' && req.body.id !== req.params.id) {
+      data.id = req.body.id.trim();
+    }
     const product = await prisma.product.update({
       where: { id: req.params.id },
       data,

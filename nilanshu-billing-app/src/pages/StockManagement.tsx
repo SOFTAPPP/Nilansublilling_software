@@ -256,7 +256,14 @@ export default function StockManagement() {
             {filteredProducts.map(product => (
               <tr key={product.id} className="hover:bg-muted/50 transition-colors">
                 <td className="p-4 text-muted-foreground font-medium whitespace-nowrap">{product.id}</td>
-                <td className="p-4 font-medium">{product.name}</td>
+                <td className="p-4">
+                  <div className="font-medium text-foreground">{product.name}</div>
+                  {product.part && (
+                    <div className="inline-flex items-center mt-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary/10 text-primary">
+                      Part: {product.part}
+                    </div>
+                  )}
+                </td>
                 <td className="p-4">
                   <span className="bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap inline-block">
                     {product.category}
@@ -311,24 +318,21 @@ export default function StockManagement() {
                   value={formData.id || ''} 
                   onChange={e => setFormData({...formData, id: e.target.value})} 
                   className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" 
-                  disabled={!!editingId}
-                  placeholder="e.g. PROD-123"
+                  placeholder="e.g. PROD-123 (auto-generated if blank)"
                 />
               </div>
               <div className="grid grid-cols-2 gap-5">
-                <div className="col-span-2 md:col-span-1 flex gap-3">
-                  <div className="flex-1">
-                    <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Name <span className="text-red-500">*</span></label>
-                    <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="Product Name" />
-                  </div>
-                  <div className="w-24">
-                    <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 text-center">Part</label>
-                    <input value={formData.part || ''} onChange={e => setFormData({...formData, part: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground text-center" placeholder="e.g. 1" />
-                  </div>
+                <div className="col-span-2">
+                  <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Name <span className="text-red-500">*</span></label>
+                  <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="Product Name" />
                 </div>
                 <div className="col-span-2 md:col-span-1">
                   <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Category <span className="text-red-500">*</span></label>
                   <input value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="Category Name" />
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Part</label>
+                  <input value={formData.part || ''} onChange={e => setFormData({...formData, part: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="e.g. 1, 2, Vol-1" />
                 </div>
                 
                 <div>
