@@ -607,6 +607,14 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           </div>
 
           {/* Discount and Total Rows */}
+          <div className="flex border-t border-black text-sm font-bold border-r-0">
+            <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
+              MRP TOTAL
+            </div>
+            <div className="w-[15%] text-right pr-2 py-1">
+              {mrpTotal.toFixed(2)}
+            </div>
+          </div>
           <div className="flex border-t border-black text-sm border-r-0">
             <div className="w-[85%] text-right pr-4 py-1 border-r border-black flex justify-end items-center gap-2">
               <span className="no-print text-xs text-muted-foreground">Party Discount:</span>
