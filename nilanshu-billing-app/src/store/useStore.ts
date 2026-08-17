@@ -262,10 +262,15 @@ export const useStore = create<AppState>((set, get) => ({
   },
   
   addProduct: async (product) => {
+    const tempId = `temp-${Date.now()}`;
+    const optimisticProduct = { ...product, id: tempId, createdAt: new Date().toISOString() } as unknown as Product;
+    
+    set(state => ({ products: [...state.products, optimisticProduct] })); // ⚡ INSTANT UPDATE
     try {
       const newProduct = await apiClient.post('/products', product);
-      set(state => ({ products: [...state.products, newProduct] }));
+      set(state => ({ products: state.products.map(p => p.id === tempId ? newProduct : p) }));
     } catch (err: any) {
+      set(state => ({ products: state.products.filter(p => p.id !== tempId) })); // Revert
       console.error('Add Product DB Error:', err);
       get().showDialog({ title: 'Add Product Failed', message: err.message || 'Database error', type: 'alert' });
     }
@@ -304,10 +309,15 @@ export const useStore = create<AppState>((set, get) => ({
   },
   
   addParty: async (party) => {
+    const tempId = `temp-${Date.now()}`;
+    const optimisticParty = { ...party, id: tempId } as unknown as Party;
+    
+    set(state => ({ parties: [...state.parties, optimisticParty] })); // ⚡ INSTANT UPDATE
     try {
       const newParty = await apiClient.post('/parties', party);
-      set(state => ({ parties: [...state.parties, newParty] }));
+      set(state => ({ parties: state.parties.map(p => p.id === tempId ? newParty : p) }));
     } catch (err: any) {
+      set(state => ({ parties: state.parties.filter(p => p.id !== tempId) })); // Revert
       console.error('Add Party DB Error:', err);
       get().showDialog({ title: 'Add Party Failed', message: err.message || 'Database error', type: 'alert' });
     }
@@ -335,10 +345,15 @@ export const useStore = create<AppState>((set, get) => ({
   },
   
   addTransporter: async (transporter) => {
+    const tempId = `temp-${Date.now()}`;
+    const optimisticTransporter = { ...transporter, id: tempId } as unknown as Transporter;
+    
+    set(state => ({ transporters: [...state.transporters, optimisticTransporter] })); // ⚡ INSTANT UPDATE
     try {
       const newTransporter = await apiClient.post('/transporters', transporter);
-      set(state => ({ transporters: [...state.transporters, newTransporter] }));
+      set(state => ({ transporters: state.transporters.map(t => t.id === tempId ? newTransporter : t) }));
     } catch (err: any) {
+      set(state => ({ transporters: state.transporters.filter(t => t.id !== tempId) })); // Revert
       get().showDialog({ title: 'Add Transporter Failed', message: err.message || 'Database error', type: 'alert' });
     }
   },

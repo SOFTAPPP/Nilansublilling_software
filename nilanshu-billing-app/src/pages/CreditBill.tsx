@@ -494,7 +494,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                     </div>
                     {despatchDropdownOpen && (
                       <div className="absolute top-full left-0 mt-1 w-full bg-background border border-border shadow-xl rounded-md z-50 overflow-hidden text-sm">
-                        {['ROAD', 'TRAIN', 'AIR'].map((method) => (
+                        {['ROAD', 'TRAIN', 'AIR', 'BY HAND'].map((method) => (
                           <div
                             key={method}
                             className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-border/50 last:border-0 font-medium"
