@@ -354,8 +354,14 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
 
               {partyId && (
                 <div className="text-[14px] text-foreground font-medium mt-1 pl-12 flex flex-col gap-1">
-                  {parties.find(p => p.id === partyId)?.address && <div>{parties.find(p => p.id === partyId)?.address}</div>}
-                  {parties.find(p => p.id === partyId)?.phone && <div>{parties.find(p => p.id === partyId)?.phone}</div>}
+                  {parties.find(p => p.id === partyId)?.address && (
+                    <div className="whitespace-pre-wrap max-h-[4.5em] overflow-y-auto print:max-h-none print:overflow-visible pr-2 leading-tight">
+                      {parties.find(p => p.id === partyId)?.address?.replace(/ \| PIN:/g, '\nPIN:').replace(/ \| Dist:/g, '\nDist:')}
+                    </div>
+                  )}
+                  {parties.find(p => p.id === partyId)?.phone && (
+                    <div className="leading-tight mt-1">{parties.find(p => p.id === partyId)?.phone}</div>
+                  )}
                 </div>
               )}
 

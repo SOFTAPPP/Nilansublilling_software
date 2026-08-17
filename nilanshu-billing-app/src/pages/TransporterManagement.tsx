@@ -11,6 +11,8 @@ export default function TransporterManagement() {
   const [formData, setFormData] = useState<Partial<Transporter>>({
     name: '', phone: '', address: ''
   });
+  const [vehicleNumber, setVehicleNumber] = useState('');
+  const [route, setRoute] = useState('');
 
   useEffect(() => {
     fetchTransporters();
@@ -24,10 +26,31 @@ export default function TransporterManagement() {
   const handleOpenModal = (transporter?: Transporter) => {
     if (transporter) {
       setEditingId(transporter.id);
-      setFormData(transporter);
+      
+      let parsedAddress = transporter.address || '';
+      let parsedVehicle = '';
+      let parsedRoute = '';
+      
+      const vMatch = parsedAddress.match(/ \| Vehicle: (.*?)(?= \| Route:|$)/);
+      const rMatch = parsedAddress.match(/ \| Route: (.*)$/);
+      
+      if (vMatch) {
+        parsedVehicle = vMatch[1].trim();
+        parsedAddress = parsedAddress.replace(vMatch[0], '');
+      }
+      if (rMatch) {
+        parsedRoute = rMatch[1].trim();
+        parsedAddress = parsedAddress.replace(rMatch[0], '');
+      }
+
+      setFormData({ ...transporter, address: parsedAddress.trim() });
+      setVehicleNumber(parsedVehicle);
+      setRoute(parsedRoute);
     } else {
       setEditingId(null);
       setFormData({ name: '', phone: '', address: '' });
+      setVehicleNumber('');
+      setRoute('');
     }
     setIsModalOpen(true);
   };
@@ -40,10 +63,13 @@ export default function TransporterManagement() {
     
     setIsModalOpen(false);
 
+    const finalAddress = `${formData.address || ''}${vehicleNumber ? ` | Vehicle: ${vehicleNumber}` : ''}${route ? ` | Route: ${route}` : ''}`;
+    const payload = { ...formData, address: finalAddress };
+
     if (editingId) {
-      await updateTransporter(editingId, formData);
+      await updateTransporter(editingId, payload);
     } else {
-      await addTransporter(formData);
+      await addTransporter(payload);
     }
   };
 
@@ -134,7 +160,15 @@ export default function TransporterManagement() {
               </div>
               <div>
                 <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Address</label>
-                <input value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="Full Address" />
+                <input value={formData.address || ''} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="Full Address" />
+              </div>
+              <div>
+                <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Vehicle Number / Transport Number</label>
+                <input value={vehicleNumber} onChange={e => setVehicleNumber(e.target.value)} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="e.g. WB11A 1234" />
+              </div>
+              <div>
+                <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Route (From - To)</label>
+                <input value={route} onChange={e => setRoute(e.target.value)} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="e.g. Kolkata to Delhi" />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-8">

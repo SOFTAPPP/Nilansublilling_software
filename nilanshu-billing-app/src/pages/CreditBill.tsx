@@ -107,14 +107,14 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
     if (foundParty) {
       setBuyerName(foundParty.name);
       setBuyerPhone(foundParty.phone);
-      setBuyerAddress(foundParty.address);
+      setBuyerAddress(foundParty.address.replace(/ \| PIN:/g, '\nPIN:').replace(/ \| Dist:/g, '\nDist:'));
       const discount = foundParty.discountPercentage || 0;
       applyGlobalDiscount(discount);
       setPartyId(foundParty.id);
 
       // Auto-fill consignee details
       setConsigneeName(foundParty.name);
-      setConsigneeAddress(foundParty.address);
+      setConsigneeAddress(foundParty.address.replace(/ \| PIN:/g, '\nPIN:').replace(/ \| Dist:/g, '\nDist:'));
       setConsigneeState('19'); // Default WB state code
       setBuyerState('19');
     } else {
@@ -570,8 +570,10 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                         </div>
                       )}
                     </div>
-                    <textarea value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} placeholder="Buyer Address" rows={2} className="w-full outline-none bg-transparent mt-1 resize-none overflow-y-auto leading-tight" readOnly={!!viewBill} />
-                    <input value={buyerPhone} onChange={e => setBuyerPhone(e.target.value)} placeholder="Buyer Phone" className="w-full outline-none bg-transparent mt-1" readOnly={!!viewBill} />
+                    <textarea value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} placeholder="Buyer Address" rows={2} className="w-full outline-none bg-transparent mt-1 resize-none overflow-y-auto leading-tight print:hidden" readOnly={!!viewBill} />
+                    <div className="hidden print:block w-full mt-1 leading-tight whitespace-pre-wrap break-words">{buyerAddress}</div>
+                    <input value={buyerPhone} onChange={e => setBuyerPhone(e.target.value)} placeholder="Buyer Phone" className="w-full outline-none bg-transparent mt-1 print:hidden" readOnly={!!viewBill} />
+                    <div className="hidden print:block w-full mt-1 leading-tight">{buyerPhone}</div>
                   </div>
                   {partyId && (() => {
                     const selectedParty = parties.find(p => p.id === partyId);
