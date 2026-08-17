@@ -17,7 +17,7 @@ export interface SMSBillData {
 
 export const formatBillMessage = (data: SMSBillData): string => {
   // Format Company and Header
-  const header = `${data.companyName.toUpperCase()}\nBill: ${data.billNo}\n`;
+  const header = `${data.companyName.toUpperCase()}\n${data.billType.toUpperCase()}: ${data.billNo}\n`;
   const buyer = data.buyerName ? `Buyer: ${data.buyerName}\n` : '';
   const separator = `----\n`;
 
@@ -51,7 +51,7 @@ export interface TransportSMSData {
 
 export const formatTransportBillMessage = (data: TransportSMSData): string => {
   return `${data.companyName.toUpperCase()}
-Transport Bill: ${data.billNo}
+TRANSPORT BILL: ${data.billNo}
 Buyer: ${data.buyerName}
 Transporter: ${data.transporterName}
 Packets: ${data.totalPacket}

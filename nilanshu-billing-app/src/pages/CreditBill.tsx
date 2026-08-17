@@ -332,7 +332,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
       const { formatBillMessage } = await import('../utils/smsFormatter');
       const smsData = {
         companyName: settings.companyName || 'NILANSU PUBLICATION',
-        billType: type === 'return' ? 'Return Bill' : 'Credit Bill',
+        billType: type === 'return' ? 'RETURN CUM CHALLAN' : 'INVOICE CUM CHALLAN',
         billNo: invoiceNo || 'N/A',
         buyerName: buyerName,
         items: items,

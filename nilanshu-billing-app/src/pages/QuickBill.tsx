@@ -150,7 +150,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
       const { formatBillMessage } = await import('../utils/smsFormatter');
       const smsData = {
         companyName: settings.companyName || 'NILANSU PUBLICATION',
-        billType: 'Quick Bill',
+        billType: 'QUICK BILL',
         billNo: billNo,
         items: items,
         subtotal: totalAmount,
