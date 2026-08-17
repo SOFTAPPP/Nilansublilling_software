@@ -529,7 +529,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
               <div className="flex items-start gap-1">
                 <span className="text-sm">Buyer:-</span>
                 <div className="flex-1 flex justify-between gap-4">
-                  <div className="flex-1 flex flex-col">
+                  <div className="flex-1 max-w-[60%] flex flex-col">
                     <div className="relative mb-1" ref={partyDropdownRef}>
                       <input
                         value={buyerName}
@@ -570,7 +570,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                         </div>
                       )}
                     </div>
-                    <input value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} placeholder="Buyer Address" className="w-full outline-none bg-transparent mt-1" readOnly={!!viewBill} />
+                    <textarea value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} placeholder="Buyer Address" rows={2} className="w-full outline-none bg-transparent mt-1 resize-none overflow-y-auto leading-tight" readOnly={!!viewBill} />
                     <input value={buyerPhone} onChange={e => setBuyerPhone(e.target.value)} placeholder="Buyer Phone" className="w-full outline-none bg-transparent mt-1" readOnly={!!viewBill} />
                   </div>
                   {partyId && (() => {
