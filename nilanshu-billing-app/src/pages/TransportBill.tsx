@@ -393,10 +393,10 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         {/* BOTTOM SIGNATURE AREA */}
         <div className="border-t-2 border-black min-h-[150px] p-4 flex flex-col justify-between">
           <div className="flex flex-col items-center text-center w-full mb-8">
-            <div className="text-2xl font-bold uppercase tracking-wide text-center">{settings.companyName}</div>
-            <div className="text-sm mt-1 text-center">{settings.companyAddress}</div>
-            <div className="text-sm text-center">{settings.companyCity}</div>
-            <div className="flex gap-2 text-sm justify-center items-center mt-1">
+            <div className="text-3xl font-bold uppercase tracking-wide text-center">{settings.companyName}</div>
+            <div className="text-base mt-1 text-center">{settings.companyAddress}</div>
+            <div className="text-base text-center">{settings.companyCity}</div>
+            <div className="flex gap-2 text-base justify-center items-center mt-1">
               <span className="flex items-center whitespace-nowrap font-semibold">IT PAN: <span className="ml-1 uppercase font-normal">{settings.companyPan}</span></span>
               <span className="text-gray-400">|</span>
               <span className="flex items-center whitespace-nowrap font-semibold">Phone: <span className="ml-1 font-normal">{settings.companyContact}</span></span>

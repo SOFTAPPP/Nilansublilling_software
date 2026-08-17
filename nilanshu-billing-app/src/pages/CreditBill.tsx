@@ -444,10 +444,10 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                 readOnly={!!viewBill}
               />
               <div className="font-bold text-[15px] w-full">Publishers and Book Sellers</div>
-              <div className="w-full text-sm mt-1">{settings.companyAddress}</div>
-              <div className="w-full text-sm">{settings.companyCity}</div>
-              <div className="flex gap-2 text-sm mt-1"><span className="whitespace-nowrap">IT PAN -</span><span className="w-full uppercase">{settings.companyPan}</span></div>
-              <div className="flex gap-2 text-sm"><span className="whitespace-nowrap">Phone No.-</span><span className="w-full">{settings.companyContact}</span></div>
+              <div className="w-full text-[15px] mt-1">{settings.companyAddress}</div>
+              <div className="w-full text-[15px]">{settings.companyCity}</div>
+              <div className="flex gap-2 text-[15px] mt-1"><span className="whitespace-nowrap">IT PAN -</span><span className="w-full uppercase">{settings.companyPan}</span></div>
+              <div className="flex gap-2 text-[15px]"><span className="whitespace-nowrap">Phone No.-</span><span className="w-full">{settings.companyContact}</span></div>
             </div>
 
             {/* Invoice Meta Grid (Right) */}

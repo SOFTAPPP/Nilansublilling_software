@@ -304,15 +304,15 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
 
         {/* Header */}
         <div className="text-center flex flex-col items-center relative">
-          <img src="/logo.png" alt="Logo" className="absolute left-0 top-0 w-14 h-14 object-contain" />
+          <img src="/logo.png" alt="Logo" className="absolute left-0 top-0 w-16 h-16 object-contain" />
           <input 
             value={settings.companyName} 
             onChange={e => updateSettings({ companyName: e.target.value })} 
-            className="text-3xl font-bold uppercase tracking-wide text-center w-full bg-transparent outline-none" 
+            className="text-4xl font-bold uppercase tracking-wide text-center w-full bg-transparent outline-none" 
           />
-          <div className="text-sm mt-1 text-center w-full">{settings.companyAddress}</div>
-          <div className="text-sm text-center w-full">{settings.companyCity}</div>
-          <div className="flex gap-2 text-sm justify-center w-full items-center mt-1">
+          <div className="text-base mt-1 text-center w-full">{settings.companyAddress}</div>
+          <div className="text-base text-center w-full">{settings.companyCity}</div>
+          <div className="flex gap-2 text-base justify-center w-full items-center mt-1">
             <span className="flex items-center whitespace-nowrap font-semibold">IT PAN: <span className="ml-1 uppercase font-normal">{settings.companyPan}</span></span>
             <span className="text-gray-400">|</span>
             <span className="flex items-center whitespace-nowrap font-semibold">Phone: <span className="ml-1 font-normal">{settings.companyContact}</span></span>
