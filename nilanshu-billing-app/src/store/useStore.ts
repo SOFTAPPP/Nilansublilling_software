@@ -284,9 +284,19 @@ export const useStore = create<AppState>((set, get) => ({
     const tempId = `temp-${Date.now()}`;
     const optimisticProduct = { ...product, id: tempId, createdAt: new Date().toISOString() } as unknown as Product;
     
+    // Clean the product data before sending - remove id/createdAt/updatedAt and empty strings
+    const cleanProduct: any = { ...product };
+    delete cleanProduct.id;
+    delete cleanProduct.createdAt;
+    delete cleanProduct.updatedAt;
+    // Remove empty string values that shouldn't be sent
+    Object.keys(cleanProduct).forEach(key => {
+      if (cleanProduct[key] === '') delete cleanProduct[key];
+    });
+    
     set(state => ({ products: [...state.products, optimisticProduct] })); // ⚡ INSTANT UPDATE
     try {
-      const newProduct = await apiClient.post('/products', product);
+      const newProduct = await apiClient.post('/products', cleanProduct);
       set(state => ({ products: state.products.map(p => p.id === tempId ? newProduct : p) }));
     } catch (err: any) {
       set(state => ({ products: state.products.filter(p => p.id !== tempId) })); // Revert
@@ -317,11 +327,16 @@ export const useStore = create<AppState>((set, get) => ({
   },
   
   deleteProduct: async (id) => {
+    if (!id || id.startsWith('temp-')) {
+      // Can't delete products without a valid database ID
+      set(state => ({ products: state.products.filter(p => p.id !== id) }));
+      return;
+    }
     const prev = get().products;
     set(state => ({ products: state.products.filter(p => p.id !== id) })); // Optimistic delete
     try {
       await apiClient.delete(`/products/${id}`);
-    } catch (err) {
+    } catch (err: any) {
       set({ products: prev }); // Revert
       get().showDialog({ title: 'Delete Failed', message: err.message || 'Failed to delete product', type: 'alert' });
     }
