@@ -320,14 +320,24 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
       return;
     }
     try {
+      const { formatBillMessage } = await import('../utils/smsFormatter');
+      const smsData = {
+        companyName: settings.companyName || 'NILANSU PUBLICATION',
+        billType: type === 'return' ? 'Return Bill' : 'Credit Bill',
+        billNo: invoiceNo || 'N/A',
+        buyerName: buyerName,
+        items: items,
+        subtotal: mrpTotal,
+        discount: discountTotal,
+        grandTotal: grandTotal,
+      };
+      const message = formatBillMessage(smsData);
+
       const baseUrl = import.meta.env.VITE_API_URL || 'http://72.61.231.155:5004/api';
       const response = await fetch(`${baseUrl}/sms/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: buyerPhone,
-          message: `Dear ${buyerName || 'Customer'}, thank you for your transaction. Total: Rs. ${grandTotal.toFixed(2)}. ${type === 'return' ? 'Return' : 'Invoice'} No: ${invoiceNo || 'N/A'}.`
-        })
+        body: JSON.stringify({ phone: buyerPhone, message })
       });
       if (response.ok) {
         showDialog({ title: 'SMS Sent', message: `SMS sent to ${buyerName} at ${buyerPhone} successfully!`, type: 'alert' });

@@ -147,16 +147,23 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
     if (!phone) return;
     
     try {
+      const { formatBillMessage } = await import('../utils/smsFormatter');
+      const smsData = {
+        companyName: settings.companyName || 'NILANSU PUBLICATION',
+        billType: 'Quick Bill',
+        billNo: billNo,
+        items: items,
+        subtotal: totalAmount,
+        discount: discountTotal,
+        grandTotal: grandTotal,
+      };
+      const message = formatBillMessage(smsData);
+
       const baseUrl = import.meta.env.VITE_API_URL || 'http://72.61.231.155:5004/api';
       const response = await fetch(`${baseUrl}/sms/send`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: phone,
-          message: `Dear Customer, your bill for Rs.${grandTotal} has been generated. Thank you for visiting ${settings.companyName}.`
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, message })
       });
       if (response.ok) {
         showDialog({ title: 'SMS Sent', message: `SMS sent to ${phone} successfully!`, type: 'alert' });

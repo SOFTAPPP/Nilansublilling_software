@@ -171,14 +171,22 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
       return;
     }
     try {
+      const { formatTransportBillMessage } = await import('../utils/smsFormatter');
+      const smsData = {
+        companyName: settings.companyName || 'NILANSU PUBLICATION',
+        billNo: billNo,
+        buyerName: buyerName,
+        transporterName: transporterName,
+        totalPacket: totalPacket,
+        value: value,
+      };
+      const message = formatTransportBillMessage(smsData);
+
       const baseUrl = import.meta.env.VITE_API_URL || 'http://72.61.231.155:5004/api';
       const response = await fetch(`${baseUrl}/sms/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: buyerMob,
-          message: `Dear ${buyerName || 'Customer'}, your transport bill ${billNo} has been generated. Total Packet: ${totalPacket}.`
-        })
+        body: JSON.stringify({ phone: buyerMob, message })
       });
       if (response.ok) {
         showDialog({ title: 'SMS Sent', message: `SMS sent to ${buyerName} at ${buyerMob} successfully!`, type: 'alert' });
