@@ -225,72 +225,74 @@ export default function PartyStatement() {
 
   return (
     <div className="p-4 md:p-8 min-h-screen bg-slate-50 flex flex-col items-center overflow-x-auto w-full font-sans pb-20">
-      <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
-        <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Ledger Statement</h2>
-        <div className="flex flex-wrap gap-3 items-center justify-end flex-1">
-          <div className="relative" ref={partyDropdownRef}>
-            <div className="flex items-center border border-slate-200 bg-white rounded-xl px-3 py-1 text-sm w-56 shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
-              <input 
-                type="text"
-                value={partySearch} 
-                onChange={e => { handlePartyLookup(e.target.value); setPartyDropdownOpen(true); }} 
-                onFocus={() => setPartyDropdownOpen(true)}
-                className="w-full py-1.5 outline-none bg-transparent text-slate-700 font-medium"
-                placeholder="Search Customer..." 
-              />
+      <div className="w-[210mm] flex justify-between items-end mb-6 no-print">
+        <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight pb-2">Ledger Statement</h2>
+        <div className="flex flex-col items-end gap-3">
+          <div className="flex flex-wrap gap-3 items-center justify-end">
+            <div className="relative" ref={partyDropdownRef}>
+              <div className="flex items-center border border-slate-200 bg-white rounded-xl px-3 py-1.5 text-sm w-64 shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+                <input 
+                  type="text"
+                  value={partySearch} 
+                  onChange={e => { handlePartyLookup(e.target.value); setPartyDropdownOpen(true); }} 
+                  onFocus={() => setPartyDropdownOpen(true)}
+                  className="w-full py-1 outline-none bg-transparent text-slate-700 font-medium"
+                  placeholder="Search Customer..." 
+                />
+              </div>
+              
+              {partyDropdownOpen && parties.filter(p => {
+                const isSelectedMatch = selectedPartyId && parties.find(x => x.id === selectedPartyId)?.name === partySearch;
+                if (isSelectedMatch) return true;
+                return p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch);
+              }).length > 0 && (
+                <div className="absolute top-full left-0 mt-2 w-full bg-white border border-slate-100 shadow-xl rounded-xl z-50 max-h-60 overflow-y-auto no-print text-sm text-left ring-1 ring-black/5">
+                  {parties.filter(p => {
+                    const isSelectedMatch = selectedPartyId && parties.find(x => x.id === selectedPartyId)?.name === partySearch;
+                    if (isSelectedMatch) return true;
+                    return p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch);
+                  }).map(p => (
+                    <div
+                      key={p.id}
+                      className="px-4 py-3 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0"
+                      onClick={() => {
+                        handlePartyLookup(p.name);
+                        setPartyDropdownOpen(false);
+                      }}
+                    >
+                      <div className="font-semibold">{p.name}</div>
+                      <div className="text-xs text-slate-500">{p.phone}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             
-            {partyDropdownOpen && parties.filter(p => {
-              const isSelectedMatch = selectedPartyId && parties.find(x => x.id === selectedPartyId)?.name === partySearch;
-              if (isSelectedMatch) return true;
-              return p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch);
-            }).length > 0 && (
-              <div className="absolute top-full left-0 mt-2 w-full bg-white border border-slate-100 shadow-xl rounded-xl z-50 max-h-60 overflow-y-auto no-print text-sm text-left ring-1 ring-black/5">
-                {parties.filter(p => {
-                  const isSelectedMatch = selectedPartyId && parties.find(x => x.id === selectedPartyId)?.name === partySearch;
-                  if (isSelectedMatch) return true;
-                  return p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch);
-                }).map(p => (
-                  <div
-                    key={p.id}
-                    className="px-4 py-3 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0"
-                    onClick={() => {
-                      handlePartyLookup(p.name);
-                      setPartyDropdownOpen(false);
-                    }}
-                  >
-                    <div className="font-semibold">{p.name}</div>
-                    <div className="text-xs text-slate-500">{p.phone}</div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="flex items-center bg-white border border-slate-200 rounded-xl shadow-sm px-3 py-1.5 overflow-hidden">
+               <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="p-1 text-sm outline-none text-slate-600 bg-transparent font-medium" />
+               <span className="text-slate-300 px-2">-</span>
+               <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="p-1 text-sm outline-none text-slate-600 bg-transparent font-medium" />
+            </div>
           </div>
-          <div className="flex items-center bg-white border border-slate-200 rounded-xl shadow-sm px-2 overflow-hidden">
-             <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="p-2 text-sm outline-none text-slate-600 bg-transparent font-medium" />
-             <span className="text-slate-300 px-1">-</span>
-             <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="p-2 text-sm outline-none text-slate-600 bg-transparent font-medium" />
+          
+          <div className="bg-white px-8 py-3 rounded-xl shadow-sm border border-slate-200 flex gap-10">
+            <button onClick={handlePrint} className="flex flex-col items-center gap-1.5 text-blue-800 hover:text-blue-600 transition-colors">
+              <FileText className="w-6 h-6" strokeWidth={1.5} />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Report</span>
+            </button>
+            <button className="flex flex-col items-center gap-1.5 text-blue-800 hover:text-blue-600 transition-colors">
+              <MessageCircle className="w-6 h-6" strokeWidth={1.5} />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Reminder</span>
+            </button>
+            <button className="flex flex-col items-center gap-1.5 text-blue-800 hover:text-blue-600 transition-colors">
+              <MessageSquare className="w-6 h-6" strokeWidth={1.5} />
+              <span className="text-[10px] font-bold uppercase tracking-widest">SMS</span>
+            </button>
           </div>
         </div>
       </div>
 
       <div className="w-[210mm] bg-white p-10 relative mx-auto text-slate-800 shadow-xl border border-slate-200 print:shadow-none print:border-none print:p-0">
-        
-        {/* Top Action Buttons (Screenshot 3) */}
-        <div className="flex justify-end gap-6 mb-8 no-print border-b border-slate-100 pb-4">
-          <button onClick={handlePrint} className="flex flex-col items-center gap-1 text-blue-800 hover:text-blue-600 transition-colors">
-            <FileText className="w-8 h-8" strokeWidth={1.5} />
-            <span className="text-sm font-medium">Report</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-blue-800 hover:text-blue-600 transition-colors">
-            <MessageCircle className="w-8 h-8" strokeWidth={1.5} />
-            <span className="text-sm font-medium">Reminder</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-blue-800 hover:text-blue-600 transition-colors">
-            <MessageSquare className="w-8 h-8" strokeWidth={1.5} />
-            <span className="text-sm font-medium">SMS</span>
-          </button>
-        </div>
 
         {/* Header */}
         <div className="flex flex-col items-center border-b border-slate-200 pb-8 mb-8">
@@ -309,10 +311,31 @@ export default function PartyStatement() {
 
         {selectedPartyId && (
           <>
-            <div className="mb-4 text-center">
-              <div className="text-xl font-bold">{selectedParty?.name}</div>
-              {selectedParty?.phone && <div className="text-sm">Phone Number: {selectedParty.phone}</div>}
-              <div className="text-sm mt-1">({new Date(fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric'})} - {new Date(toDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric'})})</div>
+            <div className="mb-6 flex flex-col items-center">
+              <div className="text-2xl font-black text-slate-800 uppercase tracking-wide">{selectedParty?.name}</div>
+              {selectedParty?.address && (
+                <div className="text-sm text-slate-600 mt-1 max-w-xl text-center leading-relaxed">
+                  {selectedParty.address.split('\n').map((line, i) => <React.Fragment key={i}>{line}<br/></React.Fragment>)}
+                </div>
+              )}
+              
+              <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2 text-sm text-slate-700">
+                {selectedParty?.phone && <div><span className="font-semibold">Phone:</span> {selectedParty.phone}</div>}
+                {selectedParty?.email && <div><span className="font-semibold">Email:</span> {selectedParty.email}</div>}
+                {selectedParty?.aadharNumber && <div><span className="font-semibold">Aadhar:</span> {selectedParty.aadharNumber}</div>}
+              </div>
+
+              {(selectedParty?.bankName || selectedParty?.bankAccountNo || selectedParty?.bankIfsc) && (
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2 text-sm text-slate-700 bg-slate-50 px-4 py-1.5 rounded-lg border border-slate-200">
+                  {selectedParty.bankName && <div><span className="font-semibold">Bank:</span> {selectedParty.bankName}</div>}
+                  {selectedParty.bankAccountNo && <div><span className="font-semibold">A/C:</span> {selectedParty.bankAccountNo}</div>}
+                  {selectedParty.bankIfsc && <div><span className="font-semibold">IFSC:</span> {selectedParty.bankIfsc}</div>}
+                </div>
+              )}
+
+              <div className="text-sm mt-3 font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                Statement Period: {new Date(fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric'})} - {new Date(toDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric'})}
+              </div>
             </div>
 
             {/* Header Summary Box (Screenshot 1) */}
