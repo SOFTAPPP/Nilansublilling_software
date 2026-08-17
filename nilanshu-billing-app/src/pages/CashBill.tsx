@@ -90,9 +90,8 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
     setItems(prevItems => prevItems.map(item => {
       if (!item.productId && !item.productName) return item;
       const basePrice = item.rate || item.mrp;
-      const discountAmount = (basePrice * discount) / 100;
-      const newAmount = (basePrice - discountAmount) * item.quantity;
-      return { ...item, discountPercent: discount, amount: newAmount };
+      const newAmount = basePrice * item.quantity;
+      return { ...item, discountPercent: 0, amount: newAmount };
     }));
   };
 
