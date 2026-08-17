@@ -26,7 +26,7 @@ export default function StockManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Product>>({
-    name: '', category: '', price: 0, stock: 0, lowStockThreshold: 10, bindingVariant: '', hsn: '', barcode: ''
+    name: '', category: '', price: 0, stock: 0, lowStockThreshold: 10, bindingVariant: '', hsn: '', barcode: '', part: ''
   });
   const [barcodeScanActive, setBarcodeScanActive] = useState(false);
 
@@ -96,7 +96,7 @@ export default function StockManagement() {
       setFormData(product);
     } else {
       setEditingId(null);
-      setFormData({ id: '', name: '', category: '', price: 0, stock: 0, lowStockThreshold: 10, bindingVariant: '', hsn: '', barcode: '' });
+      setFormData({ id: '', name: '', category: '', price: 0, stock: 0, lowStockThreshold: 10, bindingVariant: '', hsn: '', barcode: '', part: '' });
     }
     setIsModalOpen(true);
   };
@@ -316,9 +316,15 @@ export default function StockManagement() {
                 />
               </div>
               <div className="grid grid-cols-2 gap-5">
-                <div className="col-span-2 md:col-span-1">
-                  <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Name <span className="text-red-500">*</span></label>
-                  <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="Product Name" />
+                <div className="col-span-2 md:col-span-1 flex gap-3">
+                  <div className="flex-1">
+                    <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Name <span className="text-red-500">*</span></label>
+                    <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground" placeholder="Product Name" />
+                  </div>
+                  <div className="w-24">
+                    <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 text-center">Part</label>
+                    <input value={formData.part || ''} onChange={e => setFormData({...formData, part: e.target.value})} className="w-full border border-border/50 p-3 rounded-xl bg-muted/50 focus:bg-background outline-none focus:ring-2 focus:ring-primary/30 transition-all font-semibold text-sm text-foreground text-center" placeholder="e.g. 1" />
+                  </div>
                 </div>
                 <div className="col-span-2 md:col-span-1">
                   <label className="block text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Category <span className="text-red-500">*</span></label>
