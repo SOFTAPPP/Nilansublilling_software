@@ -317,10 +317,6 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
       setHasUnsavedChanges(false);
       lastSavedStateRef.current = formStateStr;
 
-      if (buyerPhone) {
-        await handleSendSMS();
-      }
-
     } catch (err: any) {
       const msg = typeof err === 'string' ? err : err.message;
       showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
