@@ -142,6 +142,32 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
     }
   };
 
+  const handleSendSMS = async () => {
+    const phone = window.prompt("Enter customer phone number:");
+    if (!phone) return;
+    
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://72.61.231.155:5004/api';
+      const response = await fetch(`${baseUrl}/sms/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone: phone,
+          message: `Dear Customer, your bill for Rs.${grandTotal} has been generated. Thank you for visiting ${settings.companyName}.`
+        })
+      });
+      if (response.ok) {
+        showDialog({ title: 'SMS Sent', message: `SMS sent to ${phone} successfully!`, type: 'alert' });
+      } else {
+        throw new Error('Failed to send SMS');
+      }
+    } catch (err) {
+      showDialog({ title: 'SMS Failed', message: `Could not send SMS to ${phone}. Ensure server is running.`, type: 'alert' });
+    }
+  };
+
   return (
     <div className="p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full">
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
@@ -170,6 +196,12 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
               </button>
             </>
           )}
+          <button onClick={() => setShowPaidStamp(!showPaidStamp)} className="whitespace-nowrap border border-green-600 text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 font-medium shadow-sm transition-colors text-sm bg-background">
+            Paid Stamp
+          </button>
+          <button onClick={handleSendSMS} className="whitespace-nowrap bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 font-medium shadow-sm transition-colors text-sm no-print">
+            Send SMS
+          </button>
           <button 
             onClick={handlePrint}
             disabled={!viewBill && (hasUnsavedChanges || !createdBillId)}
@@ -182,8 +214,15 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
 
       {/* Bill Canvas */}
       <div className="half-a4-page border border-border p-6 relative flex flex-col">
+        {showPaidStamp && (
+          <div className="absolute bottom-16 left-16 pointer-events-none z-0 opacity-20 print:opacity-30">
+            <div className="border-[4px] border-green-600 rounded-full w-40 h-40 flex items-center justify-center transform -rotate-12">
+              <span className="text-4xl font-bold uppercase tracking-widest text-green-600">PAID</span>
+            </div>
+          </div>
+        )}
         
-        <div className="text-center flex flex-col items-center relative">
+        <div className="text-center flex flex-col items-center relative z-10">
           <img src="/logo.png" alt="Logo" className="absolute left-0 top-0 w-12 h-12 object-contain" />
           <input 
             value={settings.companyName} 
@@ -231,7 +270,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
           <BillEngine 
             items={items} 
             onChange={setItems} 
-            columns={['sno', 'name', 'qty', 'amount']}
+            columns={['sno', 'name', 'qty', 'rate', 'discount', 'amount']}
             maxItems={5}
             readOnly={!!viewBill}
           />
