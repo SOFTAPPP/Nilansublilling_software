@@ -240,9 +240,10 @@ export const BillEngine: React.FC<BillEngineProps> = ({
       }
     }
 
-    // Recalculate amount (Base price * quantity only, no per-item discount)
+    // Recalculate amount with per-item discount
     const basePrice = columns.includes('rate') ? (item.rate || 0) : item.mrp;
-    item.amount = basePrice * item.quantity;
+    const discountAmount = (basePrice * (item.discountPercent || 0)) / 100;
+    item.amount = (basePrice - discountAmount) * item.quantity;
 
     newItems[index] = item;
     onChange(newItems);

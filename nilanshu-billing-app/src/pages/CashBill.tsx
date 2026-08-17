@@ -85,6 +85,17 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
     }
   }, [viewBill, parties]);
 
+  const applyGlobalDiscount = (discount: number) => {
+    setDefaultDiscount(discount);
+    setItems(prevItems => prevItems.map(item => {
+      if (!item.productId) return item;
+      const basePrice = item.rate || item.mrp;
+      const discountAmount = (basePrice * discount) / 100;
+      const newAmount = (basePrice - discountAmount) * item.quantity;
+      return { ...item, discountPercent: discount, amount: newAmount };
+    }));
+  };
+
   const handlePartyLookup = (val: string) => {
     setPartyName(val);
     const foundParty = parties.find(p => p.phone === val || p.name.toLowerCase() === val.toLowerCase());
@@ -92,10 +103,10 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
       setPartyName(foundParty.name);
       setPartyId(foundParty.id);
       const discount = foundParty.discountPercentage || 0;
-      setDefaultDiscount(discount);
+      applyGlobalDiscount(discount);
     } else {
       setPartyId(null);
-      setDefaultDiscount(0);
+      applyGlobalDiscount(0);
     }
   };
 
@@ -367,18 +378,8 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
                           setPartyName(p.name);
                           setPartyId(p.id);
                           const customerDiscount = p.discountPercentage || 0;
-                          setDefaultDiscount(customerDiscount);
+                          applyGlobalDiscount(customerDiscount);
                           setPartyDropdownOpen(false);
-
-                          // Only apply customer default discount to items that have NO manually set discount
-                          setItems(prevItems => prevItems.map(item => {
-                            if (!item.discountPercent || item.discountPercent === 0) {
-                              const discountAmount = (item.mrp * customerDiscount) / 100;
-                              const newAmount = (item.mrp - discountAmount) * item.quantity;
-                              return { ...item, discountPercent: customerDiscount, amount: newAmount };
-                            }
-                            return item;
-                          }));
                         }}
                       >
                         <div className="font-bold text-foreground text-sm">{p.name}</div>
@@ -466,7 +467,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
                   type="number"
                   min="0"
                   value={defaultDiscount}
-                  onChange={e => setDefaultDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
+                  onChange={e => applyGlobalDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
                   className="w-12 border-2 border-gray-300 rounded text-center font-bold no-print text-xs py-0.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   readOnly={!!viewBill}
                 />

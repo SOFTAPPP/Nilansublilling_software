@@ -87,6 +87,17 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
     }
   }, [viewBill, parties]);
 
+  const applyGlobalDiscount = (discount: number) => {
+    setPartyDiscount(discount);
+    setItems(prevItems => prevItems.map(item => {
+      if (!item.productId) return item;
+      const basePrice = item.rate || item.mrp;
+      const discountAmount = (basePrice * discount) / 100;
+      const newAmount = (basePrice - discountAmount) * item.quantity;
+      return { ...item, discountPercent: discount, amount: newAmount };
+    }));
+  };
+
   // Search Party by Phone or Name
   const handlePartyLookup = (val: string, field: 'phone' | 'name') => {
     if (field === 'phone') setBuyerPhone(val);
@@ -98,7 +109,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
       setBuyerPhone(foundParty.phone);
       setBuyerAddress(foundParty.address);
       const discount = foundParty.discountPercentage || 0;
-      setPartyDiscount(discount);
+      applyGlobalDiscount(discount);
       setPartyId(foundParty.id);
 
       // Auto-fill consignee details
@@ -108,7 +119,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
       setBuyerState('19');
     } else {
       setPartyId(null);
-      setPartyDiscount(0);
+      applyGlobalDiscount(0);
       if (val === '') {
         setBuyerPhone('');
         setBuyerAddress('');
@@ -143,13 +154,13 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   const [showCancelStamp, setShowCancelStamp] = useState(false);
 
   // Calculates
-  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0); // Base sum without discount
+  const mrpTotal = items.reduce((sum, item) => sum + ((item.rate || item.mrp) * item.quantity), 0);
+  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0); // Discounted total
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
-  const mrpTotal = items.reduce((sum, item) => sum + (item.mrp * item.quantity), 0);
-  const discountTotal = (totalAmount * partyDiscount) / 100;
+  const discountTotal = mrpTotal - totalAmount;
 
   // Tax calculations on discounted total
-  const taxableAmount = totalAmount - discountTotal;
+  const taxableAmount = totalAmount;
   const cgstRate = 0;
   const sgstRate = 0;
   const cgstAmount = (taxableAmount * cgstRate) / 100;
@@ -246,7 +257,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           billNumber: invoiceNo,
           partyId: partyId,
           date: billDate,
-          subtotal: totalAmount,
+          subtotal: mrpTotal,
           discount: discountTotal,
           cgst: cgstAmount,
           sgst: sgstAmount,
@@ -270,7 +281,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           billNumber: invoiceNo,
           partyId: partyId,
           date: billDate,
-          subtotal: totalAmount,
+          subtotal: mrpTotal,
           discount: discountTotal,
           cgst: cgstAmount,
           sgst: sgstAmount,
@@ -602,7 +613,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                 type="number"
                 min="0"
                 value={partyDiscount}
-                onChange={e => setPartyDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
+                onChange={e => applyGlobalDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
                 className="w-12 border-2 border-gray-300 rounded text-center font-bold no-print py-0.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 readOnly={!!viewBill}
               />
