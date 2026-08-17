@@ -25,6 +25,7 @@ model Product {
   lowStockThreshold Int            @default(10)
   bindingVariant    String?
   hsn               String?
+  part              String?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   billLineItems     BillLineItem[]
