@@ -18,10 +18,11 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
   }, [viewBill]);
   const [billDate, setBillDate] = useState(() => getLocalDateString());
   const [showPaidStamp, setShowPaidStamp] = useState(true);
+  const [defaultDiscount, setDefaultDiscount] = useState<number>(0);
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true);
 
-  const formStateStr = JSON.stringify({ items, billDate, billNo, settings });
+  const formStateStr = JSON.stringify({ items, billDate, billNo, settings, defaultDiscount });
   const lastSavedStateRef = useRef(formStateStr);
 
   useEffect(() => {
@@ -43,6 +44,14 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
           amount: li.amount,
         })));
       }
+      if (viewBill.subtotal && viewBill.subtotal > 0) {
+        const historicalDiscount = viewBill.discount || Math.max(0, viewBill.subtotal - viewBill.total);
+        if (historicalDiscount > 0) {
+          setDefaultDiscount(Number(((historicalDiscount / viewBill.subtotal) * 100).toFixed(2)));
+        } else {
+          setDefaultDiscount(0);
+        }
+      }
     }
   }, [viewBill]);
 
@@ -60,6 +69,13 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
 
   const [createdBillId, setCreatedBillId] = useState<string | null>(null);
 
+  // Calculate totals
+  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
+  const discountTotal = (totalAmount * defaultDiscount) / 100;
+  const subtotalBeforeRound = totalAmount - discountTotal;
+  const roundOff = Math.round(subtotalBeforeRound) - subtotalBeforeRound;
+  const grandTotal = Math.round(subtotalBeforeRound);
+
   const handleSave = async () => {
     if (!validate()) return;
 
@@ -69,7 +85,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
           billNumber: billNo,
           date: billDate,
           subtotal: totalAmount,
-          discount: 0,
+          discount: discountTotal,
           cgst: 0,
           sgst: 0,
           total: grandTotal,
@@ -91,7 +107,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
           billNumber: billNo,
           date: billDate,
           subtotal: totalAmount,
-          discount: 0,
+          discount: discountTotal,
           cgst: 0,
           sgst: 0,
           total: grandTotal,
@@ -117,11 +133,6 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
     }
   };
 
-  // Calculate totals
-  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
-  const roundOff = Math.round(totalAmount) - totalAmount;
-  const grandTotal = Math.round(totalAmount);
-
   const handlePrint = () => {
     if (!validate()) return;
     try {
@@ -143,6 +154,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
                   setItems([]);
                   setCreatedBillId(null);
                   getNextBillNumber('QB-').then(setBillNo);
+                  setDefaultDiscount(0);
                   setHasUnsavedChanges(true);
                 }}
                 className="whitespace-nowrap bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 font-medium shadow-sm transition-colors text-sm"
@@ -180,7 +192,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
           <div className="text-sm w-full text-center mt-1">{settings.companyAddress}</div>
           <div className="text-sm w-full text-center">{settings.companyCity}</div>
           <div className="mt-2 font-bold border border-black inline-block px-4 py-1">
-            QUICK BILL / CASH MEMO
+            QUICK BILL
           </div>
         </div>
 
@@ -218,8 +230,31 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
         </div>
 
         <div className="flex justify-end border border-black z-10 relative">
-          <div className="w-48 border-l border-black p-2">
-            <div className="flex justify-between font-bold text-lg">
+          <div className="w-64 border-l border-black flex flex-col">
+            <div className="flex justify-between p-2 text-sm border-b border-black font-semibold">
+              <span>SUBTOTAL</span>
+              <span>{totalAmount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center p-2 text-sm border-b border-black">
+              <span className="flex items-center gap-2">
+                <span>Discount:</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={defaultDiscount}
+                  onChange={e => setDefaultDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className="w-12 border border-gray-300 rounded text-center font-bold no-print py-0.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  readOnly={!!viewBill}
+                />
+                <span className="hidden print:inline font-bold pr-2">{defaultDiscount}%</span>
+              </span>
+              <span>{discountTotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between p-2 text-sm border-b border-black">
+              <span>Round Off</span>
+              <span>{roundOff > 0 ? '+' : ''}{roundOff.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between p-2 font-bold text-lg">
               <span>TOTAL</span>
               <span>{grandTotal.toFixed(2)}</span>
             </div>

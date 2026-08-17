@@ -234,7 +234,15 @@ export const useStore = create<AppState>((set, get) => ({
         res = [await apiClient.post('/settings', { companyName: 'NILANSU PUBLICATION' })];
       }
       if (Array.isArray(res) && res.length > 0) {
-        set({ settings: res[0] as Settings });
+        set(state => {
+          const mergedSettings = { ...state.settings };
+          Object.entries(res[0]).forEach(([k, v]) => {
+            if (v !== null && v !== '') {
+              (mergedSettings as any)[k] = v;
+            }
+          });
+          return { settings: mergedSettings };
+        });
       }
     } catch (error) {
       console.error('Failed to fetch settings', error);
@@ -244,12 +252,22 @@ export const useStore = create<AppState>((set, get) => ({
   fetchInitialData: async () => {
     try {
       const data = await apiClient.get('/sync/initial');
-      set({
-        settings: data.settings,
-        products: data.products,
-        parties: data.parties,
-        transporters: data.transporters,
-        bills: data.bills
+      set(state => {
+        const mergedSettings = { ...state.settings };
+        if (data.settings) {
+          Object.entries(data.settings).forEach(([k, v]) => {
+            if (v !== null && v !== '') {
+              (mergedSettings as any)[k] = v;
+            }
+          });
+        }
+        return {
+          settings: mergedSettings,
+          products: data.products,
+          parties: data.parties,
+          transporters: data.transporters,
+          bills: data.bills
+        };
       });
     } catch (error: any) {
       console.error('Failed to fetch initial sync data', error);
