@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'https://nilansupublication.com/billing-api/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://72.61.231.155:5004/api';
 
 const getAuthHeaders = () => {
   const token = sessionStorage.getItem('token');
@@ -14,6 +14,12 @@ export const apiClient = {
       method: 'GET',
       headers: getAuthHeaders(),
     });
+    if (res.status === 401) {
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('admin');
+      window.location.href = '/login';
+      throw new Error('Unauthorized');
+    }
     if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
     return res.json();
   },
@@ -23,6 +29,12 @@ export const apiClient = {
       headers: getAuthHeaders(),
       body: JSON.stringify(body),
     });
+    if (res.status === 401) {
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('admin');
+      window.location.href = '/login';
+      throw new Error('Unauthorized');
+    }
     if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
     return res.json();
   },
@@ -32,6 +44,12 @@ export const apiClient = {
       headers: getAuthHeaders(),
       body: JSON.stringify(body),
     });
+    if (res.status === 401) {
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('admin');
+      window.location.href = '/login';
+      throw new Error('Unauthorized');
+    }
     if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
     return res.json();
   },
@@ -40,6 +58,12 @@ export const apiClient = {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
+    if (res.status === 401) {
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('admin');
+      window.location.href = '/login';
+      throw new Error('Unauthorized');
+    }
     if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
     return res.json();
   },

@@ -3,7 +3,8 @@ import { useStore } from '../store/useStore';
 import { getNextBillNumber } from '../utils/billNumber';
 
 export default function TransportBill({ viewBill }: { viewBill?: any }) {
-  const { parties, transporters, createBill, updateBill, showDialog } = useStore();
+  const { parties, transporters, createBill, updateBill, showDialog, settings } = useStore();
+  const [showPaidStamp, setShowPaidStamp] = React.useState(false);
   
   const [billNo, setBillNo] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -164,6 +165,32 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
     }
   };
 
+  const handleSendSMS = async () => {
+    if (!buyerMob) {
+      showDialog({ title: 'Missing Info', message: "Please enter buyer's mobile number first.", type: 'alert' });
+      return;
+    }
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://72.61.231.155:5004/api';
+      const response = await fetch(`${baseUrl}/sms/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: buyerMob,
+          message: `Dear ${buyerName || 'Customer'}, your transport bill ${billNo} has been generated. Total Packet: ${totalPacket}.`
+        })
+      });
+      if (response.ok) {
+        showDialog({ title: 'SMS Sent', message: `SMS sent to ${buyerName} at ${buyerMob} successfully!`, type: 'alert' });
+      } else {
+        throw new Error('Failed to send SMS');
+      }
+    } catch (err) {
+      console.error(err);
+      showDialog({ title: 'SMS Failed', message: `Could not send SMS to ${buyerMob}. Ensure server is running.`, type: 'alert' });
+    }
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -175,6 +202,13 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         <div className="flex flex-wrap gap-2 md:gap-3 justify-end flex-1">
           {!viewBill && (
             <>
+              <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-lg border border-gray-300 shadow-sm text-sm no-print">
+                <input type="checkbox" checked={showPaidStamp} onChange={e => setShowPaidStamp(e.target.checked)} className="cursor-pointer" />
+                <span className="font-semibold text-gray-700">Paid Stamp</span>
+              </label>
+              <button onClick={handleSendSMS} className="whitespace-nowrap bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 font-medium shadow-sm transition-colors text-sm no-print">
+                Send SMS
+              </button>
               <button 
                 onClick={() => {
                   setCreatedBillId(null);
@@ -208,7 +242,12 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         </div>
       </div>
 
-      <div className="a4-page border-2 border-black relative flex flex-col bg-white">
+      <div className="a4-page border-2 border-black relative flex flex-col bg-white overflow-hidden">
+        {showPaidStamp && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-[-30deg] border-4 border-red-500 text-red-500 font-extrabold text-6xl tracking-widest px-8 py-4 opacity-30 rounded-xl pointer-events-none z-50 print:opacity-40 select-none">
+            PAID
+          </div>
+        )}
         <div className="text-center py-4 border-b-2 border-black font-bold text-2xl tracking-wider">
           TRANSPORT BILL
         </div>
@@ -254,34 +293,34 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
             <div className="flex flex-col gap-3">
               <div className="flex flex-col">
                 <span className="text-xs font-semibold text-gray-600">Buyer Name</span>
-                <input value={buyerName} onChange={e => setBuyerName(e.target.value)} className="border-b border-gray-400 outline-none font-bold text-lg" readOnly={!!viewBill} />
+                <input value={buyerName} onChange={e => setBuyerName(e.target.value)} className="border-b border-gray-400 outline-none font-bold text-2xl" readOnly={!!viewBill} />
               </div>
               <div className="flex flex-col">
                 <span className="text-xs font-semibold text-gray-600">Proprietor Name</span>
-                <input value={buyerProprietor} onChange={e => setBuyerProprietor(e.target.value)} className="border-b border-gray-400 outline-none" readOnly={!!viewBill} />
+                <input value={buyerProprietor} onChange={e => setBuyerProprietor(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
               </div>
               <div className="flex flex-col">
                 <span className="text-xs font-semibold text-gray-600">Address</span>
-                <input value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} className="border-b border-gray-400 outline-none" readOnly={!!viewBill} />
+                <input value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold text-gray-600">District</span>
-                  <input value={buyerDistrict} onChange={e => setBuyerDistrict(e.target.value)} className="border-b border-gray-400 outline-none" readOnly={!!viewBill} />
+                  <input value={buyerDistrict} onChange={e => setBuyerDistrict(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold text-gray-600">Pin Code</span>
-                  <input value={buyerPin} onChange={e => setBuyerPin(e.target.value)} className="border-b border-gray-400 outline-none" readOnly={!!viewBill} />
+                  <input value={buyerPin} onChange={e => setBuyerPin(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold text-gray-600">State</span>
-                  <input value={buyerState} onChange={e => setBuyerState(e.target.value)} className="border-b border-gray-400 outline-none" readOnly={!!viewBill} />
+                  <input value={buyerState} onChange={e => setBuyerState(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold text-gray-600">Mobile No.</span>
-                  <input value={buyerMob} onChange={e => setBuyerMob(e.target.value)} className="border-b border-gray-400 outline-none" readOnly={!!viewBill} />
+                  <input value={buyerMob} onChange={e => setBuyerMob(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
                 </div>
               </div>
             </div>
@@ -316,15 +355,15 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
             <div className="flex flex-col gap-3">
               <div className="flex flex-col">
                 <span className="text-xs font-semibold text-gray-600">Transporter Name</span>
-                <input value={transporterName} onChange={e => setTransporterName(e.target.value)} className="border-b border-gray-400 outline-none font-bold text-lg" readOnly={!!viewBill} />
+                <input value={transporterName} onChange={e => setTransporterName(e.target.value)} className="border-b border-gray-400 outline-none font-bold text-xl" readOnly={!!viewBill} />
               </div>
               <div className="flex flex-col">
                 <span className="text-xs font-semibold text-gray-600">Transporter Address</span>
-                <input value={transporterAddress} onChange={e => setTransporterAddress(e.target.value)} className="border-b border-gray-400 outline-none" readOnly={!!viewBill} />
+                <input value={transporterAddress} onChange={e => setTransporterAddress(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
               </div>
               <div className="flex flex-col">
                 <span className="text-xs font-semibold text-gray-600">Transporter Phone No.</span>
-                <input value={transporterPhone} onChange={e => setTransporterPhone(e.target.value)} className="border-b border-gray-400 outline-none" readOnly={!!viewBill} />
+                <input value={transporterPhone} onChange={e => setTransporterPhone(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
               </div>
             </div>
 
@@ -333,16 +372,16 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold text-gray-600">Total Packet</span>
-                  <input value={totalPacket} onChange={e => setTotalPacket(e.target.value)} className="border-b border-gray-400 outline-none font-bold text-lg" readOnly={!!viewBill} />
+                  <input value={totalPacket} onChange={e => setTotalPacket(e.target.value)} className="border-b border-gray-400 outline-none font-bold text-xl" readOnly={!!viewBill} />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold text-gray-600">Value (₹)</span>
-                  <input value={value} onChange={e => setValue(e.target.value)} className="border-b border-gray-400 outline-none font-bold text-lg" readOnly={!!viewBill} />
+                  <input value={value} onChange={e => setValue(e.target.value)} className="border-b border-gray-400 outline-none font-bold text-xl" readOnly={!!viewBill} />
                 </div>
               </div>
               <div className="flex flex-col">
                 <span className="text-xs font-semibold text-gray-600">Material in Packet</span>
-                <input value={material} onChange={e => setMaterial(e.target.value)} className="border-b border-gray-400 outline-none" readOnly={!!viewBill} />
+                <input value={material} onChange={e => setMaterial(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
               </div>
             </div>
 
@@ -350,7 +389,12 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         </div>
 
         {/* BOTTOM SIGNATURE AREA */}
-        <div className="border-t-2 border-black min-h-[150px] p-4 flex flex-col justify-end">
+        <div className="border-t-2 border-black min-h-[150px] p-4 flex flex-col justify-end relative">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center text-center">
+            <span className="font-bold text-xl tracking-wider">{settings.companyName}</span>
+            <span className="text-sm font-semibold">{settings.companyAddress}</span>
+            <span className="text-sm font-semibold">Ph: {settings.companyContact}</span>
+          </div>
           <div className="flex justify-between items-end w-full">
             <div className="w-1/3"></div>
             <div className="w-1/3"></div>

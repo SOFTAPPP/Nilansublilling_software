@@ -320,7 +320,8 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
       return;
     }
     try {
-      const response = await fetch('http://localhost:5000/api/sms/send', {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://72.61.231.155:5004/api';
+      const response = await fetch(`${baseUrl}/sms/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
