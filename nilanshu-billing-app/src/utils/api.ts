@@ -1,30 +1,48 @@
-import Database from '@tauri-apps/plugin-sql';
+const API_URL = import.meta.env.VITE_API_URL || 'https://nilansupublication.com/billing-api/api';
 
-const DB_URL = import.meta.env.VITE_DATABASE_URL || 'postgres://postgres:postgres@localhost/npsoftwaredatabase';
+const getAuthHeaders = () => {
+  const token = sessionStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
 
-let dbInstance: Database | null = null;
-let connectingPromise: Promise<Database> | null = null;
-
-export const getDb = async () => {
-  if (dbInstance) return dbInstance;
-  
-  if (!connectingPromise) {
-    connectingPromise = (async () => {
-      try {
-        console.log('[DB] Connecting to:', DB_URL.replace(/\/\/.*@/, '//***@'));
-        const db = await Database.load(DB_URL);
-        console.log('[DB] Connected successfully');
-        return db;
-      } catch (err: any) {
-        console.error('Database connection failed:', err);
-        connectingPromise = null; // allow retries
-        throw new Error(`DB connection failed: ${err?.message || err?.toString() || 'Unknown error'}`);
-      }
-    })();
-  }
-  
-  dbInstance = await connectingPromise;
-  return dbInstance;
+export const apiClient = {
+  get: async (endpoint: string) => {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+    return res.json();
+  },
+  post: async (endpoint: string, body: any) => {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+    return res.json();
+  },
+  put: async (endpoint: string, body: any) => {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+    return res.json();
+  },
+  delete: async (endpoint: string) => {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+    return res.json();
+  },
 };
 
 // Helper to check authentication

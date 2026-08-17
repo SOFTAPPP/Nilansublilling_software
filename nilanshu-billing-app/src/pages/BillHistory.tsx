@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore, Bill } from '../store/useStore';
-import { getDb } from '../utils/api';
+
 import { Search, Printer, Download, Trash2, X } from 'lucide-react';
 import { numberToWords } from '../utils/numberToWords';
 import { getLocalDateString } from '../utils/dateUtils';
@@ -62,11 +62,11 @@ export default function BillHistory() {
     if (loadingBillId) return; // Prevent multiple clicks
     try {
       setLoadingBillId(bill.id);
-      const db = await getDb();
-      const items = await db.select<any[]>(
-        'SELECT bli.*, p.name as "productName" FROM "BillLineItem" bli LEFT JOIN "Product" p ON bli."productId" = p.id WHERE bli."billId" = $1',
-        [bill.id]
-      );
+      // Line items are already fetched by the backend in /bills
+      const items = ((bill as any).lineItems || []).map((item: any) => ({
+        ...item,
+        productName: useStore.getState().products.find(p => p.id === item.productId)?.name || 'Unknown Product'
+      }));
       const party = parties.find(p => p.id === bill.partyId);
       setSelectedBill({
         ...bill,

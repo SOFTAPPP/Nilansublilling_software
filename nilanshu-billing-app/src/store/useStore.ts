@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getDb } from '../utils/api';
+import { apiClient } from '../utils/api';
 
 export interface Product {
   id: string; // generate simple ID
@@ -128,13 +128,9 @@ interface AppState {
   deleteBill: (id: string) => Promise<void>;
   addProductsBulk: (products: Partial<Product>[]) => Promise<void>;
   findProductByBarcode: (barcode: string) => Product | undefined;
-  
-  _syncQueue: { task: () => Promise<void>; resolve: () => void; reject: (err: any) => void }[];
-  _isSyncing: boolean;
-  enqueueSync: (task: () => Promise<void>) => Promise<void>;
 }
 
-export const useStore = create<AppState>((set) => ({
+export const useStore = create<AppState>((set, get) => ({
   products: [],
   parties: [],
   transporters: [],
@@ -163,80 +159,23 @@ export const useStore = create<AppState>((set) => ({
     type: 'alert'
   },
   
-  _syncQueue: [],
-  _isSyncing: false,
-  enqueueSync: (task) => {
-    return new Promise((resolve, reject) => {
-      set((state) => ({ _syncQueue: [...state._syncQueue, { task, resolve, reject }] }));
-      const processQueue = async () => {
-        if (useStore.getState()._isSyncing) return;
-        useStore.setState({ _isSyncing: true });
-        while (useStore.getState()._syncQueue.length > 0) {
-          const { task: nextTask, resolve: res, reject: rej } = useStore.getState()._syncQueue[0];
-          try {
-            await nextTask();
-            res();
-          } catch (err) {
-            console.error("Queue Task Failed", err);
-            rej(err);
-          }
-          set((state) => ({ _syncQueue: state._syncQueue.slice(1) }));
-        }
-        useStore.setState({ _isSyncing: false });
-      };
-      processQueue();
-    });
-  },
-
   showDialog: (options) => set({ dialog: { ...options, isOpen: true } }),
   closeDialog: () => set((state) => ({ dialog: { ...state.dialog, isOpen: false } })),
   setProducts: (products) => set({ products }),
   setParties: (parties) => set({ parties }),
+  
   updateSettings: async (newSettings) => {
     try {
-      const current = useStore.getState().settings;
+      const current = get().settings;
       const updated = { ...current, ...newSettings };
-
-      // Update UI state immediately to prevent React input cursor jumping
       set({ settings: updated });
-
-      const db = await getDb();
-
-      const res = await db.select('SELECT * FROM "Settings" WHERE id = 1');
-      if (Array.isArray(res) && res.length > 0) {
-        await db.execute(
-          `UPDATE "Settings" SET 
-            "companyName"=$1, "companyAddress"=$2, "companyCity"=$3, "companyGstin"=$4, 
-            "companyState"=$5, "companyContact"=$6, "companyEmail"=$7, "companyPan"=$8, 
-            "bankAccountName"=$9, "bankName"=$10, "bankAccountNo"=$11, "bankIfsc"=$12 
-          WHERE id = 1`,
-          [
-            updated.companyName || '', updated.companyAddress || '', updated.companyCity || '', updated.companyGstin || '',
-            updated.companyState || '', updated.companyContact || '', updated.companyEmail || '', updated.companyPan || '',
-            updated.bankAccountName || '', updated.bankName || '', updated.bankAccountNo || '', updated.bankIfsc || ''
-          ]
-        );
-      } else {
-        await db.execute(
-          `INSERT INTO "Settings" (
-            id, "companyName", "companyAddress", "companyCity", "companyGstin", 
-            "companyState", "companyContact", "companyEmail", "companyPan", 
-            "bankAccountName", "bankName", "bankAccountNo", "bankIfsc"
-          ) VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-          [
-            updated.companyName || '', updated.companyAddress || '', updated.companyCity || '', updated.companyGstin || '',
-            updated.companyState || '', updated.companyContact || '', updated.companyEmail || '', updated.companyPan || '',
-            updated.bankAccountName || '', updated.bankName || '', updated.bankAccountNo || '', updated.bankIfsc || ''
-          ]
-        );
-      }
-      // DB updated successfully in background
+      await apiClient.put('/settings/1', updated);
     } catch (error) {
       console.error('Failed to update settings in database', error);
-      // Fallback to local state if database fails
       set((state) => ({ settings: { ...state.settings, ...newSettings } }));
     }
   },
+  
   toggleTheme: () => set((state) => {
     const newTheme = state.theme === 'light' ? 'dark' : 'light';
     if (newTheme === 'dark') {
@@ -246,657 +185,238 @@ export const useStore = create<AppState>((set) => ({
     }
     return { theme: newTheme };
   }),
+  
   fetchProducts: async () => {
     try {
-      const db = await getDb();
-      const products = await db.select('SELECT id, name, category, price, stock, "lowStockThreshold", "bindingVariant", hsn, barcode FROM "Product"');
+      const products = await apiClient.get('/products');
       set({ products: products as Product[] });
     } catch (error: any) {
       console.error('Failed to fetch products', error);
-      useStore.getState().showDialog({ title: 'Fetch Error', message: 'Failed to load products: ' + (error.message || String(error)), type: 'alert' });
+      get().showDialog({ title: 'Fetch Error', message: 'Failed to load products: ' + (error.message || String(error)), type: 'alert' });
     }
   },
+  
   fetchParties: async () => {
     try {
-      const db = await getDb();
-      const parties = await db.select('SELECT id, name, "proprietorName", address, phone, email, "aadharNumber", "discountPercentage", "outstandingBalance", "bankName", "bankAccountNo", "bankIfsc" FROM "Party"');
+      const parties = await apiClient.get('/parties');
       set({ parties: parties as Party[] });
     } catch (error: any) {
       console.error('Failed to fetch parties', error);
-      useStore.getState().showDialog({ title: 'Fetch Error', message: 'Failed to load customers: ' + (error.message || String(error)), type: 'alert' });
+      get().showDialog({ title: 'Fetch Error', message: 'Failed to load customers: ' + (error.message || String(error)), type: 'alert' });
     }
   },
+  
   fetchTransporters: async () => {
     try {
-      const db = await getDb();
-      const transporters = await db.select('SELECT id, name, phone, address FROM "Transporter"');
+      const transporters = await apiClient.get('/transporters');
       set({ transporters: transporters as Transporter[] });
     } catch (error: any) {
       console.error('Failed to fetch transporters', error);
-      useStore.getState().showDialog({ title: 'Fetch Error', message: 'Failed to load transporters: ' + (error.message || String(error)), type: 'alert' });
+      get().showDialog({ title: 'Fetch Error', message: 'Failed to load transporters: ' + (error.message || String(error)), type: 'alert' });
     }
   },
+  
   fetchBills: async () => {
-    return useStore.getState().enqueueSync(async () => {
-      try {
-        const db = await getDb();
-        const bills = await db.select('SELECT id, type, "billNumber", "partyId", "transporterId", subtotal, discount, cgst, sgst, total, "paymentAmount", status, CAST(date AS TEXT) as date FROM "Bill" ORDER BY date DESC, "createdAt" DESC');
-        const normalizedBills = (bills as any[]).map(b => {
-          let dateStr = String(b.date);
-          if (dateStr.includes(' ') && !dateStr.includes('T')) {
-            dateStr = dateStr.replace(' ', 'T') + 'Z';
-          }
-          return { ...b, date: dateStr };
-        });
-        set({ bills: normalizedBills as Bill[] });
-      } catch (error: any) {
-        console.error('Failed to fetch bills', error);
-        useStore.getState().showDialog({ title: 'Fetch Error', message: 'Failed to load bills: ' + (error.message || String(error)), type: 'alert' });
-      }
-    });
+    try {
+      const bills = await apiClient.get('/bills');
+      set({ bills: bills as Bill[] });
+    } catch (error: any) {
+      console.error('Failed to fetch bills', error);
+      get().showDialog({ title: 'Fetch Error', message: 'Failed to load bills: ' + (error.message || String(error)), type: 'alert' });
+    }
   },
+  
   fetchSettings: async () => {
     try {
-      const db = await getDb();
-      let res = await db.select('SELECT * FROM "Settings" WHERE id = 1');
+      let res = await apiClient.get('/settings');
       if (!Array.isArray(res) || res.length === 0) {
-        await db.execute('INSERT INTO "Settings" (id, "companyName") VALUES (1, $1)', ['NILANSU PUBLICATION']);
-        res = await db.select('SELECT * FROM "Settings" WHERE id = 1');
+        res = [await apiClient.post('/settings', { companyName: 'NILANSU PUBLICATION' })];
       }
       if (Array.isArray(res) && res.length > 0) {
-        const dbSettings = res[0] as Settings;
-        let needsUpdate = false;
-        if (!dbSettings.companyName) { dbSettings.companyName = 'NILANSU PUBLICATION'; needsUpdate = true; }
-        if (!dbSettings.companyAddress) { dbSettings.companyAddress = '34, BENIATOLA LANE'; needsUpdate = true; }
-        if (!dbSettings.companyCity) { dbSettings.companyCity = 'KOLKATA - 700009'; needsUpdate = true; }
-        if (!dbSettings.companyContact) { dbSettings.companyContact = '+91 8240160147'; needsUpdate = true; }
-        if (!dbSettings.companyEmail) { dbSettings.companyEmail = 'nilansupublication@gmail.com'; needsUpdate = true; }
-        if (!dbSettings.companyPan) { dbSettings.companyPan = 'CJZPP7439N'; needsUpdate = true; }
-
-        if (needsUpdate) {
-          await db.execute(
-            'UPDATE "Settings" SET "companyName"=$1, "companyAddress"=$2, "companyCity"=$3, "companyContact"=$4, "companyEmail"=$5, "companyPan"=$6 WHERE id = 1',
-            [dbSettings.companyName, dbSettings.companyAddress, dbSettings.companyCity, dbSettings.companyContact, dbSettings.companyEmail, dbSettings.companyPan]
-          );
-        }
-        set({ settings: dbSettings });
+        set({ settings: res[0] as Settings });
       }
     } catch (error) {
       console.error('Failed to fetch settings', error);
     }
   },
+  
   addProduct: async (product) => {
-    const id = product.id || `PROD-${Math.floor(1000 + Math.random() * 9000)}`;
-    const newProduct: Product = {
-      id, name: product.name || '', category: product.category || '', price: product.price || 0,
-      stock: product.stock || 0, lowStockThreshold: product.lowStockThreshold || 10,
-      bindingVariant: product.bindingVariant || undefined, hsn: product.hsn || undefined, barcode: product.barcode || undefined
-    };
-    // Optimistic: update UI instantly
-    set((state) => ({ products: [newProduct, ...state.products] }));
-    // Background: persist to DB
     try {
-      const db = await getDb();
-      await db.execute(
-        'INSERT INTO "Product" (id, name, category, price, stock, "lowStockThreshold", "bindingVariant", hsn, barcode, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())',
-        [id, newProduct.name, newProduct.category, Number(newProduct.price) || 0, Number(newProduct.stock) || 0, Number(newProduct.lowStockThreshold) || 10, newProduct.bindingVariant || null, newProduct.hsn || null, newProduct.barcode || null]
-      );
+      await apiClient.post('/products', product);
+      await get().fetchProducts();
     } catch (err: any) {
       console.error('Add Product DB Error:', err);
-      useStore.getState().showDialog({ title: 'Add Party Failed', message: err.message || 'Database error', type: 'alert' });
-      useStore.getState().fetchProducts(); // Rollback
+      get().showDialog({ title: 'Add Product Failed', message: err.message || 'Database error', type: 'alert' });
     }
   },
+  
   addProductsBulk: async (productsList) => {
-    const db = await getDb();
-    // Use a transaction or sequential inserts
+    // Basic bulk insert fallback via sequential API calls (or implement a bulk endpoint in backend)
     for (const product of productsList) {
-      const id = product.id || `PROD-${Math.floor(1000 + Math.random() * 9000)}`;
       try {
-        await db.execute(
-          'INSERT INTO "Product" (id, name, category, price, stock, "lowStockThreshold", "bindingVariant", hsn, barcode, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())',
-          [id, product.name, product.category, product.price || 0, product.stock || 0, product.lowStockThreshold || 10, product.bindingVariant || null, product.hsn || null, product.barcode || null]
-        );
+        await apiClient.post('/products', product);
       } catch (err) {
         console.error('Failed to insert product bulk', product.name, err);
       }
     }
-    await useStore.getState().fetchProducts();
+    await get().fetchProducts();
   },
+  
   updateProduct: async (id, product) => {
     try {
-      // Optimistic: update UI instantly
-      set((state) => ({
-        products: state.products.map(p => p.id === id ? { ...p, ...product } : p)
-      }));
-      // Background: persist to DB
-      const db = await getDb();
-      await db.execute(
-        'UPDATE "Product" SET name=$1, category=$2, price=$3, stock=$4, "lowStockThreshold"=$5, "bindingVariant"=$6, hsn=$7, barcode=$8, "updatedAt"=NOW() WHERE id=$9',
-        [product.name, product.category, Number(product.price) || 0, Number(product.stock) || 0, Number(product.lowStockThreshold) || 10, product.bindingVariant || null, product.hsn || null, product.barcode || null, id]
-      );
+      await apiClient.put(`/products/${id}`, product);
+      await get().fetchProducts();
     } catch (err: any) {
       console.error('Update Product Error:', err);
-      useStore.getState().showDialog({ title: 'Update Error', message: err.message || 'Failed to update product', type: 'alert' });
-      useStore.getState().fetchProducts(); // Rollback on error
+      get().showDialog({ title: 'Update Error', message: err.message || 'Failed to update product', type: 'alert' });
     }
   },
+  
   deleteProduct: async (id) => {
     try {
-      // Optimistic: remove from UI instantly
-      set((state) => ({ products: state.products.filter(p => p.id !== id) }));
-      const db = await getDb();
-      await db.execute('DELETE FROM "Product" WHERE id=$1', [id]);
+      await apiClient.delete(`/products/${id}`);
+      await get().fetchProducts();
     } catch (err) {
-      useStore.getState().showDialog({ title: 'Delete Failed', message: 'Cannot delete this product because it is already used in existing bills or records.', type: 'alert' });
-      useStore.getState().fetchProducts(); // Rollback on error
+      get().showDialog({ title: 'Delete Failed', message: 'Cannot delete this product because it is already used in existing bills or records.', type: 'alert' });
     }
   },
+  
   addParty: async (party) => {
-    const id = party.id || crypto.randomUUID();
-    const newParty: Party = {
-      id, name: party.name || '', proprietorName: party.proprietorName || '', address: party.address || '', phone: party.phone || '',
-      email: party.email || undefined, aadharNumber: party.aadharNumber || undefined,
-      discountPercentage: party.discountPercentage || 0, outstandingBalance: party.outstandingBalance || 0,
-      bankName: party.bankName || '', bankAccountNo: party.bankAccountNo || '', bankIfsc: party.bankIfsc || ''
-    };
-    set((state) => ({ parties: [newParty, ...state.parties] }));
     try {
-      const db = await getDb();
-      await db.execute(
-        'INSERT INTO "Party" (id, name, "proprietorName", address, phone, email, "aadharNumber", "discountPercentage", "outstandingBalance", "bankName", "bankAccountNo", "bankIfsc", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())',
-        [id, newParty.name, newParty.proprietorName, newParty.address, newParty.phone, newParty.email || null, newParty.aadharNumber || null, Number(newParty.discountPercentage) || 0, Number(newParty.outstandingBalance) || 0, newParty.bankName, newParty.bankAccountNo, newParty.bankIfsc]
-      );
+      await apiClient.post('/parties', party);
+      await get().fetchParties();
     } catch (err: any) {
       console.error('Add Party DB Error:', err);
-      useStore.getState().showDialog({ title: 'Add Party Failed', message: err.message || 'Database error', type: 'alert' });
-      useStore.getState().fetchParties(); // Rollback
+      get().showDialog({ title: 'Add Party Failed', message: err.message || 'Database error', type: 'alert' });
     }
   },
+  
   updateParty: async (id, party) => {
-    set((state) => ({ parties: state.parties.map(p => p.id === id ? { ...p, ...party } : p) }));
     try {
-      const db = await getDb();
-      await db.execute(
-        'UPDATE "Party" SET name=$1, "proprietorName"=$2, address=$3, phone=$4, email=$5, "aadharNumber"=$6, "discountPercentage"=$7, "outstandingBalance"=$8, "bankName"=$9, "bankAccountNo"=$10, "bankIfsc"=$11, "updatedAt"=NOW() WHERE id=$12',
-        [party.name, party.proprietorName || '', party.address, party.phone, party.email || null, party.aadharNumber || null, Number(party.discountPercentage) || 0, Number(party.outstandingBalance) || 0, party.bankName || '', party.bankAccountNo || '', party.bankIfsc || '', id]
-      );
+      await apiClient.put(`/parties/${id}`, party);
+      await get().fetchParties();
     } catch (err: any) {
       console.error('Update Party Error:', err);
-      useStore.getState().showDialog({ title: 'Update Party Failed', message: err.message || 'Database error', type: 'alert' });
-      useStore.getState().fetchParties(); // Rollback
+      get().showDialog({ title: 'Update Party Failed', message: err.message || 'Database error', type: 'alert' });
     }
   },
+  
   deleteParty: async (id) => {
     try {
-      const db = await getDb();
-      await db.execute('DELETE FROM "Party" WHERE id=$1', [id]);
-      set((state) => ({ parties: state.parties.filter(p => p.id !== id) }));
+      await apiClient.delete(`/parties/${id}`);
+      await get().fetchParties();
     } catch (err) {
-      useStore.getState().showDialog({ title: 'Delete Failed', message: 'Cannot delete this customer because they have existing bills or records.', type: 'alert' });
+      get().showDialog({ title: 'Delete Failed', message: 'Cannot delete this customer because they have existing bills or records.', type: 'alert' });
     }
   },
+  
   addTransporter: async (transporter) => {
-    const id = transporter.id || crypto.randomUUID();
-    const newT: Transporter = { id, name: transporter.name || '', phone: transporter.phone || '', address: transporter.address || '' };
-    set((state) => ({ transporters: [newT, ...state.transporters] }));
-    const db = await getDb();
-    await db.execute(
-      'INSERT INTO "Transporter" (id, name, address, phone, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW())',
-      [id, newT.name, newT.address, newT.phone]
-    );
+    try {
+      await apiClient.post('/transporters', transporter);
+      await get().fetchTransporters();
+    } catch (err: any) {
+      get().showDialog({ title: 'Add Transporter Failed', message: err.message || 'Database error', type: 'alert' });
+    }
   },
+  
   updateTransporter: async (id, transporter) => {
-    set((state) => ({ transporters: state.transporters.map(t => t.id === id ? { ...t, ...transporter } : t) }));
-    const db = await getDb();
-    await db.execute(
-      'UPDATE "Transporter" SET name=$1, address=$2, phone=$3, "updatedAt"=NOW() WHERE id=$4',
-      [transporter.name, transporter.address, transporter.phone, id]
-    );
+    try {
+      await apiClient.put(`/transporters/${id}`, transporter);
+      await get().fetchTransporters();
+    } catch (err: any) {
+      get().showDialog({ title: 'Update Transporter Failed', message: err.message || 'Database error', type: 'alert' });
+    }
   },
+  
   deleteTransporter: async (id) => {
     try {
-      const db = await getDb();
-      await db.execute('DELETE FROM "Transporter" WHERE id=$1', [id]);
-      set((state) => ({ transporters: state.transporters.filter(t => t.id !== id) }));
+      await apiClient.delete(`/transporters/${id}`);
+      await get().fetchTransporters();
     } catch (err) {
-      useStore.getState().showDialog({ title: 'Delete Failed', message: 'Cannot delete this transporter because they have existing bills or records.', type: 'alert' });
+      get().showDialog({ title: 'Delete Failed', message: 'Cannot delete this transporter.', type: 'alert' });
     }
   },
+  
   createBill: async (billData) => {
-    const id = crypto.randomUUID();
-
     if (!billData.lineItems || billData.lineItems.length === 0) {
       throw new Error('Bill must have at least one line item.');
     }
 
-    const newProductsToCreate: any[] = [];
-    // Validate and auto-create products for manually typed line items
+    // Auto-create products for manually typed line items
     for (let i = 0; i < billData.lineItems.length; i++) {
       if (!billData.lineItems[i].productId) {
         if (!billData.lineItems[i].productName?.trim()) {
           throw new Error(`Item ${i + 1} is empty. Please enter a product name.`);
         }
 
-        const existingProd = useStore.getState().products.find(p => p.name.toLowerCase() === billData.lineItems[i].productName.trim().toLowerCase());
+        const existingProd = get().products.find(p => p.name.toLowerCase() === billData.lineItems[i].productName.trim().toLowerCase());
 
         if (existingProd) {
           billData.lineItems[i].productId = existingProd.id;
         } else {
-          const newProdId = `PROD-${Math.floor(1000 + Math.random() * 9000)}`;
-          newProductsToCreate.push({
-            id: newProdId,
+          // Create product via API first
+          const newProd = await apiClient.post('/products', {
             name: billData.lineItems[i].productName.trim(),
-            mrp: billData.lineItems[i].mrp || 0,
+            category: 'Miscellaneous',
+            price: billData.lineItems[i].mrp || 0,
+            stock: 0,
+            lowStockThreshold: 10,
             hsn: billData.lineItems[i].hsn || null
           });
-          billData.lineItems[i].productId = newProdId;
+          billData.lineItems[i].productId = newProd.id;
         }
       }
     }
 
-    // Pre-flight: check stock availability for non-return bills
-    const type = billData.type || 'cash';
-    if (type !== 'return') {
-      for (const item of billData.lineItems) {
-        if (!item.productId) continue;
-        if (newProductsToCreate.some(np => np.id === item.productId)) continue;
-
-        const existingProd = useStore.getState().products.find(p => p.id === item.productId);
-        if (!existingProd) continue;
-
-        const currentStock = existingProd.stock;
-        const needed = Number(item.quantity) || 0;
-        if (currentStock < needed && existingProd.category !== 'Miscellaneous') {
-          throw new Error(`Insufficient stock for "${existingProd.name}". Available: ${currentStock}, Needed: ${needed}`);
-        }
-      }
+    try {
+      const res = await apiClient.post('/bills', billData);
+      
+      // Refresh state to grab updated stock, party balances, and bills
+      await get().fetchProducts();
+      await get().fetchParties();
+      await get().fetchBills();
+      
+      return res.id;
+    } catch (err: any) {
+      console.error('Create Bill Error:', err);
+      get().showDialog({ title: 'Bill Save Error', message: err.message || 'Failed to save bill', type: 'alert' });
+      throw err;
     }
-
-    // Optimistic: update local state for stock changes instead of re-fetching
-    set((state) => {
-      // Add the new miscellaneous products to local state immediately
-      const appendedProducts = [...state.products];
-      for (const np of newProductsToCreate) {
-        appendedProducts.push({
-          id: np.id, name: np.name, category: 'Miscellaneous', price: np.mrp, stock: 0, lowStockThreshold: 10, bindingVariant: null, hsn: np.hsn, barcode: null
-        } as any);
-      }
-
-      const updatedProducts = appendedProducts.map(p => {
-        const lineItem = (billData.lineItems || []).find((li: any) => li.productId === p.id);
-        if (lineItem) {
-          const qty = Number(lineItem.quantity) || 0;
-          return { ...p, stock: type === 'return' ? p.stock + qty : p.stock - qty };
-        }
-        return p;
-      });
-      const newBill: Bill = {
-        id, type, billNumber: billData.billNumber || `BILL-${Date.now()}`,
-        partyId: billData.partyId || undefined, transporterId: billData.transporterId || undefined,
-        subtotal: billData.subtotal, discount: billData.discount,
-        cgst: billData.cgst || 0, sgst: billData.sgst || 0, total: billData.total,
-        paymentAmount: Math.abs(billData.deductedAmount || 0),
-        status: billData.status || 'completed', date: billData.date || new Date().toISOString()
-      };
-      const updatedParties = billData.partyId ? state.parties.map(p => {
-        if (p.id === billData.partyId) {
-          const deducted = billData.deductedAmount || 0;
-          const actualDeducted = deducted > 0 ? deducted : 0;
-          const addedPayment = deducted < 0 ? Math.abs(deducted) : 0;
-          const effectiveTotal = billData.total || 0;
-          let balanceChange = 0;
-          
-          if (type === 'credit') {
-            balanceChange = effectiveTotal - actualDeducted - addedPayment;
-          } else if (type === 'cash') {
-            if (addedPayment > 0) {
-              balanceChange = -addedPayment;
-            }
-          } else if (type === 'return' || type === 'receipt') {
-            balanceChange = -effectiveTotal;
-          }
-          
-          return { ...p, outstandingBalance: p.outstandingBalance + balanceChange };
-        }
-        return p;
-      }) : state.parties;
-      return { products: updatedProducts, bills: [newBill, ...state.bills], parties: updatedParties };
-    });
-
-    // Background DB sync
-    useStore.getState().enqueueSync(async () => {
-      try {
-        const db = await getDb();
-
-        // Insert new miscellaneous products
-        for (const np of newProductsToCreate) {
-          await db.execute(
-            'INSERT INTO "Product" (id, name, category, price, stock, "lowStockThreshold", "bindingVariant", hsn, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())',
-            [np.id, np.name, 'Miscellaneous', np.mrp, 0, 10, null, np.hsn]
-          );
-        }
-
-        await db.execute(
-          `INSERT INTO "Bill" (
-            id, type, "billNumber", "partyId", "transporterId", subtotal, discount, cgst, sgst, total, "paymentAmount", status, date, 
-            "vehicleNo", destination, "driverName", "lrNo", "createdAt", "updatedAt"
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CAST($13 AS TIMESTAMP), $14, $15, $16, $17, NOW(), NOW())`,
-          [
-            id, type, billData.billNumber || `BILL-${Date.now()}`, billData.partyId || null, billData.transporterId || null,
-            Number(billData.subtotal) || 0, Number(billData.discount) || 0, Number(billData.cgst) || 0, Number(billData.sgst) || 0, Number(billData.total) || 0,
-            Math.abs(Number(billData.deductedAmount) || 0),
-            billData.status || 'completed', billData.date ? new Date(billData.date).toISOString() : new Date().toISOString(),
-            billData.vehicleNo || null, billData.destination || null, billData.driverName || null, billData.lrNo || null
-          ]
-        );
-
-        for (const item of (billData.lineItems || [])) {
-          const itemId = crypto.randomUUID();
-          await db.execute(
-            'INSERT INTO "BillLineItem" (id, "billId", "productId", quantity, mrp, "discountPercent", amount, rate, hsn) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-            [itemId, id, item.productId, Number(item.quantity) || 0, Number(item.mrp) || 0, Number(item.discountPercent) || 0, Number(item.amount) || 0, Number(item.rate) || 0, item.hsn || '']
-          );
-
-          if (item.productId) {
-            if (type === 'return') {
-              await db.execute('UPDATE "Product" SET stock = stock + $1, "updatedAt" = NOW() WHERE id = $2', [Number(item.quantity) || 0, item.productId]);
-            } else {
-              await db.execute('UPDATE "Product" SET stock = stock - $1, "updatedAt" = NOW() WHERE id = $2', [Number(item.quantity) || 0, item.productId]);
-            }
-          }
-        }
-
-        if (billData.partyId) {
-          if (type === 'credit') {
-            const deducted = billData.deductedAmount || 0;
-            const actualDeducted = deducted > 0 ? deducted : 0;
-            const addedPayment = deducted < 0 ? Math.abs(deducted) : 0;
-            const change = (Number(billData.total) || 0) - actualDeducted - addedPayment;
-            await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [change, billData.partyId]);
-          } else if (type === 'cash') {
-            const deducted = billData.deductedAmount || 0;
-            const addedPayment = deducted < 0 ? Math.abs(deducted) : 0;
-            if (addedPayment > 0) {
-              await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [addedPayment, billData.partyId]);
-            }
-          } else if (type === 'return' || type === 'receipt') {
-            await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [Number(billData.total) || 0, billData.partyId]);
-          }
-        }
-      } catch (err: any) {
-        console.error('Create Bill Background Error:', err);
-        useStore.getState().showDialog({ title: 'Bill Save Error', message: err.message || 'Background sync failed', type: 'alert' });
-        // Rollback
-        await useStore.getState().fetchProducts();
-        await useStore.getState().fetchParties();
-        await useStore.getState().fetchBills();
-      }
-    });
-
-    return id;
   },
+  
   updateBill: async (id, type, billData) => {
     try {
-      const db = await getDb();
-      const oldBill = useStore.getState().bills.find(b => b.id === id);
-      if (!oldBill) throw new Error("Bill not found");
-
-      // Fetch old line items to accurately revert stock
-      const oldItemsResult = await db.select('SELECT * FROM "BillLineItem" WHERE "billId" = $1', [id]);
-      const oldLineItems = (Array.isArray(oldItemsResult) ? oldItemsResult : []) as any[];
-
-      // Fetch old bill's actual deducted amount if we saved it in DB? We don't save deductedAmount directly, 
-      // but we can just let background DB handle it, or we can approximate it. 
-      // Actually, since this is a local-first store, we must do optimistic UI updates.
-      set((state) => {
-        // 1. Revert Old Party Balance
-        let revertedParties = state.parties;
-        if (oldBill.partyId) {
-          revertedParties = revertedParties.map(p => {
-            if (p.id === oldBill.partyId) {
-              const revert = oldBill.type === 'credit' ? -oldBill.total : oldBill.type === 'return' ? oldBill.total : 0;
-              return { ...p, outstandingBalance: p.outstandingBalance + revert };
-            }
-            return p;
-          });
-        }
-
-        // 2. Apply New Party Balance
-        const updatedParties = billData.partyId ? revertedParties.map(p => {
-          if (p.id === billData.partyId) {
-            const deducted = billData.deductedAmount || 0;
-            const actualDeducted = deducted > 0 ? deducted : 0;
-            const addedPayment = deducted < 0 ? Math.abs(deducted) : 0;
-            const effectiveTotal = billData.total || 0;
-            let balanceChange = 0;
-            
-            if (type === 'credit') {
-              balanceChange = effectiveTotal - actualDeducted - addedPayment;
-            } else if (type === 'cash') {
-              if (addedPayment > 0) {
-                balanceChange = -addedPayment;
-              }
-            } else if (type === 'return' || type === 'receipt') {
-              balanceChange = -effectiveTotal;
-            }
-            
-            return { ...p, outstandingBalance: p.outstandingBalance + balanceChange };
-          }
-          return p;
-        }) : revertedParties;
-
-        // 3. Revert Old Stock & Apply New Stock
-        const updatedProducts = state.products.map(p => {
-          let stock = p.stock;
-          // Revert old
-          const oldItem = oldLineItems.find(li => li.productId === p.id);
-          if (oldItem) {
-            stock = oldBill.type === 'return' ? stock - (Number(oldItem.quantity)||0) : stock + (Number(oldItem.quantity)||0);
-          }
-          // Apply new
-          const newItem = (billData.lineItems || []).find((li: any) => li.productId === p.id);
-          if (newItem) {
-            stock = type === 'return' ? stock + (Number(newItem.quantity)||0) : stock - (Number(newItem.quantity)||0);
-          }
-          return { ...p, stock };
-        });
-
-        // 4. Update Bills List
-        const updatedBills = state.bills.map(b => b.id === id ? {
-          ...b,
-          type,
-          partyId: billData.partyId || undefined,
-          transporterId: billData.transporterId || undefined,
-          subtotal: billData.subtotal,
-          discount: billData.discount,
-          cgst: billData.cgst || 0,
-          sgst: billData.sgst || 0,
-          total: billData.total,
-          paymentAmount: Math.abs(billData.deductedAmount || 0),
-          status: billData.status || 'completed',
-          date: billData.date || b.date
-        } : b);
-
-        return { products: updatedProducts, parties: updatedParties, bills: updatedBills };
-      });
-
-      // Background DB Sync
-      useStore.getState().enqueueSync(async () => {
-        try {
-          const db = await getDb();
-
-          // Revert old DB Party Balance
-          if (oldBill.partyId) {
-            const revert = oldBill.type === 'credit' ? -oldBill.total : oldBill.type === 'return' ? oldBill.total : 0;
-            if (revert !== 0) {
-              await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [revert, oldBill.partyId]);
-            }
-          }
-
-          // Revert old DB Stock
-          for (const oldItem of oldLineItems) {
-            if (oldItem.productId) {
-              if (oldBill.type === 'return') {
-                await db.execute('UPDATE "Product" SET stock = stock - $1, "updatedAt" = NOW() WHERE id = $2', [Number(oldItem.quantity) || 0, oldItem.productId]);
-              } else {
-                await db.execute('UPDATE "Product" SET stock = stock + $1, "updatedAt" = NOW() WHERE id = $2', [Number(oldItem.quantity) || 0, oldItem.productId]);
-              }
-            }
-          }
-
-          // Delete Old Line Items
-          await db.execute('DELETE FROM "BillLineItem" WHERE "billId" = $1', [id]);
-
-          // Update Bill Record
-          await db.execute(
-            `UPDATE "Bill" SET 
-              type = $1, "partyId" = $2, "transporterId" = $3, subtotal = $4, discount = $5, cgst = $6, sgst = $7, total = $8, "paymentAmount" = $9, status = $10, date = CAST($11 AS TIMESTAMP), 
-              "vehicleNo" = $12, destination = $13, "driverName" = $14, "lrNo" = $15, "updatedAt" = NOW()
-             WHERE id = $16`,
-            [
-              type, billData.partyId || null, billData.transporterId || null,
-              Number(billData.subtotal) || 0, Number(billData.discount) || 0, Number(billData.cgst) || 0, Number(billData.sgst) || 0, Number(billData.total) || 0,
-              Math.abs(Number(billData.deductedAmount) || 0),
-              billData.status || 'completed', billData.date ? new Date(billData.date).toISOString() : new Date().toISOString(),
-              billData.vehicleNo || null, billData.destination || null, billData.driverName || null, billData.lrNo || null,
-              id
-            ]
-          );
-
-          // Insert New Line Items
-          for (const item of (billData.lineItems || [])) {
-            const itemId = crypto.randomUUID();
-            await db.execute(
-              'INSERT INTO "BillLineItem" (id, "billId", "productId", quantity, mrp, "discountPercent", amount, rate, hsn) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-              [itemId, id, item.productId, Number(item.quantity) || 0, Number(item.mrp) || 0, Number(item.discountPercent) || 0, Number(item.amount) || 0, Number(item.rate) || 0, item.hsn || '']
-            );
-
-            // Apply new stock
-            if (item.productId) {
-              if (type === 'return') {
-                await db.execute('UPDATE "Product" SET stock = stock + $1, "updatedAt" = NOW() WHERE id = $2', [Number(item.quantity) || 0, item.productId]);
-              } else {
-                await db.execute('UPDATE "Product" SET stock = stock - $1, "updatedAt" = NOW() WHERE id = $2', [Number(item.quantity) || 0, item.productId]);
-              }
-            }
-          }
-
-          // Apply new party DB balance
-          if (billData.partyId) {
-            if (type === 'credit') {
-              const deducted = billData.deductedAmount || 0;
-              const actualDeducted = deducted > 0 ? deducted : 0;
-              const addedPayment = deducted < 0 ? Math.abs(deducted) : 0;
-              const change = (Number(billData.total) || 0) - actualDeducted - addedPayment;
-              await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [change, billData.partyId]);
-            } else if (type === 'cash') {
-              const deducted = billData.deductedAmount || 0;
-              const addedPayment = deducted < 0 ? Math.abs(deducted) : 0;
-              if (addedPayment > 0) {
-                await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [addedPayment, billData.partyId]);
-              }
-            } else if (type === 'return' || type === 'receipt') {
-              await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [Number(billData.total) || 0, billData.partyId]);
-            }
-          }
-
-        } catch (err: any) {
-          console.error('Update Bill Background Error:', err);
-          useStore.getState().showDialog({ title: 'Bill Update Error', message: err.message || 'Background sync failed', type: 'alert' });
-          await useStore.getState().fetchProducts();
-          await useStore.getState().fetchParties();
-          await useStore.getState().fetchBills();
-        }
-      });
+      // billData contains the updated payload
+      await apiClient.put(`/bills/${id}`, { ...billData, type });
+      
+      // Refresh state
+      await get().fetchProducts();
+      await get().fetchParties();
+      await get().fetchBills();
     } catch (err: any) {
-      console.error(err);
-      useStore.getState().showDialog({ title: 'Update Error', message: err.message, type: 'alert' });
+      console.error('Update Bill Error:', err);
+      get().showDialog({ title: 'Update Error', message: err.message, type: 'alert' });
     }
   },
+  
   deleteBill: async (id) => {
     try {
-      // Find bill in local state to immediately remove it from UI
-      const bill = useStore.getState().bills.find(b => b.id === id);
-      if (!bill) throw new Error("Bill not found in local state");
-
-      // OPTIMISTIC UPDATE 1: Instantly remove the bill from the UI list and revert party balance
-      set((state) => {
-        const updatedParties = bill.partyId ? state.parties.map(p => {
-          if (p.id === bill.partyId) {
-            const revert = bill.type === 'credit' ? -bill.total : bill.type === 'return' ? bill.total : 0;
-            return { ...p, outstandingBalance: p.outstandingBalance + revert };
-          }
-          return p;
-        }) : state.parties;
-        return { bills: state.bills.filter(b => b.id !== id), parties: updatedParties };
-      });
-
-      // Background process: fetch items, revert stock in UI, then sync with DB
-      useStore.getState().enqueueSync(async () => {
-        try {
-          const db = await getDb();
-          const items = await db.select<{ productId: string, quantity: number }[]>('SELECT "productId", quantity FROM "BillLineItem" WHERE "billId" = $1', [id]);
-          
-          // OPTIMISTIC UPDATE 2: Instantly revert stock in the UI once items are fetched
-          set((state) => {
-            const updatedProducts = state.products.map(p => {
-              const item = items.find(i => i.productId === p.id);
-              if (item) {
-                return { ...p, stock: bill.type === 'return' ? p.stock - item.quantity : p.stock + item.quantity };
-              }
-              return p;
-            });
-            return { products: updatedProducts };
-          });
-
-          // Sync with DB
-          for (const item of items) {
-            if (item.productId) {
-              if (bill.type === 'return') {
-                await db.execute('UPDATE "Product" SET stock = stock - $1, "updatedAt" = NOW() WHERE id = $2', [Number(item.quantity) || 0, item.productId]);
-              } else {
-                await db.execute('UPDATE "Product" SET stock = stock + $1, "updatedAt" = NOW() WHERE id = $2', [Number(item.quantity) || 0, item.productId]);
-              }
-            }
-          }
-
-          if (bill.partyId) {
-            if (bill.type === 'credit') {
-              await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" - $1, "updatedAt" = NOW() WHERE id = $2', [Number(bill.total) || 0, bill.partyId]);
-            } else if (bill.type === 'return') {
-              await db.execute('UPDATE "Party" SET "outstandingBalance" = "outstandingBalance" + $1, "updatedAt" = NOW() WHERE id = $2', [Number(bill.total) || 0, bill.partyId]);
-            }
-          }
-
-          // EXPLICITLY delete line items first to prevent any missing ON DELETE CASCADE constraint errors
-          await db.execute('DELETE FROM "BillLineItem" WHERE "billId" = $1', [id]);
-          await db.execute('DELETE FROM "Bill" WHERE id = $1', [id]);
-
-        } catch (bgErr: any) {
-          console.error("Delete Bill Background Error", bgErr);
-          useStore.getState().showDialog({
-            title: 'Delete Sync Failed', message: bgErr.message || 'Failed to sync deletion with server. Reverting.',
-            type: 'alert'
-          });
-          await useStore.getState().fetchBills();
-          await useStore.getState().fetchProducts();
-          await useStore.getState().fetchParties();
-        }
-      });
+      await apiClient.delete(`/bills/${id}`);
+      
+      // Refresh state
+      await get().fetchProducts();
+      await get().fetchParties();
+      await get().fetchBills();
     } catch (err: any) {
       console.error("Delete Bill Error", err);
-      useStore.getState().showDialog({
-        title: 'Delete Failed', message: err.message || 'Failed to delete bill.',
-        type: 'alert'
-      });
+      get().showDialog({ title: 'Delete Failed', message: err.message || 'Failed to delete bill.', type: 'alert' });
     }
   },
+  
   findProductByBarcode: (barcode: string) => {
     const cleanBarcode = barcode.trim();
     if (!cleanBarcode) return undefined;
-    const state = useStore.getState();
-    return state.products.find(p => 
+    return get().products.find(p => 
       (p.barcode && p.barcode === cleanBarcode) || p.id === cleanBarcode
     );
   },

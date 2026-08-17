@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { getDb } from '../utils/api';
+
 import { Download, Printer } from 'lucide-react';
 import { getLocalDateString } from '../utils/dateUtils';
 
@@ -40,32 +40,28 @@ export default function PartyStatement() {
     
     const fetchSummary = async () => {
       try {
-        const db = await getDb();
         const relevantBills = bills.filter(b => b.partyId === selectedPartyId && b.type === 'credit');
         
         if (relevantBills.length === 0) {
           setItemSummary([]);
           return;
         }
+
+        const summaryMap: Record<string, number> = {};
+        for (const b of relevantBills) {
+          const items = (b as any).lineItems || [];
+          for (const item of items) {
+             const productName = useStore.getState().products.find(p => p.id === item.productId)?.name || 'Unknown Product';
+             summaryMap[productName] = (summaryMap[productName] || 0) + (Number(item.quantity) || 0);
+          }
+        }
         
-        // SQLite has a limit on the number of variables (usually 999 or 32766). 
-        // We will batch if necessary, or just use string interpolation for UUIDs since they are safe.
-        // To be absolutely safe and standard, we use parameterized queries.
-        const placeholders = relevantBills.map((_, i) => `$${i + 1}`).join(',');
-        const query = `
-          SELECT "productName", SUM(quantity) as total 
-          FROM "BillLineItem" 
-          WHERE "billId" IN (${placeholders}) 
-          GROUP BY "productName"
-          ORDER BY "productName" ASC
-        `;
-        
-        const ids = relevantBills.map(b => b.id);
-        const results = await db.select(query, ids);
-        setItemSummary(results as any[]);
+        const summary = Object.entries(summaryMap).map(([productName, total]) => ({ productName, total }));
+        summary.sort((a, b) => a.productName.localeCompare(b.productName));
+        setItemSummary(summary);
         
       } catch (err) {
-        console.error('Failed to fetch item summary', err);
+        console.error('Failed to compute item summary', err);
       }
     };
     fetchSummary();
@@ -264,39 +260,15 @@ export default function PartyStatement() {
   
   const filteredBillIds = Array.from(new Set(periodHistory.map(h => h.billId.replace('-pay', '')).filter(Boolean))).join(',');
 
-  useEffect(() => {
-    async function fetchMissingItems() {
-      if (!filteredBillIds) return;
-      const ids = filteredBillIds.split(',');
-      const missingIds = ids.filter(id => !fetchedIds.current.has(id));
-      if (missingIds.length === 0) return;
-      
-      missingIds.forEach(id => fetchedIds.current.add(id));
-      
-      try {
-        const db = await getDb();
-        const newEntries: Record<string, string> = {};
-        
-        for (const id of missingIds) {
-          try {
-            const items = await db.select<any[]>('SELECT bli.quantity, p.name FROM "BillLineItem" bli LEFT JOIN "Product" p ON bli."productId" = p.id WHERE bli."billId" = $1', [id]);
-            if (items && items.length > 0) {
-              newEntries[id] = items.map(i => `${i.name || 'Unknown'} (x${i.quantity})`).join(', ');
-            } else {
-              newEntries[id] = '';
-            }
-          } catch(e) {
-            newEntries[id] = '';
-          }
-        }
-        
-        setLineItemCache(prev => ({ ...prev, ...newEntries }));
-      } catch (e) {
-        console.error("Failed to fetch bill items for statement", e);
-      }
-    }
-    fetchMissingItems();
-  }, [filteredBillIds]);
+  const getLineItemsString = (billId: string) => {
+    const bill = useStore.getState().bills.find(b => b.id === billId);
+    if (!bill) return '';
+    const items = (bill as any).lineItems || [];
+    return items.map((i: any) => {
+      const productName = useStore.getState().products.find(p => p.id === i.productId)?.name || 'Unknown';
+      return `${productName} (x${i.quantity})`;
+    }).join(', ');
+  };
   
   const periodCashSales = periodHistory.filter(h => h.type === 'CSH').reduce((sum, h) => sum + (h.debit || 0), 0);
   const periodCreditSales = periodHistory.filter(h => h.type === 'INV').reduce((sum, h) => sum + (h.debit || 0), 0);
@@ -486,8 +458,9 @@ export default function PartyStatement() {
                     {group.entries.map((entry, i) => {
                       let parts = entry.particulars;
                       const baseId = entry.billId.replace('-pay', '');
-                      if (baseId && lineItemCache[baseId] && !entry.billId.endsWith('-pay') && entry.type !== 'RCT' && entry.type !== 'RET') {
-                        parts += ` - <span class="text-slate-400 font-medium">${lineItemCache[baseId]}</span>`;
+                      const itemsString = getLineItemsString(baseId);
+                      if (baseId && itemsString && !entry.billId.endsWith('-pay') && entry.type !== 'RCT' && entry.type !== 'RET') {
+                        parts += ` - <span class="text-slate-400 font-medium">${itemsString}</span>`;
                       }
                       return (
                         <tr key={`${gIdx}-${i}`} className="hover:bg-amber-50 transition-colors group text-blue-900/90 font-medium leading-tight">

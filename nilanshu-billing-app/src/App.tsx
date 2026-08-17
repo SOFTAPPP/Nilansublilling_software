@@ -26,7 +26,7 @@ import GlobalDialog from './components/GlobalDialog';
 import { NetworkStatus } from './components/ui/NetworkStatus';
 import { useLiveSync } from './hooks/useLiveSync';
 
-import { getDb } from './utils/api';
+
 
 function App() {
   const { fetchProducts, fetchParties, fetchSettings, fetchBills, fetchTransporters, token } = useStore();
@@ -34,10 +34,7 @@ function App() {
   // Activate live sync — polls the DB every 5s so all instances stay in sync
   useLiveSync();
 
-  // Warm up DB connection immediately on app start
-  useEffect(() => {
-    getDb().catch(console.error);
-  }, []);
+
 
   useEffect(() => {
     const isToken = sessionStorage.getItem('token');
