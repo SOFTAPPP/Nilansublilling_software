@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-
-import { Download, Printer } from 'lucide-react';
+import { Printer, FileText, MessageCircle, MessageSquare } from 'lucide-react';
 import { getLocalDateString } from '../utils/dateUtils';
 
 export default function PartyStatement() {
@@ -10,9 +9,7 @@ export default function PartyStatement() {
   const [partySearch, setPartySearch] = useState('');
   const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
   const partyDropdownRef = useRef<HTMLDivElement>(null);
-  const [lineItemCache, setLineItemCache] = useState<Record<string, string>>({});
-  const fetchedIds = useRef(new Set<string>());
-
+  
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (partyDropdownRef.current && !partyDropdownRef.current.contains(event.target as Node)) {
@@ -30,43 +27,6 @@ export default function PartyStatement() {
   });
   const [toDate, setToDate] = useState(() => getLocalDateString());
 
-  const [itemSummary, setItemSummary] = useState<{productName: string, total: number}[]>([]);
-
-  useEffect(() => {
-    if (!selectedPartyId) {
-      setItemSummary([]);
-      return;
-    }
-    
-    const fetchSummary = async () => {
-      try {
-        const relevantBills = bills.filter(b => b.partyId === selectedPartyId && b.type === 'credit');
-        
-        if (relevantBills.length === 0) {
-          setItemSummary([]);
-          return;
-        }
-
-        const summaryMap: Record<string, number> = {};
-        for (const b of relevantBills) {
-          const items = (b as any).lineItems || [];
-          for (const item of items) {
-             const productName = useStore.getState().products.find(p => p.id === item.productId)?.name || 'Unknown Product';
-             summaryMap[productName] = (summaryMap[productName] || 0) + (Number(item.quantity) || 0);
-          }
-        }
-        
-        const summary = Object.entries(summaryMap).map(([productName, total]) => ({ productName, total }));
-        summary.sort((a, b) => a.productName.localeCompare(b.productName));
-        setItemSummary(summary);
-        
-      } catch (err) {
-        console.error('Failed to compute item summary', err);
-      }
-    };
-    fetchSummary();
-  }, [selectedPartyId, bills]);
-
   useEffect(() => {
     fetchParties();
     fetchBills();
@@ -76,7 +36,7 @@ export default function PartyStatement() {
     try {
       window.print();
     } catch (err) {
-      showDialog({ title: 'Print Error', message: 'Some technical error happened or your printer is having an issue. Please fix it.', type: 'alert' });
+      showDialog({ title: 'Print Error', message: 'Printer issue.', type: 'alert' });
     }
   };
 
@@ -94,11 +54,9 @@ export default function PartyStatement() {
 
   // Compute Ledger
   const partyBills = bills.filter(b => b.partyId === selectedPartyId && (b.type === 'credit' || b.type === 'return' || b.type === 'receipt' || b.type === 'cash'));
-  
-  // Sort ascending chronological order
   const sortedBillsByDate = [...partyBills].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  let running = 0; // Forward calculating ledger always starts at 0 internally
+  let running = 0;
   const rawHistory: any[] = [];
   
   for (const bill of sortedBillsByDate) {
@@ -110,25 +68,21 @@ export default function PartyStatement() {
     const billDate = new Date(bill.date);
     const timeStr = billDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
+    let particularsText = '';
     if (isCredit) {
-      running += bill.total;
-      
-      let statusBadge = '';
-      if (bill.paymentAmount && bill.paymentAmount >= bill.total) {
-        statusBadge = `<br/><span class="inline-block mt-1 bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider print:border print:border-green-600 print:bg-transparent print:text-black">✅ FULLY PAID</span>`;
-      } else if (bill.paymentAmount && bill.paymentAmount > 0) {
-        statusBadge = `<br/><span class="inline-block mt-1 bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider print:border print:border-blue-600 print:bg-transparent print:text-black">🔵 PARTIALLY PAID</span>`;
+      const items = (bill as any).lineItems || [];
+      if (items.length > 0) {
+         particularsText = `${bill.billNumber}`;
       } else {
-        statusBadge = `<br/><span class="inline-block mt-1 bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider print:border print:border-slate-600 print:bg-transparent print:text-black">🔵 OUTSTANDING</span>`;
+         particularsText = `${bill.billNumber}`;
       }
-
+      running += bill.total;
       rawHistory.push({
         billId: bill.id,
         date: billDate,
         time: timeStr,
-        type: 'INV',
         vNo: bill.billNumber,
-        particulars: `Credit Purchase ${statusBadge}`,
+        particulars: particularsText,
         debit: bill.total,
         credit: null,
         balance: running
@@ -140,9 +94,8 @@ export default function PartyStatement() {
           billId: bill.id + '-pay',
           date: billDate,
           time: timeStr,
-          type: 'RCT',
           vNo: bill.billNumber,
-          particulars: `Advance Payment Received <br/><span class="inline-block mt-1 bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider print:border print:border-green-600 print:bg-transparent print:text-black">✅ RECEIVED</span>`,
+          particulars: 'Advance Payment',
           debit: null,
           credit: bill.paymentAmount,
           balance: running
@@ -153,25 +106,22 @@ export default function PartyStatement() {
         billId: bill.id,
         date: billDate,
         time: timeStr,
-        type: 'CSH',
         vNo: bill.billNumber,
-        particulars: `Cash Purchase <br/><span class="inline-block mt-1 bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider print:border print:border-green-600 print:bg-transparent print:text-black">✅ PAID IN CASH</span>`,
+        particulars: `Cash Bill: ${bill.billNumber}`,
         debit: bill.total,
         credit: bill.total,
         balance: running
       });
       
       const extraPayment = bill.paymentAmount || 0;
-      
       if (extraPayment > 0) {
         running -= extraPayment;
         rawHistory.push({
           billId: bill.id + '-pay',
           date: billDate,
           time: timeStr,
-          type: 'RCT',
           vNo: bill.billNumber,
-          particulars: `Payment Received (Previous Dues) <br/><span class="inline-block mt-1 bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider print:border print:border-green-600 print:bg-transparent print:text-black">✅ RECEIVED</span>`,
+          particulars: 'Payment Received',
           debit: null,
           credit: extraPayment,
           balance: running
@@ -183,9 +133,8 @@ export default function PartyStatement() {
         billId: bill.id,
         date: billDate,
         time: timeStr,
-        type: 'RET',
         vNo: bill.billNumber,
-        particulars: `Sales Return <br/><span class="inline-block mt-1 bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider print:border print:border-orange-600 print:bg-transparent print:text-black">↩️ RETURNED</span>`,
+        particulars: `Return: ${bill.billNumber}`,
         debit: null,
         credit: bill.total,
         balance: running
@@ -196,9 +145,8 @@ export default function PartyStatement() {
         billId: bill.id,
         date: billDate,
         time: timeStr,
-        type: 'RCT',
         vNo: bill.billNumber,
-        particulars: `Payment Received <br/><span class="inline-block mt-1 bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider print:border print:border-green-600 print:bg-transparent print:text-black">✅ RECEIVED</span>`,
+        particulars: `Receipt: ${bill.billNumber}`,
         debit: null,
         credit: bill.total,
         balance: running
@@ -219,72 +167,64 @@ export default function PartyStatement() {
     } else if (entryTime <= end) {
       periodHistory.push({
         ...entry,
-        dateStr: entry.date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        dateStr: entry.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+        monthYearStr: entry.date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }),
+        monthSortKey: entry.date.getFullYear() + '-' + String(entry.date.getMonth() + 1).padStart(2, '0')
       });
     }
   }
   
-  const dailyGroups: Record<string, {
-    date: string;
-    openingBalance: number;
-    closingBalance: number;
+  const monthlyGroups: Record<string, {
+    monthYearStr: string;
+    monthSortKey: string;
     totalDebit: number;
     totalCredit: number;
     entries: any[];
   }> = {};
 
-  let currentRunning = openingBalance;
-  
   periodHistory.forEach((entry) => {
-    if (!dailyGroups[entry.dateStr]) {
-      dailyGroups[entry.dateStr] = {
-        date: entry.dateStr,
-        openingBalance: currentRunning,
-        closingBalance: 0,
+    if (!monthlyGroups[entry.monthSortKey]) {
+      monthlyGroups[entry.monthSortKey] = {
+        monthYearStr: entry.monthYearStr,
+        monthSortKey: entry.monthSortKey,
         totalDebit: 0,
         totalCredit: 0,
         entries: []
       };
     }
-    
-    dailyGroups[entry.dateStr].entries.push(entry);
-    
-    if (entry.debit) dailyGroups[entry.dateStr].totalDebit += entry.debit;
-    if (entry.credit) dailyGroups[entry.dateStr].totalCredit += entry.credit;
-    
-    currentRunning = entry.balance;
-    dailyGroups[entry.dateStr].closingBalance = currentRunning;
+    monthlyGroups[entry.monthSortKey].entries.push(entry);
+    if (entry.debit) monthlyGroups[entry.monthSortKey].totalDebit += entry.debit;
+    if (entry.credit) monthlyGroups[entry.monthSortKey].totalCredit += entry.credit;
   });
 
-  const groupedEntriesList = Object.values(dailyGroups);
+  const groupedEntriesList = Object.values(monthlyGroups).sort((a, b) => a.monthSortKey.localeCompare(b.monthSortKey));
   
-  const filteredBillIds = Array.from(new Set(periodHistory.map(h => h.billId.replace('-pay', '')).filter(Boolean))).join(',');
-
-  const getLineItemsString = (billId: string) => {
-    const bill = useStore.getState().bills.find(b => b.id === billId);
-    if (!bill) return '';
-    const items = (bill as any).lineItems || [];
-    return items.map((i: any) => {
-      const productName = useStore.getState().products.find(p => p.id === i.productId)?.name || 'Unknown';
-      return `${productName} (x${i.quantity})`;
-    }).join(', ');
-  };
-  
-  const periodCashSales = periodHistory.filter(h => h.type === 'CSH').reduce((sum, h) => sum + (h.debit || 0), 0);
-  const periodCreditSales = periodHistory.filter(h => h.type === 'INV').reduce((sum, h) => sum + (h.debit || 0), 0);
-  const periodTotalSales = periodCashSales + periodCreditSales;
-
-  const periodReturns = periodHistory.filter(h => h.type === 'RET').reduce((sum, h) => sum + (h.credit || 0), 0);
-  const periodPayments = periodHistory.filter(h => h.type === 'RCT').reduce((sum, h) => sum + (h.credit || 0), 0);
-  const periodCashCollected = periodHistory.filter(h => h.type === 'CSH').reduce((sum, h) => sum + (h.credit || 0), 0);
-
-  const balanceBeforePeriod = openingBalance;
   const totalDebit = periodHistory.reduce((sum, e) => sum + (e.debit || 0), 0);
   const totalCredit = periodHistory.reduce((sum, e) => sum + (e.credit || 0), 0);
-  const finalBalance = currentRunning;
+  const finalBalance = openingBalance + totalDebit - totalCredit;
+
+  const formatMoney = (val: number) => {
+    return val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  
+  const formatBalance = (val: number) => {
+    return Math.abs(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  
+  const getBalanceSuffix = (val: number) => {
+    if (val > 0) return 'Dr';
+    if (val < 0) return 'Cr';
+    return '';
+  };
+  
+  const getBalanceColor = (val: number) => {
+    if (val > 0) return 'text-red-600';
+    if (val < 0) return 'text-green-600';
+    return 'text-slate-800';
+  };
 
   return (
-    <div className="p-4 md:p-8 min-h-screen bg-slate-50 flex flex-col items-center overflow-x-auto w-full font-sans">
+    <div className="p-4 md:p-8 min-h-screen bg-slate-50 flex flex-col items-center overflow-x-auto w-full font-sans pb-20">
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Ledger Statement</h2>
         <div className="flex flex-wrap gap-3 items-center justify-end flex-1">
@@ -298,7 +238,6 @@ export default function PartyStatement() {
                 className="w-full py-1.5 outline-none bg-transparent text-slate-700 font-medium"
                 placeholder="Search Customer..." 
               />
-              <svg onClick={() => setPartyDropdownOpen(!partyDropdownOpen)} className="w-4 h-4 cursor-pointer text-slate-400 ml-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </div>
             
             {partyDropdownOpen && parties.filter(p => {
@@ -332,16 +271,27 @@ export default function PartyStatement() {
              <span className="text-slate-300 px-1">-</span>
              <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="p-2 text-sm outline-none text-slate-600 bg-transparent font-medium" />
           </div>
-          <button onClick={handlePrint} className="whitespace-nowrap bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 font-semibold shadow-md hover:shadow-lg transition-all active:scale-95 text-sm flex items-center gap-2">
-            <Printer className="w-4 h-4" />
-            Print
-          </button>
         </div>
       </div>
 
-      {/* Ledger Canvas */}
-      <div className="w-[210mm] min-h-[297mm] bg-[#fdfbf7] p-10 pl-16 relative mx-auto text-slate-800 font-serif shadow-2xl border border-amber-200/60 print:shadow-none print:border-none print:p-0 print:rounded-none before:content-[''] before:absolute before:left-12 before:top-0 before:bottom-0 before:w-[2px] before:bg-red-400/50">
+      <div className="w-[210mm] bg-white p-10 relative mx-auto text-slate-800 shadow-xl border border-slate-200 print:shadow-none print:border-none print:p-0">
         
+        {/* Top Action Buttons (Screenshot 3) */}
+        <div className="flex justify-end gap-6 mb-8 no-print border-b border-slate-100 pb-4">
+          <button onClick={handlePrint} className="flex flex-col items-center gap-1 text-blue-800 hover:text-blue-600 transition-colors">
+            <FileText className="w-8 h-8" strokeWidth={1.5} />
+            <span className="text-sm font-medium">Report</span>
+          </button>
+          <button className="flex flex-col items-center gap-1 text-blue-800 hover:text-blue-600 transition-colors">
+            <MessageCircle className="w-8 h-8" strokeWidth={1.5} />
+            <span className="text-sm font-medium">Reminder</span>
+          </button>
+          <button className="flex flex-col items-center gap-1 text-blue-800 hover:text-blue-600 transition-colors">
+            <MessageSquare className="w-8 h-8" strokeWidth={1.5} />
+            <span className="text-sm font-medium">SMS</span>
+          </button>
+        </div>
+
         {/* Header */}
         <div className="flex flex-col items-center border-b border-slate-200 pb-8 mb-8">
           <input 
@@ -350,197 +300,128 @@ export default function PartyStatement() {
             className="text-4xl font-black tracking-tight text-center w-full uppercase text-slate-900 bg-transparent outline-none mb-1" 
           />
           <div className="text-center w-full text-slate-600 font-medium">{settings.companyAddress}, {settings.companyCity}</div>
-          <div className="flex justify-center gap-4 w-full mt-3 text-xs text-slate-500">
-            {settings.companyPan && <div className="flex gap-1 bg-slate-50 px-3 py-1 rounded-full"><span className="font-semibold text-slate-700">PAN:</span><span>{settings.companyPan}</span></div>}
-            {settings.companyContact && <div className="flex gap-1 bg-slate-50 px-3 py-1 rounded-full"><span className="font-semibold text-slate-700">Phone:</span><span>{settings.companyContact}</span></div>}
-            {settings.companyEmail && <div className="flex gap-1 bg-slate-50 px-3 py-1 rounded-full"><span className="font-semibold text-slate-700">Email:</span><span>{settings.companyEmail}</span></div>}
+          <div className="flex justify-center gap-4 w-full mt-4 text-sm text-slate-600">
+            {settings.companyPan && <div className="flex gap-1.5 bg-slate-50 px-4 py-1.5 rounded-full border border-slate-100"><span className="font-semibold text-slate-800">PAN:</span><span>{settings.companyPan}</span></div>}
+            {settings.companyContact && <div className="flex gap-1.5 bg-slate-50 px-4 py-1.5 rounded-full border border-slate-100"><span className="font-semibold text-slate-800">Phone:</span><span>{settings.companyContact}</span></div>}
+            {settings.companyEmail && <div className="flex gap-1.5 bg-slate-50 px-4 py-1.5 rounded-full border border-slate-100"><span className="font-semibold text-slate-800">Email:</span><span>{settings.companyEmail}</span></div>}
           </div>
         </div>
 
-        {/* Ledger Info */}
-        <div className="flex justify-between items-end mb-8">
-          <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ledger Account</div>
-            <div className="text-2xl font-extrabold text-slate-900 uppercase">
-              {selectedParty ? selectedParty.name : <span className="text-slate-300">NO CUSTOMER SELECTED</span>}
-            </div>
-            {selectedParty && <div className="text-sm text-slate-500 mt-1 font-medium">{selectedParty.address} &bull; {selectedParty.phone}</div>}
-          </div>
-          <div className="text-right">
-             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Statement Period</div>
-             <div className="text-sm font-semibold text-slate-700 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-               {new Date(fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric'})} &mdash; {new Date(toDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric'})}
-             </div>
-          </div>
-        </div>
-
-        {/* Period Summary */}
         {selectedPartyId && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-amber-50/50 rounded-lg p-6 mb-8 border border-amber-100 print:bg-transparent print:p-0 print:border-none print:border-y print:border-slate-300 print:py-4 print:rounded-none">
-            
-            {/* Sales Summary */}
-            <div>
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-200 pb-2">Sales Summary</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-600">Cash Sales</span>
-                  <span className="font-semibold text-slate-800">₹ {periodCashSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+          <>
+            <div className="mb-4 text-center">
+              <div className="text-xl font-bold">{selectedParty?.name}</div>
+              {selectedParty?.phone && <div className="text-sm">Phone Number: {selectedParty.phone}</div>}
+              <div className="text-sm mt-1">({new Date(fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric'})} - {new Date(toDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric'})})</div>
+            </div>
+
+            {/* Header Summary Box (Screenshot 1) */}
+            <div className="grid grid-cols-4 gap-4 bg-white border border-gray-300 rounded-md p-6 mb-6 text-center shadow-sm">
+              <div className="border-r border-gray-300">
+                <div className="text-gray-700 font-semibold mb-2">Opening Balance</div>
+                <div className="font-bold text-lg mb-1">₹{formatMoney(Math.abs(openingBalance))}</div>
+                <div className="text-xs text-gray-500">(on {new Date(fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric'})})</div>
+              </div>
+              <div className="border-r border-gray-300">
+                <div className="text-gray-700 font-semibold mb-2">Total Debit(-)</div>
+                <div className="font-bold text-lg">₹{formatMoney(totalDebit)}</div>
+              </div>
+              <div className="border-r border-gray-300">
+                <div className="text-gray-700 font-semibold mb-2">Total Credit(+)</div>
+                <div className="font-bold text-lg">₹{formatMoney(totalCredit)}</div>
+              </div>
+              <div>
+                <div className="text-gray-700 font-semibold mb-2">Net Balance</div>
+                <div className={`font-bold text-lg mb-1 ${getBalanceColor(finalBalance)}`}>
+                  ₹{formatBalance(finalBalance)} {getBalanceSuffix(finalBalance)}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-600">Credit Sales</span>
-                  <span className="font-semibold text-slate-800">₹ {periodCreditSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="flex justify-between pt-2 border-t border-slate-200">
-                  <span className="font-bold text-slate-800">Total Sales</span>
-                  <span className="font-bold text-slate-900">₹ {periodTotalSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                </div>
+                <div className="text-xs text-gray-500">(New will get)</div>
               </div>
             </div>
 
-            {/* Collection & Dues */}
-            <div>
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-200 pb-2">Collection & Dues</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-600">Opening Due</span>
-                  <span className="font-semibold text-slate-800">₹ {balanceBeforePeriod.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-600">Payments Against Due</span>
-                  <span className="font-semibold text-slate-800">₹ {periodPayments.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                </div>
-                {periodReturns > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Sales Returns (Credit)</span>
-                    <span className="font-semibold text-slate-800">₹ {periodReturns.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-slate-500 text-xs mt-1">
-                  <span>(Cash Collected from Cash Sales)</span>
-                  <span>₹ {periodCashCollected.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="flex justify-between pt-2 border-t border-slate-200">
-                  <span className="font-bold text-blue-600 uppercase">Closing Due</span>
-                  <span className="font-black text-blue-700 text-base">₹ {finalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                </div>
-              </div>
-            </div>
+            <div className="mb-2 text-sm font-semibold text-gray-700">No. of Entries: {periodHistory.length} (All)</div>
 
-          </div>
-        )}
+            {/* Table */}
+            <div className="border-t border-x border-gray-400">
+              <table className="w-full text-left border-collapse text-[13px]">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-400">
+                    <th className="py-2 px-3 font-bold border-r border-gray-400 w-28">Date</th>
+                    <th className="py-2 px-3 font-bold border-r border-gray-400">Details</th>
+                    <th className="py-2 px-3 font-bold text-right border-r border-gray-400 w-32">Debit(-)</th>
+                    <th className="py-2 px-3 font-bold text-right border-r border-gray-400 w-32">Credit(+)</th>
+                    <th className="py-2 px-3 font-bold text-right w-36">Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Opening Balance Row */}
+                  <tr className="border-b border-gray-400">
+                    <td className="py-2 px-3 font-bold border-r border-gray-400">{new Date(fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric'})}</td>
+                    <td className="py-2 px-3 border-r border-gray-400"></td>
+                    <td className="py-2 px-3 border-r border-gray-400"></td>
+                    <td colSpan={2} className="py-2 px-3 text-right text-gray-500 bg-gray-50">
+                      (Opening Balance: {formatMoney(Math.abs(openingBalance))})
+                    </td>
+                  </tr>
 
-        {/* Table */}
-        <table className="w-full text-left border-collapse text-[13px] relative z-10">
-          <thead>
-            <tr className="border-y-2 border-blue-300 text-blue-900 bg-blue-50/30">
-              <th className="py-2 px-2 font-bold uppercase tracking-wider w-20 border-r border-blue-200/50">Date</th>
-              <th className="py-2 px-1 font-bold uppercase tracking-wider w-12 text-center border-r border-blue-200/50">Type</th>
-              <th className="py-2 px-2 font-bold uppercase tracking-wider w-16 text-center border-r border-blue-200/50">Ref No.</th>
-              <th className="py-2 px-2 font-bold uppercase tracking-wider border-r border-blue-200/50">Particulars</th>
-              <th className="py-2 px-2 font-bold uppercase tracking-wider text-right w-24 border-r border-blue-200/50">Invoice (₹)</th>
-              <th className="py-2 px-2 font-bold uppercase tracking-wider text-right w-24 border-r border-blue-200/50">Paid (₹)</th>
-              <th className="py-2 px-2 font-bold uppercase tracking-wider text-right w-24">Running Due (₹)</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-blue-200/60 print:divide-slate-300">
-            {selectedPartyId ? (
-              groupedEntriesList.length > 0 ? (
-                groupedEntriesList.map((group, gIdx) => (
-                  <React.Fragment key={gIdx}>
-                    <tr className="bg-amber-100/30 print:bg-transparent text-slate-600">
-                      <td colSpan={6} className="py-1 px-2 font-bold text-xs uppercase tracking-wider border-r border-blue-200/50">
-                        Opening Due ({group.date})
-                      </td>
-                      <td className="py-1 px-2 text-right font-semibold text-slate-600">
-                        {group.openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                    {group.entries.map((entry, i) => {
-                      let parts = entry.particulars;
-                      const baseId = entry.billId.replace('-pay', '');
-                      const itemsString = getLineItemsString(baseId);
-                      if (baseId && itemsString && !entry.billId.endsWith('-pay') && entry.type !== 'RCT' && entry.type !== 'RET') {
-                        parts += ` - <span class="text-slate-400 font-medium">${itemsString}</span>`;
-                      }
-                      return (
-                        <tr key={`${gIdx}-${i}`} className="hover:bg-amber-50 transition-colors group text-blue-900/90 font-medium leading-tight">
-                          <td className="py-1 px-2 whitespace-nowrap align-top border-r border-blue-200/50">
-                            <span className="font-bold">{entry.dateStr}</span><br/><span className="text-[11px] text-blue-900/60 font-medium">{entry.time}</span>
+                  {groupedEntriesList.map((group, gIdx) => (
+                    <React.Fragment key={gIdx}>
+                      <tr className="border-b border-gray-400">
+                        <td colSpan={5} className="py-2 px-3 font-bold text-sm bg-white">
+                          {group.monthYearStr}
+                        </td>
+                      </tr>
+                      {group.entries.map((entry, i) => (
+                        <tr key={`${gIdx}-${i}`} className="border-b border-gray-400">
+                          <td className="py-2 px-3 font-semibold border-r border-gray-400">{entry.dateStr}</td>
+                          <td className="py-2 px-3 border-r border-gray-400 text-gray-600">{entry.particulars}</td>
+                          <td className={`py-2 px-3 text-right border-r border-gray-400 ${entry.debit ? 'bg-[#f4ebeb]' : ''}`}>
+                            {entry.debit ? formatMoney(entry.debit) : ''}
                           </td>
-                          <td className="py-1 px-1 text-center align-top border-r border-blue-200/50">
-                             <span className="bg-blue-100/50 text-blue-800 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider print:bg-transparent print:border print:border-slate-300">{entry.type}</span>
+                          <td className={`py-2 px-3 text-right border-r border-gray-400 ${entry.credit ? 'bg-[#e6f2e8]' : ''}`}>
+                            {entry.credit ? formatMoney(entry.credit) : ''}
                           </td>
-                          <td className="py-1 px-2 text-center font-bold text-blue-900/70 align-top border-r border-blue-200/50">{entry.vNo || '-'}</td>
-                          <td className="py-1 px-2 break-words whitespace-normal align-top leading-tight border-r border-blue-200/50" dangerouslySetInnerHTML={{ __html: parts }}></td>
-                          <td className="py-1 px-2 text-right align-top border-r border-blue-200/50 text-red-700 font-semibold">{entry.debit ? entry.debit.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}</td>
-                          <td className="py-1 px-2 text-right align-top border-r border-blue-200/50 text-green-700 font-semibold">{entry.credit ? entry.credit.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}</td>
-                          <td className="py-1 px-2 text-right font-bold text-slate-900 align-top">{entry.balance !== undefined ? entry.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}</td>
+                          <td className={`py-2 px-3 text-right font-medium ${getBalanceColor(entry.balance)}`}>
+                            {formatBalance(entry.balance)} {getBalanceSuffix(entry.balance)}
+                          </td>
                         </tr>
-                      );
-                    })}
-                    <tr className="bg-amber-100/50 print:bg-transparent font-bold border-b-2 border-blue-300 print:border-slate-400 text-blue-900">
-                      <td colSpan={4} className="py-1.5 px-2 text-right text-blue-900/60 text-xs uppercase tracking-wider border-r border-blue-200/50">Daily Summary</td>
-                      <td className="py-1.5 px-2 text-right border-r border-blue-200/50">
-                         <div className="text-[10px] text-red-700/70 uppercase">Invoices Raised</div>
-                         <div className="text-red-700">{group.totalDebit > 0 ? group.totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-'}</div>
-                      </td>
-                      <td className="py-1.5 px-2 text-right border-r border-blue-200/50">
-                         <div className="text-[10px] text-green-700/70 uppercase">Payments Rcvd</div>
-                         <div className="text-green-700">{group.totalCredit > 0 ? group.totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-'}</div>
-                      </td>
-                      <td className="py-1.5 px-2 text-right">
-                         <div className="text-[10px] text-slate-500 uppercase">Closing Due</div>
-                         <div className="text-slate-900">{group.closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                      </td>
-                    </tr>
-                  </React.Fragment>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center text-slate-400 font-medium">
-                    <div className="flex flex-col items-center gap-2">
-                       <svg className="w-8 h-8 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                       No transactions found for the selected period.
-                    </div>
-                  </td>
-                </tr>
-              )
-            ) : (
-              <tr>
-                <td colSpan={7} className="py-16 text-center text-slate-400 font-medium">
-                   <div className="flex flex-col items-center gap-2">
-                       <svg className="w-8 h-8 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                       Please select a customer to view their statement.
-                    </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-          {selectedPartyId && (
-            <tfoot>
-              <tr className="bg-blue-900 text-amber-50 print:bg-transparent print:text-black print:border-y-2 print:border-black">
-                <td colSpan={4} className="py-2.5 px-3 text-right uppercase tracking-widest text-xs font-bold opacity-90 print:opacity-100 border-r border-blue-800/50">Period Total</td>
-                <td className="py-2.5 px-2 text-right font-bold border-r border-blue-800/50">{totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                <td className="py-2.5 px-2 text-right font-bold border-r border-blue-800/50">{totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                <td className="py-2.5 px-3 text-right font-black text-sm">{finalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-              </tr>
-            </tfoot>
-          )}
-        </table>
-
-        {/* Item Summary */}
-        {selectedPartyId && itemSummary.length > 0 && (
-          <div className="mt-12 bg-slate-50 rounded-2xl p-6 border border-slate-100 print:border-t-2 print:border-slate-800 print:mt-8 print:pt-4 print:p-0 print:bg-transparent print:rounded-none">
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4 print:text-black">Book Purchase Summary (All Time)</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-2">
-              {itemSummary.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center py-2 border-b border-slate-200/50 print:border-slate-300">
-                  <span className="text-slate-700 font-medium">{item.productName}</span>
-                  <span className="font-bold text-slate-900 bg-white px-2 py-0.5 rounded-md shadow-sm text-xs print:shadow-none print:bg-transparent">{item.total}</span>
-                </div>
-              ))}
+                      ))}
+                      <tr className="border-b border-gray-400">
+                        <td colSpan={2} className="py-2 px-3 font-bold border-r border-gray-400 bg-gray-50 text-gray-700">
+                          {group.monthYearStr.split(' ')[0]} Total
+                        </td>
+                        <td className="py-2 px-3 text-right border-r border-gray-400 font-medium bg-[#f4ebeb]">
+                          {group.totalDebit > 0 ? formatMoney(group.totalDebit) : '0.00'}
+                        </td>
+                        <td className="py-2 px-3 text-right border-r border-gray-400 font-medium bg-[#e6f2e8]">
+                          {group.totalCredit > 0 ? formatMoney(group.totalCredit) : '0.00'}
+                        </td>
+                        <td className="py-2 px-3 bg-gray-50 border-gray-400"></td>
+                      </tr>
+                    </React.Fragment>
+                  ))}
+                  
+                  {/* Grand Total Row */}
+                  <tr className="border-b border-gray-400">
+                    <td colSpan={2} className="py-3 px-3 font-bold border-r border-gray-400 bg-gray-50">Grand Total</td>
+                    <td className="py-3 px-3 text-right border-r border-gray-400 font-bold bg-white">
+                      {formatMoney(totalDebit)}
+                    </td>
+                    <td className="py-3 px-3 text-right border-r border-gray-400 font-bold bg-white">
+                      {formatMoney(totalCredit)}
+                    </td>
+                    <td className={`py-3 px-3 text-right font-bold bg-gray-50 ${getBalanceColor(finalBalance)}`}>
+                      {formatBalance(finalBalance)} {getBalanceSuffix(finalBalance)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-          </div>
+            
+            <div className="mt-4 text-xs text-gray-400">
+              Report Generated: {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit'})} | {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })}
+            </div>
+          </>
         )}
       </div>
     </div>
