@@ -202,10 +202,12 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         <div className="flex flex-wrap gap-2 md:gap-3 justify-end flex-1">
           {!viewBill && (
             <>
-              <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-lg border border-gray-300 shadow-sm text-sm no-print">
-                <input type="checkbox" checked={showPaidStamp} onChange={e => setShowPaidStamp(e.target.checked)} className="cursor-pointer" />
-                <span className="font-semibold text-gray-700">Paid Stamp</span>
-              </label>
+              <button 
+                onClick={() => setShowPaidStamp(!showPaidStamp)}
+                className="whitespace-nowrap border border-green-600 text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 font-medium shadow-sm transition-colors text-sm bg-background"
+              >
+                Paid Stamp
+              </button>
               <button onClick={handleSendSMS} className="whitespace-nowrap bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 font-medium shadow-sm transition-colors text-sm no-print">
                 Send SMS
               </button>
@@ -244,8 +246,8 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
 
       <div className="a4-page border-2 border-black relative flex flex-col bg-white overflow-hidden">
         {showPaidStamp && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-[-30deg] border-4 border-red-500 text-red-500 font-extrabold text-6xl tracking-widest px-8 py-4 opacity-30 rounded-xl pointer-events-none z-50 print:opacity-40 select-none">
-            PAID
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-green-600 border-4 border-green-600 rounded-full w-64 h-64 flex items-center justify-center opacity-30 pointer-events-none z-0">
+            <span className="text-6xl font-bold uppercase tracking-widest">PAID</span>
           </div>
         )}
         <div className="text-center py-4 border-b-2 border-black font-bold text-2xl tracking-wider">
@@ -292,35 +294,35 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
 
             <div className="flex flex-col gap-3">
               <div className="flex flex-col">
-                <span className="text-xs font-semibold text-gray-600">Buyer Name</span>
-                <input value={buyerName} onChange={e => setBuyerName(e.target.value)} className="border-b border-gray-400 outline-none font-bold text-2xl" readOnly={!!viewBill} />
+                <span className="text-base font-bold text-black">Buyer Name</span>
+                <input value={buyerName} onChange={e => setBuyerName(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-semibold text-gray-600">Proprietor Name</span>
-                <input value={buyerProprietor} onChange={e => setBuyerProprietor(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
+                <span className="text-base font-bold text-black">Proprietor Name</span>
+                <input value={buyerProprietor} onChange={e => setBuyerProprietor(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-semibold text-gray-600">Address</span>
-                <input value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
+                <span className="text-base font-bold text-black">Address</span>
+                <input value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-gray-600">District</span>
-                  <input value={buyerDistrict} onChange={e => setBuyerDistrict(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
+                  <span className="text-base font-bold text-black">District</span>
+                  <input value={buyerDistrict} onChange={e => setBuyerDistrict(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-gray-600">Pin Code</span>
-                  <input value={buyerPin} onChange={e => setBuyerPin(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
+                  <span className="text-base font-bold text-black">Pin Code</span>
+                  <input value={buyerPin} onChange={e => setBuyerPin(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-gray-600">State</span>
-                  <input value={buyerState} onChange={e => setBuyerState(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
+                  <span className="text-base font-bold text-black">State</span>
+                  <input value={buyerState} onChange={e => setBuyerState(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-gray-600">Mobile No.</span>
-                  <input value={buyerMob} onChange={e => setBuyerMob(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
+                  <span className="text-base font-bold text-black">Mobile No.</span>
+                  <input value={buyerMob} onChange={e => setBuyerMob(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
                 </div>
               </div>
             </div>
@@ -354,16 +356,16 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
 
             <div className="flex flex-col gap-3">
               <div className="flex flex-col">
-                <span className="text-xs font-semibold text-gray-600">Transporter Name</span>
-                <input value={transporterName} onChange={e => setTransporterName(e.target.value)} className="border-b border-gray-400 outline-none font-bold text-xl" readOnly={!!viewBill} />
+                <span className="text-base font-bold text-black">Transporter Name</span>
+                <input value={transporterName} onChange={e => setTransporterName(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-semibold text-gray-600">Transporter Address</span>
-                <input value={transporterAddress} onChange={e => setTransporterAddress(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
+                <span className="text-base font-bold text-black">Transporter Address</span>
+                <input value={transporterAddress} onChange={e => setTransporterAddress(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-semibold text-gray-600">Transporter Phone No.</span>
-                <input value={transporterPhone} onChange={e => setTransporterPhone(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
+                <span className="text-base font-bold text-black">Transporter Phone No.</span>
+                <input value={transporterPhone} onChange={e => setTransporterPhone(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
               </div>
             </div>
 
@@ -371,17 +373,17 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
             <div className="flex flex-col gap-3">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-gray-600">Total Packet</span>
-                  <input value={totalPacket} onChange={e => setTotalPacket(e.target.value)} className="border-b border-gray-400 outline-none font-bold text-xl" readOnly={!!viewBill} />
+                  <span className="text-base font-bold text-black">Total Packet</span>
+                  <input value={totalPacket} onChange={e => setTotalPacket(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-gray-600">Value (₹)</span>
-                  <input value={value} onChange={e => setValue(e.target.value)} className="border-b border-gray-400 outline-none font-bold text-xl" readOnly={!!viewBill} />
+                  <span className="text-base font-bold text-black">Value (₹)</span>
+                  <input value={value} onChange={e => setValue(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
                 </div>
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-semibold text-gray-600">Material in Packet</span>
-                <input value={material} onChange={e => setMaterial(e.target.value)} className="border-b border-gray-400 outline-none font-semibold text-lg" readOnly={!!viewBill} />
+                <span className="text-base font-bold text-black">Material in Packet</span>
+                <input value={material} onChange={e => setMaterial(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
               </div>
             </div>
 
@@ -389,16 +391,21 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         </div>
 
         {/* BOTTOM SIGNATURE AREA */}
-        <div className="border-t-2 border-black min-h-[150px] p-4 flex flex-col justify-end relative">
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center text-center">
-            <span className="font-bold text-xl tracking-wider">{settings.companyName}</span>
-            <span className="text-sm font-semibold">{settings.companyAddress}</span>
-            <span className="text-sm font-semibold">Ph: {settings.companyContact}</span>
+        <div className="border-t-2 border-black min-h-[150px] p-4 flex flex-col justify-between">
+          <div className="flex flex-col items-center text-center w-full mb-8">
+            <div className="text-2xl font-bold uppercase tracking-wide text-center">{settings.companyName}</div>
+            <div className="text-sm mt-1 text-center">{settings.companyAddress}</div>
+            <div className="text-sm text-center">{settings.companyCity}</div>
+            <div className="flex gap-2 text-sm justify-center items-center mt-1">
+              <span className="flex items-center whitespace-nowrap font-semibold">IT PAN: <span className="ml-1 uppercase font-normal">{settings.companyPan}</span></span>
+              <span className="text-gray-400">|</span>
+              <span className="flex items-center whitespace-nowrap font-semibold">Phone: <span className="ml-1 font-normal">{settings.companyContact}</span></span>
+              <span className="text-gray-400">|</span>
+              <span className="flex items-center whitespace-nowrap font-semibold">Email: <span className="ml-1 font-normal">{settings.companyEmail}</span></span>
+            </div>
           </div>
-          <div className="flex justify-between items-end w-full">
-            <div className="w-1/3"></div>
-            <div className="w-1/3"></div>
-            <div className="w-1/3 text-center border-t border-dashed border-gray-400 pt-2 font-bold text-sm">
+          <div className="flex justify-end w-full">
+            <div className="w-1/3 text-center border-t border-dashed border-gray-400 pt-2 font-bold text-base">
               Transport Received Sign. with seal
             </div>
           </div>

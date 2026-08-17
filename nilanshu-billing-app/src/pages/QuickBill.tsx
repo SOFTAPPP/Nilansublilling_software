@@ -183,17 +183,25 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
       {/* Bill Canvas */}
       <div className="half-a4-page border border-border p-6 relative flex flex-col">
         
-        <div className="text-center mb-6 flex flex-col items-center">
+        <div className="text-center flex flex-col items-center relative">
+          <img src="/logo.png" alt="Logo" className="absolute left-0 top-0 w-10 h-10 object-contain" />
           <input 
             value={settings.companyName} 
             onChange={e => updateSettings({ companyName: e.target.value })} 
-            className="text-2xl font-bold font-serif uppercase tracking-widest w-full text-center bg-transparent outline-none" 
+            className="text-xl font-bold uppercase tracking-wide text-center w-full bg-transparent outline-none" 
           />
-          <div className="text-sm w-full text-center mt-1">{settings.companyAddress}</div>
-          <div className="text-sm w-full text-center">{settings.companyCity}</div>
-          <div className="mt-2 font-bold border border-black inline-block px-4 py-1">
-            QUICK BILL
+          <div className="text-xs text-center w-full leading-tight">{settings.companyAddress}, {settings.companyCity}</div>
+          <div className="flex gap-2 text-xs justify-center w-full items-center leading-tight mt-0.5">
+            <span className="flex items-center whitespace-nowrap font-semibold">IT PAN: <span className="ml-1 uppercase font-normal">{settings.companyPan}</span></span>
+            <span className="text-gray-400">|</span>
+            <span className="flex items-center whitespace-nowrap font-semibold">Ph: <span className="ml-1 font-normal">{settings.companyContact}</span></span>
+            <span className="text-gray-400">|</span>
+            <span className="flex items-center whitespace-nowrap font-semibold">Email: <span className="ml-1 font-normal">{settings.companyEmail}</span></span>
           </div>
+        </div>
+        <div className="border-b-2 border-black w-full mt-2 mb-2"></div>
+        <div className="text-center mb-2">
+          <span className="font-bold text-lg tracking-widest text-blue-600">QUICK BILL</span>
         </div>
 
         <div className="flex justify-between items-end border-b border-black pb-2 mb-4 text-sm">

@@ -113,13 +113,14 @@
   }
   .half-a4-page {
     width: 210mm !important;
-    height: 148.5mm !important;
+    min-height: 148.5mm !important;
+    height: auto !important;
     background: hsl(var(--card));
     color: hsl(var(--foreground));
     box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     position: relative;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: visible;
     flex-shrink: 0;
   }
 }

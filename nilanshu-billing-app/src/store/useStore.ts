@@ -397,32 +397,34 @@ export const useStore = create<AppState>((set, get) => ({
   },
   
   createBill: async (billData) => {
-    if (!billData.lineItems || billData.lineItems.length === 0) {
+    if (billData.type !== 'transport' && (!billData.lineItems || billData.lineItems.length === 0)) {
       throw new Error('Bill must have at least one line item.');
     }
 
     // Auto-create products for manually typed line items
-    for (let i = 0; i < billData.lineItems.length; i++) {
-      if (!billData.lineItems[i].productId) {
-        if (!billData.lineItems[i].productName?.trim()) {
-          throw new Error(`Item ${i + 1} is empty. Please enter a product name.`);
-        }
+    if (billData.lineItems) {
+      for (let i = 0; i < billData.lineItems.length; i++) {
+        if (!billData.lineItems[i].productId) {
+          if (!billData.lineItems[i].productName?.trim()) {
+            throw new Error(`Item ${i + 1} is empty. Please enter a product name.`);
+          }
 
-        const existingProd = get().products.find(p => p.name.toLowerCase() === billData.lineItems[i].productName.trim().toLowerCase());
+          const existingProd = get().products.find(p => p.name.toLowerCase() === billData.lineItems[i].productName.trim().toLowerCase());
 
-        if (existingProd) {
-          billData.lineItems[i].productId = existingProd.id;
-        } else {
-          // Create product via API first
-          const newProd = await apiClient.post('/products', {
-            name: billData.lineItems[i].productName.trim(),
-            category: 'Miscellaneous',
-            price: billData.lineItems[i].mrp || 0,
-            stock: 0,
-            lowStockThreshold: 10,
-            hsn: billData.lineItems[i].hsn || null
-          });
-          billData.lineItems[i].productId = newProd.id;
+          if (existingProd) {
+            billData.lineItems[i].productId = existingProd.id;
+          } else {
+            // Create product via API first
+            const newProd = await apiClient.post('/products', {
+              name: billData.lineItems[i].productName.trim(),
+              category: 'Miscellaneous',
+              price: billData.lineItems[i].mrp || 0,
+              stock: 0,
+              lowStockThreshold: 10,
+              hsn: billData.lineItems[i].hsn || null
+            });
+            billData.lineItems[i].productId = newProd.id;
+          }
         }
       }
     }
