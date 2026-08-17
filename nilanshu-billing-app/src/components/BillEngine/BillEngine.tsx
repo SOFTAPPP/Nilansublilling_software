@@ -355,7 +355,7 @@ export const BillEngine: React.FC<BillEngineProps> = ({
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setOpenQtyDropdown(null)}></div>
                           <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-20 bg-card border border-border shadow-lg rounded-md z-50 max-h-44 overflow-y-auto no-print text-sm">
-                            {Array.from({ length: 100 }, (_, i) => i + 1).map((val) => (
+                            {Array.from({ length: 1000 }, (_, i) => i + 1).map((val) => (
                               <div 
                                 key={val} 
                                 className={`p-2 text-center cursor-pointer hover:bg-muted transition-colors ${item.quantity === val ? 'bg-primary text-primary-foreground font-medium' : ''}`}

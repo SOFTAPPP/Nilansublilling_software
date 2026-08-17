@@ -79,8 +79,8 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
         dispatchedThrough: viewBill.driverName || '',
         termsOfPayment: '', refNo: '', otherRef: '', dispatchDocNo: '', deliveryNoteDate: '', termsOfDelivery: '', orderDate: ''
       });
-      if (viewBill.deductedAmount && viewBill.deductedAmount < 0) {
-        setAdvanceAmount(Math.abs(viewBill.deductedAmount).toString());
+      if (viewBill.paymentAmount) {
+        setAdvanceAmount(viewBill.paymentAmount.toString());
       } else {
         setAdvanceAmount('');
       }
@@ -262,7 +262,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           cgst: cgstAmount,
           sgst: sgstAmount,
           total: grandTotal,
-          deductedAmount: -addedAmount,
+          paymentAmount: addedAmount,
           lineItems: items.map(i => ({
             productId: i.productId,
             productName: i.productName,
@@ -286,7 +286,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           cgst: cgstAmount,
           sgst: sgstAmount,
           total: grandTotal,
-          deductedAmount: -addedAmount,
+          paymentAmount: addedAmount,
           lineItems: items.map(i => ({
             productId: i.productId,
             productName: i.productName,

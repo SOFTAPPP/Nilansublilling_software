@@ -67,8 +67,8 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
           discountPercent: li.discountPercent || 0,
         })));
       }
-      if (viewBill.deductedAmount && viewBill.deductedAmount < 0) {
-        setAdvanceAmount(Math.abs(viewBill.deductedAmount).toString());
+      if (viewBill.paymentAmount) {
+        setAdvanceAmount(viewBill.paymentAmount.toString());
       } else {
         setAdvanceAmount('');
       }
@@ -192,7 +192,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
           cgst: 0,
           sgst: 0,
           total: grandTotal,
-          deductedAmount: -addedAmount,
+          paymentAmount: addedAmount,
           lineItems: items.map(i => ({
             productId: i.productId,
             productName: i.productName,
@@ -216,7 +216,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
           cgst: 0,
           sgst: 0,
           total: grandTotal,
-          deductedAmount: -addedAmount,
+          paymentAmount: addedAmount,
           lineItems: items.map(i => ({
             productId: i.productId,
             productName: i.productName,

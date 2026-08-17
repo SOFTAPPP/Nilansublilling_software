@@ -237,9 +237,10 @@ router.delete('/:id', async (req, res) => {
       // Revert party balance
       if (bill.partyId) {
         if (bill.type === 'credit') {
+          const change = bill.total - ((bill as any).paymentAmount || 0);
           await tx.party.update({
             where: { id: bill.partyId },
-            data: { outstandingBalance: { decrement: bill.total } }
+            data: { outstandingBalance: { decrement: change } }
           });
         } else if (bill.type === 'return') {
           await tx.party.update({
