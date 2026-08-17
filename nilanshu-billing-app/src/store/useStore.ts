@@ -12,6 +12,7 @@ export interface Product {
   hsn?: string;
   barcode?: string;
   isbn?: string;
+  part?: string;
 }
 
 export interface Party {
