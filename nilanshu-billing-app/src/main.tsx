@@ -18,36 +18,38 @@ document.addEventListener('wheel', (e) => {
 
 // 3. Disable browser keyboard shortcuts that expose browser UI
 document.addEventListener('keydown', e => {
+  const key = e.key.toLowerCase();
+  
   // Ctrl+R / F5 — Refresh (not native-like)
-  if ((e.ctrlKey && e.key === 'r') || e.key === 'F5') {
+  if ((e.ctrlKey && key === 'r') || e.key === 'F5') {
     e.preventDefault();
   }
-  // Ctrl+P — Print dialog
-  if (e.ctrlKey && e.key === 'p') {
+  // Ctrl+P or Ctrl+Shift+P — Print dialog
+  if (e.ctrlKey && key === 'p') {
     e.preventDefault();
   }
   // Ctrl+U — View source
-  if (e.ctrlKey && e.key === 'u') {
+  if (e.ctrlKey && key === 'u') {
     e.preventDefault();
   }
   // Ctrl+Shift+I / F12 — DevTools
-  if ((e.ctrlKey && e.shiftKey && e.key === 'I') || e.key === 'F12') {
+  if ((e.ctrlKey && e.shiftKey && key === 'i') || e.key === 'F12') {
     e.preventDefault();
   }
   // Ctrl+F — Browser find dialog
-  if (e.ctrlKey && e.key === 'f') {
+  if (e.ctrlKey && key === 'f') {
     e.preventDefault();
   }
   // Ctrl+G — Find next
-  if (e.ctrlKey && e.key === 'g') {
+  if (e.ctrlKey && key === 'g') {
     e.preventDefault();
   }
   // Ctrl+S — Save page
-  if (e.ctrlKey && e.key === 's') {
+  if (e.ctrlKey && key === 's') {
     e.preventDefault();
   }
   // Ctrl+Shift+J — Console
-  if (e.ctrlKey && e.shiftKey && e.key === 'J') {
+  if (e.ctrlKey && e.shiftKey && key === 'j') {
     e.preventDefault();
   }
   // F7 — Caret browsing

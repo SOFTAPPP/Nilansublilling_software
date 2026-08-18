@@ -89,12 +89,24 @@
 @layer base {
   * {
     border-color: hsl(var(--border));
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
   }
+  
+  /* Allow text selection inside inputs, textareas, and specific selectable containers */
+  input, textarea, [contenteditable], .selectable, .selectable * {
+    user-select: auto;
+    -webkit-user-select: auto;
+    cursor: text;
+  }
+
   html, body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     overflow: hidden;
     overscroll-behavior: none;
+    cursor: default;
   }
 }
 
