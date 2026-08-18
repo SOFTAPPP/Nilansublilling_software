@@ -51,6 +51,8 @@ export interface Bill {
   status: string;
   date: string;
   paymentAmount?: number;
+  lrNo?: string;
+  lineItems?: BillLineItem[];
 }
 
 export interface BillLineItem {
