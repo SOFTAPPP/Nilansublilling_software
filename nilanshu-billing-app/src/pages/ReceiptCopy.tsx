@@ -60,6 +60,10 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
     
     let parsedAddress = party.address || '';
     let parsedDistrict = '';
+    let parsedPlace = parsedAddress.split('|')[0].trim();
+    if (parsedPlace.endsWith(',')) {
+      parsedPlace = parsedPlace.slice(0, -1).trim();
+    }
     
     const distMatch = parsedAddress.match(/ \| Dist: (.*)(?= \| PIN:| \| State:|$)/);
     // Alternatively, simpler regex:
@@ -72,6 +76,7 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
     }
     
     setDistrict(parsedDistrict);
+    setPlace(parsedPlace);
     setPartyDropdownOpen(false);
   };
 
