@@ -238,7 +238,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
       </div>
 
       {/* Bill Canvas */}
-      <div className="half-a4-page border border-border p-6 relative flex flex-col">
+      <div className="a4-page border border-border p-6 relative flex flex-col">
 
         <div className="text-center flex flex-col items-center relative z-10">
           <img src="/logo.png" alt="Logo" className="absolute left-0 top-0 w-12 h-12 object-contain" />
