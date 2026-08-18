@@ -346,11 +346,11 @@ export default function PartyStatement() {
                 <div className="text-xs text-gray-500 dark:text-slate-400 print:text-gray-500">(on {new Date(fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric'})})</div>
               </div>
               <div className="border-r border-gray-300 dark:border-slate-700 print:border-gray-300">
-                <div className="text-gray-700 dark:text-slate-300 print:text-gray-700 font-semibold mb-2">Total Debit(-)</div>
+                <div className="text-gray-700 dark:text-slate-300 print:text-gray-700 font-semibold mb-2">Total Debit (+)</div>
                 <div className="font-bold text-lg">₹{formatMoney(totalDebit)}</div>
               </div>
               <div className="border-r border-gray-300 dark:border-slate-700 print:border-gray-300">
-                <div className="text-gray-700 dark:text-slate-300 print:text-gray-700 font-semibold mb-2">Total Credit(+)</div>
+                <div className="text-gray-700 dark:text-slate-300 print:text-gray-700 font-semibold mb-2">Total Credit (-)</div>
                 <div className="font-bold text-lg">₹{formatMoney(totalCredit)}</div>
               </div>
               <div>
@@ -371,8 +371,8 @@ export default function PartyStatement() {
                   <tr className="bg-gray-50 dark:bg-slate-800 print:bg-gray-50 border-b border-gray-400 dark:border-slate-600 print:border-gray-400">
                     <th className="py-2 px-3 font-bold border-r border-gray-400 dark:border-slate-600 print:border-gray-400 w-28">Date</th>
                     <th className="py-2 px-3 font-bold border-r border-gray-400 dark:border-slate-600 print:border-gray-400">Details</th>
-                    <th className="py-2 px-3 font-bold text-right border-r border-gray-400 dark:border-slate-600 print:border-gray-400 w-32">Debit(-)</th>
-                    <th className="py-2 px-3 font-bold text-right border-r border-gray-400 dark:border-slate-600 print:border-gray-400 w-32">Credit(+)</th>
+                    <th className="py-2 px-3 font-bold text-right border-r border-gray-400 dark:border-slate-600 print:border-gray-400 w-32">Debit (+)</th>
+                    <th className="py-2 px-3 font-bold text-right border-r border-gray-400 dark:border-slate-600 print:border-gray-400 w-32">Credit (-)</th>
                     <th className="py-2 px-3 font-bold text-right w-36">Balance</th>
                   </tr>
                 </thead>
