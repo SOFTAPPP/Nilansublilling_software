@@ -196,7 +196,9 @@ export const useStore = create<AppState>((set, get) => ({
       set({ products: products as Product[] });
     } catch (error: any) {
       console.error('Failed to fetch products', error);
-      get().showDialog({ title: 'Fetch Error', message: 'Failed to load products: ' + (error.message || String(error)), type: 'alert' });
+      if (error.message !== 'Unauthorized') {
+        get().showDialog({ title: 'Fetch Error', message: 'Failed to load products: ' + (error.message || String(error)), type: 'alert' });
+      }
     }
   },
   
@@ -206,7 +208,9 @@ export const useStore = create<AppState>((set, get) => ({
       set({ parties: parties as Party[] });
     } catch (error: any) {
       console.error('Failed to fetch parties', error);
-      get().showDialog({ title: 'Fetch Error', message: 'Failed to load customers: ' + (error.message || String(error)), type: 'alert' });
+      if (error.message !== 'Unauthorized') {
+        get().showDialog({ title: 'Fetch Error', message: 'Failed to load parties: ' + (error.message || String(error)), type: 'alert' });
+      }
     }
   },
   
@@ -216,7 +220,9 @@ export const useStore = create<AppState>((set, get) => ({
       set({ transporters: transporters as Transporter[] });
     } catch (error: any) {
       console.error('Failed to fetch transporters', error);
-      get().showDialog({ title: 'Fetch Error', message: 'Failed to load transporters: ' + (error.message || String(error)), type: 'alert' });
+      if (error.message !== 'Unauthorized') {
+        get().showDialog({ title: 'Fetch Error', message: 'Failed to load transporters: ' + (error.message || String(error)), type: 'alert' });
+      }
     }
   },
   
@@ -226,7 +232,9 @@ export const useStore = create<AppState>((set, get) => ({
       set({ bills: bills as Bill[] });
     } catch (error: any) {
       console.error('Failed to fetch bills', error);
-      get().showDialog({ title: 'Fetch Error', message: 'Failed to load bills: ' + (error.message || String(error)), type: 'alert' });
+      if (error.message !== 'Unauthorized') {
+        get().showDialog({ title: 'Fetch Error', message: 'Failed to load bills: ' + (error.message || String(error)), type: 'alert' });
+      }
     }
   },
   
