@@ -2,6 +2,18 @@ import { useState, useRef } from 'react';
 import { useStore, Party } from '../store/useStore';
 import { Plus, Trash2, Edit2, ChevronDown } from 'lucide-react';
 
+const formatAadhar = (value: string) => {
+  const digitsOnly = value.replace(/\D/g, '').slice(0, 12);
+  const match = digitsOnly.match(/^(\d{0,4})(\d{0,4})(\d{0,4})$/);
+  if (match) {
+    let formatted = match[1];
+    if (match[2]) formatted += '-' + match[2];
+    if (match[3]) formatted += '-' + match[3];
+    return formatted;
+  }
+  return value;
+};
+
 export default function CustomerManagement() {
   const { parties, addParty, deleteParty, updateParty, showDialog } = useStore();
   const [isAdding, setIsAdding] = useState(false);
@@ -204,7 +216,7 @@ export default function CustomerManagement() {
             {/* Aadhar Number */}
             <div>
               <label className={labelClass}>Aadhar Number</label>
-              <input type="text" placeholder="XXXX XXXX XXXX" value={newParty.aadharNumber} onChange={e => setNewParty({...newParty, aadharNumber: e.target.value})} className={inputClass} />
+              <input type="text" placeholder="XXXX-XXXX-XXXX" value={newParty.aadharNumber} onChange={e => setNewParty({...newParty, aadharNumber: formatAadhar(e.target.value)})} className={inputClass} />
             </div>
             {/* Default Discount */}
             <div>
@@ -308,7 +320,7 @@ export default function CustomerManagement() {
               {/* Aadhar Number */}
               <div>
                 <label className={labelClass}>Aadhar Number</label>
-                <input type="text" placeholder="XXXX XXXX XXXX" value={editForm.aadharNumber || ''} onChange={e => setEditForm({...editForm, aadharNumber: e.target.value})} className={inputClass} />
+                <input type="text" placeholder="XXXX-XXXX-XXXX" value={editForm.aadharNumber || ''} onChange={e => setEditForm({...editForm, aadharNumber: formatAadhar(e.target.value)})} className={inputClass} />
               </div>
               {/* Default Discount */}
               <div>

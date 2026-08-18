@@ -34,18 +34,17 @@ const generateProductId = async (): Promise<string> => {
   const products = await prisma.product.findMany({
     select: { id: true },
     where: { id: { startsWith: 'PROD-' } },
-    orderBy: { id: 'desc' },
-    take: 1,
   });
   
-  let nextNum = 1;
-  if (products.length > 0) {
-    const lastId = products[0].id; // e.g. "PROD-000123"
-    const numPart = parseInt(lastId.replace('PROD-', ''), 10);
-    if (!isNaN(numPart)) nextNum = numPart + 1;
+  let maxNum = 0;
+  for (const p of products) {
+    const numPart = parseInt(p.id.replace('PROD-', ''), 10);
+    if (!isNaN(numPart) && numPart > maxNum) {
+      maxNum = numPart;
+    }
   }
   
-  return `PROD-${String(nextNum).padStart(6, '0')}`;
+  return `PROD-${String(maxNum + 1).padStart(6, '0')}`;
 };
 
 // Create product

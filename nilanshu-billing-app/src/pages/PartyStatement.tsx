@@ -303,9 +303,9 @@ export default function PartyStatement() {
           />
           <div className="text-center w-full text-slate-600 dark:text-slate-400 print:text-slate-600 font-medium">{settings.companyAddress}, {settings.companyCity}</div>
           <div className="flex justify-center gap-4 w-full mt-4 text-sm text-slate-600 dark:text-slate-400 print:text-slate-600">
-            {settings.companyPan && <div className="flex gap-1.5 bg-slate-50 dark:bg-slate-800 print:bg-transparent px-4 py-1.5 rounded-full border border-slate-100 dark:border-slate-700 print:border-slate-100"><span className="font-semibold text-slate-800 dark:text-foreground print:text-black">PAN:</span><span>{settings.companyPan}</span></div>}
-            {settings.companyContact && <div className="flex gap-1.5 bg-slate-50 dark:bg-slate-800 print:bg-transparent px-4 py-1.5 rounded-full border border-slate-100 dark:border-slate-700 print:border-slate-100"><span className="font-semibold text-slate-800 dark:text-foreground print:text-black">Phone:</span><span>{settings.companyContact}</span></div>}
-            {settings.companyEmail && <div className="flex gap-1.5 bg-slate-50 dark:bg-slate-800 print:bg-transparent px-4 py-1.5 rounded-full border border-slate-100 dark:border-slate-700 print:border-slate-100"><span className="font-semibold text-slate-800 dark:text-foreground print:text-black">Email:</span><span>{settings.companyEmail}</span></div>}
+            {settings.companyPan && <div className="flex gap-1.5 bg-slate-50 dark:bg-transparent print:bg-transparent px-4 py-1.5 rounded-full border border-slate-100 dark:border-transparent print:border-slate-100"><span className="font-semibold text-slate-800 dark:text-foreground print:text-black">PAN:</span><span>{settings.companyPan}</span></div>}
+            {settings.companyContact && <div className="flex gap-1.5 bg-slate-50 dark:bg-transparent print:bg-transparent px-4 py-1.5 rounded-full border border-slate-100 dark:border-transparent print:border-slate-100"><span className="font-semibold text-slate-800 dark:text-foreground print:text-black">Phone:</span><span>{settings.companyContact}</span></div>}
+            {settings.companyEmail && <div className="flex gap-1.5 bg-slate-50 dark:bg-transparent print:bg-transparent px-4 py-1.5 rounded-full border border-slate-100 dark:border-transparent print:border-slate-100"><span className="font-semibold text-slate-800 dark:text-foreground print:text-black">Email:</span><span>{settings.companyEmail}</span></div>}
           </div>
         </div>
 
@@ -326,14 +326,14 @@ export default function PartyStatement() {
               </div>
 
               {(selectedParty?.bankName || selectedParty?.bankAccountNo || selectedParty?.bankIfsc) && (
-                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2 text-sm text-slate-700 dark:text-slate-300 print:text-slate-700 bg-slate-50 dark:bg-slate-800 print:bg-slate-50 px-4 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 print:border-slate-200">
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2 text-sm text-slate-700 dark:text-slate-300 print:text-slate-700 bg-slate-50 dark:bg-transparent print:bg-slate-50 px-4 py-1.5 rounded-lg border border-slate-200 dark:border-transparent print:border-slate-200">
                   {selectedParty.bankName && <div><span className="font-semibold">Bank:</span> {selectedParty.bankName}</div>}
                   {selectedParty.bankAccountNo && <div><span className="font-semibold">A/C:</span> {selectedParty.bankAccountNo}</div>}
                   {selectedParty.bankIfsc && <div><span className="font-semibold">IFSC:</span> {selectedParty.bankIfsc}</div>}
                 </div>
               )}
 
-              <div className="text-sm mt-3 font-semibold text-slate-500 dark:text-slate-400 print:text-slate-500 bg-slate-100 dark:bg-slate-800 print:bg-slate-100 px-3 py-1 rounded-full">
+              <div className="text-sm mt-3 font-semibold text-slate-500 dark:text-slate-400 print:text-slate-500 bg-slate-100 dark:bg-transparent print:bg-slate-100 px-3 py-1 rounded-full border border-transparent">
                 Statement Period: {new Date(fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric'})} - {new Date(toDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric'})}
               </div>
             </div>
