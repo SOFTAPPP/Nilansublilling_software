@@ -434,7 +434,7 @@ export const useStore = create<AppState>((set, get) => ({
   },
   
   createBill: async (billData) => {
-    if (billData.type !== 'transport' && (!billData.lineItems || billData.lineItems.length === 0)) {
+    if (!['transport', 'receipt', 'voucher'].includes(billData.type) && (!billData.lineItems || billData.lineItems.length === 0)) {
       throw new Error('Bill must have at least one line item.');
     }
 
