@@ -16,9 +16,12 @@ export function getNextBillNumberSync(prefix: string, bills: Bill[]): string {
       const billNum = row.billNumber || '';
       const match = billNum.match(/^(\d+)-(\d{4})$/);
       if (match) {
-        const parsed = parseInt(match[1], 10);
-        if (!isNaN(parsed) && parsed > maxNum) {
-          maxNum = parsed;
+        const billYear = parseInt(match[2], 10);
+        if (billYear === currentYear) {
+          const parsed = parseInt(match[1], 10);
+          if (!isNaN(parsed) && parsed > maxNum) {
+            maxNum = parsed;
+          }
         }
       } else if (billNum.startsWith('INV-')) {
         const parsed = parseInt(billNum.replace('INV-', ''), 10);
