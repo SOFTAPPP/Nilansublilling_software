@@ -187,7 +187,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
 
   const partyOutstanding = parties.find(p => p.id === partyId)?.outstandingBalance || 0;
   const addedAmount = Number(advanceAmount) || 0;
-  const netPayable = grandTotal + addedAmount;
+  const netPayable = grandTotal + partyOutstanding - addedAmount;
 
   // Validate invoice number on change - check for duplicates
   const handleInvoiceNoChange = async (val: string) => {
@@ -679,36 +679,44 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           </div>
           {partyOutstanding > 0 && (
             <div className="flex border-t-2 border-black text-sm font-bold bg-muted/50 print:bg-transparent">
-              <div className="w-[85%] text-right pr-4 py-1 border-r border-black flex justify-end items-center gap-2">
-                <div className="flex items-center gap-2 no-print text-xs">
-                  <span className="font-bold text-foreground">Amount to receive (₹{partyOutstanding}) | Add: Previous Due</span>
-                  <input 
-                    type="number" 
-                    value={advanceAmount} 
-                    onChange={e => {
-                      const val = e.target.value;
-                      if (Number(val) > partyOutstanding) {
-                        setAdvanceAmount(partyOutstanding.toString());
-                      } else if (Number(val) < 0) {
-                        setAdvanceAmount('0');
-                      } else {
-                        setAdvanceAmount(val);
-                      }
-                    }}
-                    max={partyOutstanding}
-                    min="0"
-                    className="w-24 px-2 py-0.5 border border-border rounded text-center outline-none bg-background text-foreground font-bold" 
-                    placeholder="0.00"
-                    readOnly={!!viewBill}
-                  />
-                </div>
-                <span className="hidden print:block text-xs font-semibold">Add: Previous Due</span>
+              <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
+                Add: Previous Due
               </div>
-              <div className="w-[15%] text-right pr-2 py-1 text-green-600 dark:text-green-400">
-                + {addedAmount.toFixed(2)}
+              <div className="w-[15%] text-right pr-2 py-1 text-red-600 dark:text-red-400">
+                + {partyOutstanding.toFixed(2)}
               </div>
             </div>
           )}
+          <div className="flex border-t-2 border-black text-sm font-bold bg-muted/50 print:bg-transparent">
+            <div className="w-[85%] text-right pr-4 py-1 border-r border-black flex justify-end items-center gap-2">
+              <div className="flex items-center gap-2 no-print text-xs">
+                <span className="font-bold text-foreground">Less: Advance Payment Received Now</span>
+                <input 
+                  type="number" 
+                  value={advanceAmount} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (Number(val) > grandTotal) {
+                      setAdvanceAmount(grandTotal.toString());
+                    } else if (Number(val) < 0) {
+                      setAdvanceAmount('0');
+                    } else {
+                      setAdvanceAmount(val);
+                    }
+                  }}
+                  max={grandTotal}
+                  min="0"
+                  className="w-24 px-2 py-0.5 border border-border rounded text-center outline-none bg-background text-foreground font-bold" 
+                  placeholder="0.00"
+                  readOnly={!!viewBill}
+                />
+              </div>
+              <span className="hidden print:block text-xs font-semibold">Less: Advance Payment</span>
+            </div>
+            <div className="w-[15%] text-right pr-2 py-1 text-green-600 dark:text-green-400">
+              - {addedAmount.toFixed(2)}
+            </div>
+          </div>
 
           <div className="flex border-t-2 border-black text-sm font-bold text-lg">
             <div className="w-[85%] text-right pr-4 py-1 border-r border-black">

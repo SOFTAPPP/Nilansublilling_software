@@ -492,32 +492,33 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
             </div>
             {partyOutstanding > 0 && (
               <div className="flex items-center justify-between border-b border-black p-2 bg-muted/50 print:bg-transparent gap-2">
-                <div className="flex items-center gap-2 no-print text-[10px] flex-1">
-                  <span className="font-bold text-foreground leading-tight flex-1">Amount to receive (₹{partyOutstanding}) | Add: Previous Due</span>
-                  <input 
-                    type="number" 
-                    value={advanceAmount} 
-                    onChange={e => {
-                      const val = e.target.value;
-                      if (Number(val) > partyOutstanding) {
-                        setAdvanceAmount(partyOutstanding.toString());
-                      } else if (Number(val) < 0) {
-                        setAdvanceAmount('0');
-                      } else {
-                        setAdvanceAmount(val);
-                      }
-                    }}
-                    max={partyOutstanding}
-                    min="0"
-                    className="w-16 px-1 py-0.5 border border-border rounded text-center outline-none bg-background text-foreground font-bold shrink-0 text-xs" 
-                    placeholder="0.00"
-                    readOnly={!!viewBill}
-                  />
-                </div>
-                <div className="hidden print:block text-xs font-semibold">Add: Previous Due</div>
-                <span className="text-xs font-bold text-green-600 dark:text-green-400 shrink-0 w-16 text-right">+ {addedAmount.toFixed(2)}</span>
+                <span className="font-bold text-xs">Previous Dues (Pending)</span>
+                <span className="text-xs font-bold text-red-600 dark:text-red-400 shrink-0 w-16 text-right">+ {partyOutstanding.toFixed(2)}</span>
               </div>
             )}
+            <div className="flex items-center justify-between border-b border-black p-2 bg-muted/50 print:bg-transparent gap-2">
+              <div className="flex items-center gap-2 no-print text-[10px] flex-1">
+                <span className="font-bold text-foreground leading-tight flex-1">Add: Extra Cash Received (To clear old debt)</span>
+                <input 
+                  type="number" 
+                  value={advanceAmount} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (Number(val) < 0) {
+                      setAdvanceAmount('0');
+                    } else {
+                      setAdvanceAmount(val);
+                    }
+                  }}
+                  min="0"
+                  className="w-16 px-1 py-0.5 border border-border rounded text-center outline-none bg-background text-foreground font-bold shrink-0 text-xs" 
+                  placeholder="0.00"
+                  readOnly={!!viewBill}
+                />
+              </div>
+              <div className="hidden print:block text-xs font-semibold">Add: Extra Cash Received</div>
+              <span className="text-xs font-bold text-green-600 dark:text-green-400 shrink-0 w-16 text-right">+ {addedAmount.toFixed(2)}</span>
+            </div>
 
             <div className="flex justify-between border-b border-black p-2 font-bold text-lg">
               <span>GRAND TOTAL</span>
