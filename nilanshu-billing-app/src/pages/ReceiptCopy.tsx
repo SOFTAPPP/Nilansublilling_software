@@ -16,8 +16,9 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
   const [place, setPlace] = useState('');
   const [district, setDistrict] = useState('');
   const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
+  const [paymentDropdownOpen, setPaymentDropdownOpen] = useState(false);
   const partyDropdownRef = useRef<HTMLDivElement>(null);
-
+  const paymentDropdownRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     getNextBillNumber('RCP-').then(setReceiptNo);
   }, []);
@@ -39,6 +40,9 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
     const handleClickOutside = (event: MouseEvent) => {
       if (partyDropdownRef.current && !partyDropdownRef.current.contains(event.target as Node)) {
         setPartyDropdownOpen(false);
+      }
+      if (paymentDropdownRef.current && !paymentDropdownRef.current.contains(event.target as Node)) {
+        setPaymentDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -120,45 +124,45 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
         <input 
           value={settings.companyName || 'NILANSU PUBLICATION'}
           onChange={e => updateSettings({ companyName: e.target.value })}
-          className="text-2xl font-black text-blue-400 print:text-blue-900 tracking-wide bg-transparent outline-none text-center w-full" 
+          className="text-2xl font-black text-blue-500 print:text-blue-900 tracking-wide bg-transparent outline-none text-center w-full" 
           style={{ fontFamily: 'serif' }}
         />
-        <p className="text-sm font-medium text-blue-400 print:text-blue-800">34, BENIATOLA LANE, KOLKATA-700009</p>
-        <p className="text-sm font-medium text-blue-400 print:text-blue-800">Mob. : {settings.companyContact}</p>
+        <p className="text-sm font-medium text-blue-500 print:text-blue-800">34, BENIATOLA LANE, KOLKATA-700009</p>
+        <p className="text-sm font-medium text-blue-500 print:text-blue-800">Mob. : {settings.companyContact}</p>
       </div>
 
       <div className="space-y-3 text-sm">
         <div className="flex items-baseline gap-2">
           <span className="whitespace-nowrap font-semibold">Received with thanks from</span>
-          <span className="flex-1 border-b border-dotted border-blue-400 print:border-blue-800 text-blue-400 print:text-blue-900 font-bold px-1">{customerName || ''}</span>
+          <span className="flex-1 border-b border-dotted border-blue-500 print:border-blue-800 text-blue-500 print:text-blue-900 font-bold px-1">{customerName || ''}</span>
         </div>
 
         <div className="flex items-baseline gap-2">
           <span className="whitespace-nowrap font-semibold">Rs.</span>
-          <span className="flex-1 border-b border-dotted border-blue-400 print:border-blue-800 text-blue-400 print:text-blue-900 font-bold px-1">
+          <span className="flex-1 border-b border-dotted border-blue-500 print:border-blue-800 text-blue-500 print:text-blue-900 font-bold px-1">
             {amount > 0 ? `₹ ${amount.toLocaleString('en-IN')} /- (${numberToWords(amount)} only)` : ''}
           </span>
         </div>
 
         <div className="flex items-baseline gap-2">
           <span className="whitespace-nowrap font-semibold">by {paymentMode} / Cheque No.</span>
-          <span className="flex-1 border-b border-dotted border-blue-400 print:border-blue-800 text-blue-400 print:text-blue-900 font-bold px-1">{chequeNo || ''}</span>
+          <span className="flex-1 border-b border-dotted border-blue-500 print:border-blue-800 text-blue-500 print:text-blue-900 font-bold px-1">{chequeNo || ''}</span>
         </div>
 
         <div className="flex items-center gap-4">
           <span className="font-bold w-32 shrink-0">Place</span>
-          <span className="border-b border-dashed border-blue-400 print:border-blue-800 flex-1">{place || ''}</span>
+          <span className="border-b border-dashed border-blue-500 print:border-blue-800 flex-1">{place || ''}</span>
           <span className="font-bold w-12 shrink-0">Dist.</span>
-          <span className="border-b border-dashed border-blue-400 print:border-blue-800 flex-1">{district || ''}</span>
+          <span className="border-b border-dashed border-blue-500 print:border-blue-800 flex-1">{district || ''}</span>
         </div>
         <div className="flex items-center gap-4">
           <span className="font-bold w-32 shrink-0">on the date</span>
-          <span className="border-b border-dashed border-blue-400 print:border-blue-800 flex-1 font-medium text-blue-400 print:text-blue-800">{receiptDate}</span>
+          <span className="border-b border-dashed border-blue-500 print:border-blue-800 flex-1 font-medium text-blue-500 print:text-blue-800">{receiptDate}</span>
         </div>
       </div>
 
       <div className="mt-8 flex justify-between items-end">
-        <div className="text-xs font-bold text-blue-400 print:text-blue-800">NILANSU PUBLICATION</div>
+        <div className="text-xs font-bold text-blue-500 print:text-blue-800">NILANSU PUBLICATION</div>
         <div className="w-48 text-center text-xs font-bold border-t border-blue-500 print:border-blue-800 pt-1">
           Prop. Signature with Date
         </div>
@@ -227,16 +231,31 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
                 className="w-full border border-border p-2.5 rounded-lg bg-muted/50 text-sm font-bold"
               />
             </div>
-            <div>
+            <div className="relative" ref={paymentDropdownRef}>
               <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Payment Mode</label>
-              <select
-                value={paymentMode}
-                onChange={e => setPaymentMode(e.target.value as 'Cash' | 'Cheque')}
-                className="w-full border border-border p-2.5 rounded-lg bg-muted/50 text-sm"
+              <div 
+                className="w-full border border-border p-2.5 rounded-lg bg-muted/50 text-sm flex justify-between items-center cursor-pointer select-none"
+                onClick={() => setPaymentDropdownOpen(!paymentDropdownOpen)}
               >
-                <option value="Cash">Cash</option>
-                <option value="Cheque">Cheque</option>
-              </select>
+                <span>{paymentMode}</span>
+                <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+              {paymentDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-full bg-card border shadow-xl z-50 rounded-lg overflow-hidden text-sm">
+                  {['Cash', 'Cheque'].map((mode) => (
+                    <div 
+                      key={mode}
+                      className="px-4 py-2 hover:bg-muted cursor-pointer transition-colors"
+                      onClick={() => {
+                        setPaymentMode(mode as 'Cash' | 'Cheque');
+                        setPaymentDropdownOpen(false);
+                      }}
+                    >
+                      {mode}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             {paymentMode === 'Cheque' && (
               <div>
