@@ -56,7 +56,7 @@ export default function PartyStatement() {
   const partyBills = bills.filter(b => b.partyId === selectedPartyId && (b.type === 'credit' || b.type === 'return' || b.type === 'receipt' || b.type === 'cash'));
   const sortedBillsByDate = [...partyBills].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  let running = 0;
+  let running = selectedParty?.outstandingBalance || 0;
   const rawHistory: any[] = [];
   
   for (const bill of sortedBillsByDate) {
@@ -157,7 +157,7 @@ export default function PartyStatement() {
   const start = new Date(fromDate).getTime();
   const end = new Date(toDate + 'T23:59:59').getTime();
   
-  let openingBalance = 0;
+  let openingBalance = selectedParty?.outstandingBalance || 0;
   const periodHistory: any[] = [];
   
   for (const entry of rawHistory) {

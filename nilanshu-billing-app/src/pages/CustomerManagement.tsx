@@ -33,6 +33,7 @@ export default function CustomerManagement() {
 
   const handleEditClick = (party: Party) => {
     setEditingParty(party);
+    setEditPhoneCodeOpen(false);
     
     let parsedAddress = party.address || '';
     let parsedDistrict = '';
@@ -155,7 +156,7 @@ export default function CustomerManagement() {
         <h1 className="text-3xl font-bold tracking-tight">Customers / Parties</h1>
         <div className="flex gap-4">
           <button 
-            onClick={() => setIsAdding(true)}
+            onClick={() => { setIsAdding(true); setNewPhoneCodeOpen(false); }}
             className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2"
           >
             <Plus size={18} /> Add Manually
