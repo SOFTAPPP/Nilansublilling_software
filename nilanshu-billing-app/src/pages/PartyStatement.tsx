@@ -215,8 +215,8 @@ export default function PartyStatement() {
   const totalCredit = periodHistory.reduce((sum, e) => sum + (e.credit || 0), 0);
   const finalBalance = openingBalance + totalDebit - totalCredit;
 
-  // Material Summary Aggregation
-  const itemSummary: Record<string, { name: string; quantity: number; amount: number }> = {};
+  // Material Summary Detailed List
+  const itemDetails: { dateStr: string; name: string; quantity: number; amount: number; isReturn: boolean; timestamp: number }[] = [];
 
   const periodBills = bills.filter(b => {
     if (b.partyId !== selectedPartyId) return false;
@@ -225,30 +225,42 @@ export default function PartyStatement() {
   });
 
   periodBills.forEach(bill => {
+    const bDate = new Date(bill.date);
+    const dateStr = bDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + bDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const timestamp = bDate.getTime();
+
     if (bill.type === 'credit' || bill.type === 'cash') {
       bill.lineItems?.forEach(item => {
-        if (!itemSummary[item.productId]) {
-          const product = products.find(p => p.id === item.productId);
-          itemSummary[item.productId] = { name: product?.name || 'Unknown Item', quantity: 0, amount: 0 };
-        }
-        itemSummary[item.productId].quantity += item.quantity;
-        itemSummary[item.productId].amount += item.amount;
+        const product = products.find(p => p.id === item.productId);
+        itemDetails.push({
+          dateStr,
+          timestamp,
+          name: product?.name || 'Unknown Item',
+          quantity: item.quantity,
+          amount: item.amount,
+          isReturn: false
+        });
       });
     } else if (bill.type === 'return') {
       bill.lineItems?.forEach(item => {
-        if (!itemSummary[item.productId]) {
-          const product = products.find(p => p.id === item.productId);
-          itemSummary[item.productId] = { name: product?.name || 'Unknown Item', quantity: 0, amount: 0 };
-        }
-        itemSummary[item.productId].quantity -= item.quantity;
-        itemSummary[item.productId].amount -= item.amount;
+        const product = products.find(p => p.id === item.productId);
+        itemDetails.push({
+          dateStr,
+          timestamp,
+          name: product?.name || 'Unknown Item',
+          quantity: -item.quantity,
+          amount: -item.amount,
+          isReturn: true
+        });
       });
     }
   });
 
-  const sortedItemSummary = Object.values(itemSummary)
-    .filter(i => i.quantity !== 0)
-    .sort((a, b) => a.name.localeCompare(b.name));
+  itemDetails.sort((a, b) => a.timestamp - b.timestamp);
+  
+  // Also calculate total summary for the bottom row
+  const totalMaterialQty = itemDetails.reduce((sum, item) => sum + item.quantity, 0);
+  const totalMaterialAmt = itemDetails.reduce((sum, item) => sum + item.amount, 0);
 
 
   const formatMoney = (val: number) => {
@@ -489,34 +501,38 @@ export default function PartyStatement() {
               </table>
             </div>
 
-            {/* Itemized Material Summary */}
-            {sortedItemSummary.length > 0 && (
+            {/* Itemized Material Details */}
+            {itemDetails.length > 0 && (
               <div className="mt-8 mb-4">
-                <div className="font-bold text-slate-800 dark:text-slate-200 mb-2 text-sm uppercase tracking-wider">Itemized Material Summary</div>
+                <div className="font-bold text-slate-800 dark:text-slate-200 mb-2 text-sm uppercase tracking-wider">Itemized Material Details</div>
                 <div className="border border-gray-400 dark:border-slate-600 print:border-gray-400 rounded-lg overflow-hidden bg-white dark:bg-card print:bg-white shadow-sm">
                   <table className="w-full text-left border-collapse text-[13px]">
                     <thead>
                       <tr className="bg-gray-50 dark:bg-slate-800 print:bg-gray-50 border-b border-gray-400 dark:border-slate-600 print:border-gray-400">
+                        <th className="py-2 px-3 font-bold border-r border-gray-400 dark:border-slate-600 print:border-gray-400 w-44">Date & Time</th>
                         <th className="py-2 px-3 font-bold border-r border-gray-400 dark:border-slate-600 print:border-gray-400">Item / Material Name</th>
-                        <th className="py-2 px-3 font-bold text-right border-r border-gray-400 dark:border-slate-600 print:border-gray-400 w-32">Total Quantity</th>
-                        <th className="py-2 px-3 font-bold text-right w-36">Total Amount (₹)</th>
+                        <th className="py-2 px-3 font-bold text-right border-r border-gray-400 dark:border-slate-600 print:border-gray-400 w-24">Quantity</th>
+                        <th className="py-2 px-3 font-bold text-right w-32">Amount (₹)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedItemSummary.map((item, idx) => (
-                        <tr key={idx} className="border-b border-gray-400 dark:border-slate-600 print:border-gray-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 print:hover:bg-transparent last:border-0">
-                          <td className="py-2 px-3 font-medium border-r border-gray-400 dark:border-slate-600 print:border-gray-400 text-slate-700 dark:text-slate-200">{item.name}</td>
-                          <td className="py-2 px-3 text-right font-semibold border-r border-gray-400 dark:border-slate-600 print:border-gray-400 text-slate-800 dark:text-slate-100">{item.quantity}</td>
-                          <td className="py-2 px-3 text-right font-medium text-slate-700 dark:text-slate-200">{formatMoney(item.amount)}</td>
+                      {itemDetails.map((item, idx) => (
+                        <tr key={idx} className={`border-b border-gray-400 dark:border-slate-600 print:border-gray-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 print:hover:bg-transparent ${item.isReturn ? 'text-red-600' : 'text-slate-700 dark:text-slate-200'} last:border-0`}>
+                          <td className="py-2 px-3 font-medium border-r border-gray-400 dark:border-slate-600 print:border-gray-400">{item.dateStr}</td>
+                          <td className="py-2 px-3 font-medium border-r border-gray-400 dark:border-slate-600 print:border-gray-400">
+                            {item.name} {item.isReturn && <span className="text-xs ml-1">(Returned)</span>}
+                          </td>
+                          <td className="py-2 px-3 text-right font-semibold border-r border-gray-400 dark:border-slate-600 print:border-gray-400">{item.quantity > 0 ? item.quantity : Math.abs(item.quantity)}</td>
+                          <td className="py-2 px-3 text-right font-medium">{formatMoney(Math.abs(item.amount))}</td>
                         </tr>
                       ))}
                       <tr className="bg-gray-50 dark:bg-slate-800 print:bg-gray-50 border-t-2 border-gray-400 dark:border-slate-600 print:border-gray-400">
-                        <td className="py-2 px-3 font-bold border-r border-gray-400 dark:border-slate-600 print:border-gray-400 text-slate-800 dark:text-slate-100">Total Materials</td>
+                        <td colSpan={2} className="py-2 px-3 font-bold border-r border-gray-400 dark:border-slate-600 print:border-gray-400 text-slate-800 dark:text-slate-100 text-right">Net Materials Taken</td>
                         <td className="py-2 px-3 text-right font-bold border-r border-gray-400 dark:border-slate-600 print:border-gray-400 text-slate-800 dark:text-slate-100">
-                          {sortedItemSummary.reduce((sum, item) => sum + item.quantity, 0)}
+                          {totalMaterialQty}
                         </td>
                         <td className="py-2 px-3 text-right font-bold text-slate-800 dark:text-slate-100">
-                          {formatMoney(sortedItemSummary.reduce((sum, item) => sum + item.amount, 0))}
+                          {formatMoney(totalMaterialAmt)}
                         </td>
                       </tr>
                     </tbody>

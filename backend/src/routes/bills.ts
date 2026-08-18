@@ -94,9 +94,9 @@ router.post('/', async (req, res) => {
     });
 
     res.status(201).json(bill);
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to create bill' });
+    res.status(500).json({ error: error.message || 'Failed to create bill' });
   }
 });
 

@@ -10,10 +10,9 @@ import { Bill, useStore } from '../store/useStore';
 export function getNextBillNumberSync(prefix: string, bills: Bill[]): string {
   if (prefix === 'INV-') {
     const currentYear = new Date().getFullYear();
-    const creditBills = bills.filter(b => b.type === 'credit');
     
     let maxNum = 0;
-    for (const row of creditBills) {
+    for (const row of bills) {
       const billNum = row.billNumber || '';
       const match = billNum.match(/^(\d+)-(\d{4})$/);
       if (match) {
