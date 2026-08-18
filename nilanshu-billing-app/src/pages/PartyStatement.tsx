@@ -224,7 +224,7 @@ export default function PartyStatement() {
   };
 
   return (
-    <div className="p-4 md:p-8 min-h-screen bg-slate-50 flex flex-col items-center overflow-x-auto w-full font-sans pb-20">
+    <div className="p-4 md:p-8 min-h-screen bg-slate-50 flex flex-col items-center overflow-x-auto w-full font-sans pb-20 print:p-0 print:bg-white">
       <div className="w-[210mm] flex justify-between items-end mb-6 no-print">
         <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight pb-2">Ledger Statement</h2>
         <div className="flex flex-col items-end gap-3">
@@ -292,7 +292,7 @@ export default function PartyStatement() {
         </div>
       </div>
 
-      <div className="w-[210mm] bg-white p-10 relative mx-auto text-slate-800 shadow-xl border border-slate-200 print:shadow-none print:border-none print:p-0">
+      <div className="w-[210mm] bg-white p-10 relative mx-auto text-slate-800 shadow-xl border border-slate-200 print:shadow-none print:border-none print:pt-12 print:px-0 print:pb-0">
 
         {/* Header */}
         <div className="flex flex-col items-center border-b border-slate-200 pb-8 mb-8">
