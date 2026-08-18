@@ -193,16 +193,16 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
 
       {/* Printable Voucher */}
       <div className="print:block" style={{ pageBreakInside: 'avoid' }}>
-        <div className="w-[210mm] mx-auto bg-white text-black p-8 border-2 border-gray-800" style={{ fontFamily: 'serif' }}>
+        <div className="w-[210mm] print:w-[190mm] print:my-4 mx-auto bg-card text-foreground print:bg-white print:text-black p-8 border-2 border-foreground print:border-gray-800" style={{ fontFamily: 'serif' }}>
           {/* Header */}
           <div className="flex justify-between items-start mb-1">
-            <div className="text-[10px]">
+            <div className="text-base font-medium">
               <p>34, Beniatola Lane, Kol - 9</p>
               <p>Cont - {settings.companyContact}</p>
             </div>
-            <div className="text-right text-[11px]">
+            <div className="text-right text-base">
               <span className="font-bold">Date: </span>
-              <span className="border-b border-gray-800 px-4">{voucherDate}</span>
+              <span className="border-b border-foreground print:border-gray-800 px-4">{voucherDate}</span>
             </div>
           </div>
 
@@ -220,38 +220,38 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
           <div className="space-y-4 text-[14px] mt-8">
             <div className="flex items-baseline gap-3">
               <span className="whitespace-nowrap font-bold">No.</span>
-              <span className="border-b border-dotted border-gray-800 flex-1 px-2 font-bold">{voucherNo}</span>
+              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2 font-bold">{voucherNo}</span>
             </div>
 
             <div className="flex items-baseline gap-3">
               <span className="whitespace-nowrap font-bold">Debitors</span>
-              <span className="border-b border-dotted border-gray-800 flex-1 px-2">{debitors}</span>
+              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2">{debitors}</span>
             </div>
 
             <div className="flex items-baseline gap-3">
               <span className="whitespace-nowrap font-bold">Pay to</span>
-              <span className="border-b border-dotted border-gray-800 flex-1 px-2">{payTo}</span>
+              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2">{payTo}</span>
             </div>
 
             <div className="flex items-baseline gap-3">
               <span className="whitespace-nowrap font-bold">Rupees in words :</span>
-              <span className="border-b border-dotted border-gray-800 flex-1 px-2">
+              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2">
                 {amount > 0 ? `${numberToWords(amount)} only` : ''}
               </span>
             </div>
 
             <div className="flex items-baseline gap-3">
               <span className="whitespace-nowrap font-bold">Cheque No. :</span>
-              <span className="border-b border-dotted border-gray-800 flex-1 px-2">{chequeNo}</span>
+              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2">{chequeNo}</span>
             </div>
           </div>
 
           {/* Amount Box */}
           <div className="flex items-center gap-4 mt-8">
-            <div className="border-2 border-gray-800 px-6 py-3">
+            <div className="border-2 border-foreground print:border-gray-800 px-6 py-3">
               <span className="text-3xl font-black">Rs.</span>
             </div>
-            <div className="border-2 border-gray-800 px-6 py-3 flex-1 text-center">
+            <div className="border-2 border-foreground print:border-gray-800 px-6 py-3 flex-1 text-center">
               <span className="text-2xl font-black">
                 {amount > 0 ? `₹ ${amount.toLocaleString('en-IN')} /-` : ''}
               </span>
@@ -261,10 +261,10 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
           {/* Footer */}
           <div className="flex justify-between items-end mt-12 pt-4">
             <div className="text-center">
-              <p className="border-t border-gray-800 pt-2 text-sm font-semibold px-8">Payment Received</p>
+              <p className="border-t border-foreground print:border-gray-800 pt-2 text-sm font-semibold px-8">Payment Received</p>
             </div>
             <div className="text-center">
-              <p className="border-t border-gray-800 pt-2 text-sm font-semibold px-8">Seal with Signature</p>
+              <p className="border-t border-foreground print:border-gray-800 pt-2 text-sm font-semibold px-8">Seal with Signature</p>
             </div>
           </div>
         </div>

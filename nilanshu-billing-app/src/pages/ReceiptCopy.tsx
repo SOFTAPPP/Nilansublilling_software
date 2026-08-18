@@ -104,15 +104,15 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
   };
 
   const receiptContent = (copyLabel: string) => (
-    <div className="border-2 border-blue-800 p-6 bg-white text-black" style={{ width: '100%', fontFamily: 'serif' }}>
+    <div className="border-2 border-blue-500 print:border-blue-800 p-6 bg-card text-foreground print:bg-white print:text-black" style={{ width: '100%', fontFamily: 'serif' }}>
       <div className="flex justify-between items-start mb-1">
         <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
-          <span className="text-[10px] text-blue-800 font-bold italic">{copyLabel}</span>
+          <img src="/logo.png" alt="Logo" className="w-16 h-16 object-contain" />
+          <span className="text-base text-blue-500 print:text-blue-800 font-bold italic">{copyLabel}</span>
         </div>
-        <div className="text-right text-[11px]">
+        <div className="text-right text-lg">
           <span className="font-bold">No. </span>
-          <span className="border-b border-blue-800 px-2 font-bold text-blue-800">{receiptNo}</span>
+          <span className="border-b border-blue-500 print:border-blue-800 px-2 font-bold text-blue-500 print:text-blue-800">{receiptNo}</span>
         </div>
       </div>
 
@@ -120,54 +120,47 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
         <input 
           value={settings.companyName || 'NILANSU PUBLICATION'}
           onChange={e => updateSettings({ companyName: e.target.value })}
-          className="text-2xl font-black text-blue-900 tracking-wide bg-transparent outline-none text-center w-full" 
+          className="text-2xl font-black text-blue-400 print:text-blue-900 tracking-wide bg-transparent outline-none text-center w-full" 
           style={{ fontFamily: 'serif' }}
         />
-        <p className="text-[11px] text-blue-800">34, BENIATOLA LANE, KOLKATA-700009</p>
-        <p className="text-[11px] text-blue-800">Mob. : {settings.companyContact}</p>
+        <p className="text-sm font-medium text-blue-400 print:text-blue-800">34, BENIATOLA LANE, KOLKATA-700009</p>
+        <p className="text-sm font-medium text-blue-400 print:text-blue-800">Mob. : {settings.companyContact}</p>
       </div>
 
-      <div className="space-y-3 text-[13px]">
+      <div className="space-y-3 text-sm">
         <div className="flex items-baseline gap-2">
           <span className="whitespace-nowrap font-semibold">Received with thanks from</span>
-          <span className="flex-1 border-b border-dotted border-blue-800 text-blue-900 font-bold px-1">{customerName || ''}</span>
+          <span className="flex-1 border-b border-dotted border-blue-400 print:border-blue-800 text-blue-400 print:text-blue-900 font-bold px-1">{customerName || ''}</span>
         </div>
 
         <div className="flex items-baseline gap-2">
           <span className="whitespace-nowrap font-semibold">Rs.</span>
-          <span className="flex-1 border-b border-dotted border-blue-800 text-blue-900 font-bold px-1">
+          <span className="flex-1 border-b border-dotted border-blue-400 print:border-blue-800 text-blue-400 print:text-blue-900 font-bold px-1">
             {amount > 0 ? `₹ ${amount.toLocaleString('en-IN')} /- (${numberToWords(amount)} only)` : ''}
           </span>
         </div>
 
         <div className="flex items-baseline gap-2">
           <span className="whitespace-nowrap font-semibold">by {paymentMode} / Cheque No.</span>
-          <span className="flex-1 border-b border-dotted border-blue-800 text-blue-900 font-bold px-1">{chequeNo || ''}</span>
+          <span className="flex-1 border-b border-dotted border-blue-400 print:border-blue-800 text-blue-400 print:text-blue-900 font-bold px-1">{chequeNo || ''}</span>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex items-baseline gap-2">
-            <span className="whitespace-nowrap font-semibold">Place</span>
-            <span className="flex-1 border-b border-dotted border-blue-800 text-blue-900 font-bold px-1">{place || ''}</span>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="whitespace-nowrap font-semibold">Dist.</span>
-            <span className="flex-1 border-b border-dotted border-blue-800 text-blue-900 font-bold px-1">{district || ''}</span>
-          </div>
+        <div className="flex items-center gap-4">
+          <span className="font-bold w-32 shrink-0">Place</span>
+          <span className="border-b border-dashed border-blue-400 print:border-blue-800 flex-1">{place || ''}</span>
+          <span className="font-bold w-12 shrink-0">Dist.</span>
+          <span className="border-b border-dashed border-blue-400 print:border-blue-800 flex-1">{district || ''}</span>
         </div>
-
-        <div className="flex items-baseline gap-2">
-          <span className="whitespace-nowrap font-semibold">on the date</span>
-          <span className="flex-1 border-b border-dotted border-blue-800 text-blue-900 font-bold px-1">{receiptDate}</span>
+        <div className="flex items-center gap-4">
+          <span className="font-bold w-32 shrink-0">on the date</span>
+          <span className="border-b border-dashed border-blue-400 print:border-blue-800 flex-1 font-medium text-blue-400 print:text-blue-800">{receiptDate}</span>
         </div>
       </div>
 
-      <div className="flex justify-between items-end mt-6 pt-4">
-        <div className="text-center">
-          <p className="text-xs text-blue-800 font-bold">{settings.companyName || 'NILANSU PUBLICATION'}</p>
-        </div>
-        <div className="text-center">
-          <p className="border-t border-blue-800 pt-1 text-[11px] font-semibold px-6">Prop. Signature with Date</p>
+      <div className="mt-8 flex justify-between items-end">
+        <div className="text-xs font-bold text-blue-400 print:text-blue-800">NILANSU PUBLICATION</div>
+        <div className="w-48 text-center text-xs font-bold border-t border-blue-500 print:border-blue-800 pt-1">
+          Prop. Signature with Date
         </div>
       </div>
     </div>
@@ -289,7 +282,7 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
 
       {/* Printable Receipt - Single copy */}
       <div className="print:block" style={{ pageBreakInside: 'avoid' }}>
-        <div className="w-[210mm] mx-auto space-y-6 print:space-y-4">
+        <div className="w-[210mm] print:w-[190mm] print:my-4 mx-auto space-y-6 print:space-y-4">
           {receiptContent('')}
         </div>
       </div>
