@@ -184,6 +184,7 @@ export default function CustomerManagement() {
               <div className="flex">
                 <div className="relative">
                   <button 
+                    type="button"
                     onClick={() => setNewPhoneCodeOpen(!newPhoneCodeOpen)}
                     className="flex items-center justify-between gap-1 border border-border/50 border-r-0 p-3 rounded-l-xl bg-muted/50 hover:bg-muted transition-colors font-semibold text-sm text-foreground w-[85px] h-full"
                   >
@@ -194,6 +195,7 @@ export default function CustomerManagement() {
                       {countryCodes.map(code => (
                         <button
                           key={code}
+                          type="button"
                           onClick={() => { setNewPhoneCode(code); setNewPhoneCodeOpen(false); }}
                           className={`w-full text-left px-4 py-2.5 text-[13px] font-bold hover:bg-primary hover:text-primary-foreground transition-colors ${newPhoneCode === code ? 'bg-primary/10 text-primary' : 'text-foreground'}`}
                         >
@@ -292,6 +294,7 @@ export default function CustomerManagement() {
                 <div className="flex">
                   <div className="relative">
                     <button 
+                      type="button"
                       onClick={() => setEditPhoneCodeOpen(!editPhoneCodeOpen)}
                       className="flex items-center justify-between gap-1 border border-border/50 border-r-0 p-3 rounded-l-xl bg-muted/50 hover:bg-muted transition-colors font-semibold text-sm text-foreground w-[85px] h-full"
                     >
@@ -302,6 +305,7 @@ export default function CustomerManagement() {
                         {countryCodes.map(code => (
                           <button
                             key={code}
+                            type="button"
                             onClick={() => { setEditPhoneCode(code); setEditPhoneCodeOpen(false); }}
                             className={`w-full text-left px-4 py-2.5 text-[13px] font-bold hover:bg-primary hover:text-primary-foreground transition-colors ${editPhoneCode === code ? 'bg-primary/10 text-primary' : 'text-foreground'}`}
                           >
