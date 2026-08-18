@@ -358,7 +358,7 @@ export default function PartyStatement() {
                 <div className={`font-bold text-lg mb-1 ${getBalanceColor(finalBalance)}`}>
                   ₹{formatBalance(finalBalance)} {getBalanceSuffix(finalBalance)}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-slate-400 print:text-gray-500">(New will get)</div>
+                <div className="text-xs text-gray-500 dark:text-slate-400 print:text-gray-500">(Now will get)</div>
               </div>
             </div>
 
