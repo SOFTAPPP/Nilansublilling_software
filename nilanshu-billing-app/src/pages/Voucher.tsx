@@ -100,98 +100,15 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Input Form - no-print */}
-      <div className="no-print space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Voucher</h1>
-
-        <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Voucher No.</label>
-              <input
-                type="text"
-                value={voucherNo}
-                onChange={e => setVoucherNo(e.target.value)}
-                className="w-full border border-border p-2.5 rounded-lg bg-muted/50 text-sm font-bold"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Date</label>
-              <input
-                type="date"
-                value={voucherDate}
-                onChange={e => setVoucherDate(e.target.value)}
-                className="w-full border border-border p-2.5 rounded-lg bg-muted/50 text-sm"
-              />
-            </div>
-            <div className="relative" ref={partyDropdownRef}>
-              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Pay To</label>
-              <input
-                type="text"
-                placeholder="Search by name or phone..."
-                value={payTo}
-                onChange={e => { setPayTo(e.target.value); setPartyDropdownOpen(true); setPartyId(null); }}
-                onFocus={() => setPartyDropdownOpen(true)}
-                className="w-full border border-border p-2.5 rounded-lg bg-muted/50 text-sm"
-              />
-              {partyDropdownOpen && filteredParties.length > 0 && (
-                <div className="absolute top-full left-0 mt-1 w-full bg-card border border-border shadow-xl rounded-lg z-50 max-h-48 overflow-y-auto">
-                  {filteredParties.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => selectParty(p)}
-                      className="w-full text-left px-4 py-2 text-sm hover:bg-primary/10 transition-colors"
-                    >
-                      <span className="font-semibold">{p.name}</span>
-                      <span className="text-xs text-muted-foreground ml-2">{p.phone}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Debitors</label>
-              <input
-                type="text"
-                value={debitors}
-                onChange={e => setDebitors(e.target.value)}
-                className="w-full border border-border p-2.5 rounded-lg bg-muted/50 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Amount (₹)</label>
-              <input
-                type="number"
-                value={amount || ''}
-                onChange={e => setAmount(parseFloat(e.target.value) || 0)}
-                placeholder="Enter amount"
-                className="w-full border border-border p-2.5 rounded-lg bg-muted/50 text-sm font-bold"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Cheque No.</label>
-              <input
-                type="text"
-                value={chequeNo}
-                onChange={e => setChequeNo(e.target.value)}
-                className="w-full border border-border p-2.5 rounded-lg bg-muted/50 text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-3 mt-6">
-            <button onClick={handleSave} className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-bold text-sm">
-              Save Voucher
-            </button>
-            <button onClick={handlePrint} className="px-6 py-2.5 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 font-bold text-sm">
-              Print Voucher
-            </button>
-          </div>
+    <div className="p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full">
+      <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
+        <h2 className="text-2xl font-bold">Voucher</h2>
+        <div className="flex gap-3">
+          <button onClick={handleSave} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold text-sm">Save Voucher</button>
+          <button onClick={handlePrint} className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg font-bold text-sm">Print Voucher</button>
         </div>
       </div>
 
-      {/* Printable Voucher */}
       <div className="print:block" style={{ pageBreakInside: 'avoid' }}>
         <div className="w-[210mm] print:w-[190mm] print:my-4 mx-auto bg-card text-foreground print:bg-white print:text-black p-8 border-2 border-foreground print:border-gray-800" style={{ fontFamily: 'serif' }}>
           {/* Header */}
@@ -200,9 +117,9 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
               <p>34, Beniatola Lane, Kol - 9</p>
               <p>Cont - {settings.companyContact}</p>
             </div>
-            <div className="text-right text-base">
+            <div className="text-right text-base flex items-center gap-2">
               <span className="font-bold">Date: </span>
-              <span className="border-b border-foreground print:border-gray-800 px-4">{voucherDate}</span>
+              <input type="date" value={voucherDate} onChange={e => setVoucherDate(e.target.value)} className="border-b border-foreground print:border-gray-800 px-2 bg-transparent outline-none w-32 print:appearance-none text-foreground print:text-black" />
             </div>
           </div>
 
@@ -211,7 +128,7 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
             <input 
               value={settings.companyName || 'NILANSU PUBLICATION'}
               onChange={e => updateSettings({ companyName: e.target.value })}
-              className="text-3xl font-black tracking-wide bg-transparent outline-none text-center w-full" 
+              className="text-3xl font-black tracking-wide bg-transparent outline-none text-center w-full text-foreground print:text-black" 
               style={{ fontFamily: 'serif' }}
             />
             <p className="text-sm mt-1">34, BENIATOLA LANE, KOLKATA</p>
@@ -220,17 +137,33 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
           <div className="space-y-4 text-[14px] mt-8">
             <div className="flex items-baseline gap-3">
               <span className="whitespace-nowrap font-bold">No.</span>
-              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2 font-bold">{voucherNo}</span>
+              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2 font-bold flex">
+                <input type="text" value={voucherNo} onChange={e => setVoucherNo(e.target.value)} className="bg-transparent outline-none w-full font-bold p-0 border-none h-5 text-foreground print:text-black print:appearance-none" />
+              </span>
             </div>
 
             <div className="flex items-baseline gap-3">
               <span className="whitespace-nowrap font-bold">Debitors</span>
-              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2">{debitors}</span>
+              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2 flex">
+                <input type="text" value={debitors} onChange={e => setDebitors(e.target.value)} className="bg-transparent outline-none w-full p-0 border-none h-5 text-foreground print:text-black print:appearance-none" />
+              </span>
             </div>
 
-            <div className="flex items-baseline gap-3">
+            <div className="flex items-baseline gap-3 relative" ref={partyDropdownRef}>
               <span className="whitespace-nowrap font-bold">Pay to</span>
-              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2">{payTo}</span>
+              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2 relative flex">
+                <input type="text" placeholder="Search by name..." value={payTo} onChange={e => { setPayTo(e.target.value); setPartyDropdownOpen(true); setPartyId(null); }} onFocus={() => setPartyDropdownOpen(true)} className="bg-transparent outline-none w-full p-0 border-none h-5 text-foreground print:text-black print:appearance-none placeholder:text-muted-foreground/50" />
+                {partyDropdownOpen && filteredParties.length > 0 && (
+                  <div className="absolute top-full left-0 mt-1 w-full md:w-[400px] bg-card border border-border shadow-xl rounded-lg z-50 max-h-48 overflow-y-auto no-print">
+                    {filteredParties.map(p => (
+                      <button key={p.id} onClick={() => selectParty(p)} className="w-full text-left px-4 py-2 text-sm hover:bg-primary/10 transition-colors">
+                        <span className="font-semibold">{p.name}</span>
+                        <span className="text-xs text-muted-foreground ml-2">{p.phone}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </span>
             </div>
 
             <div className="flex items-baseline gap-3">
@@ -242,7 +175,9 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
 
             <div className="flex items-baseline gap-3">
               <span className="whitespace-nowrap font-bold">Cheque No. :</span>
-              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2">{chequeNo}</span>
+              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2 flex">
+                <input type="text" value={chequeNo} onChange={e => setChequeNo(e.target.value)} className="bg-transparent outline-none w-full p-0 border-none h-5 text-foreground print:text-black print:appearance-none" />
+              </span>
             </div>
           </div>
 
@@ -251,10 +186,10 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
             <div className="border-2 border-foreground print:border-gray-800 px-6 py-3">
               <span className="text-3xl font-black">Rs.</span>
             </div>
-            <div className="border-2 border-foreground print:border-gray-800 px-6 py-3 flex-1 text-center">
-              <span className="text-2xl font-black">
-                {amount > 0 ? `₹ ${amount.toLocaleString('en-IN')} /-` : ''}
-              </span>
+            <div className="border-2 border-foreground print:border-gray-800 px-6 py-3 flex-1 flex items-center justify-center relative">
+               <span className="text-2xl font-black absolute left-6 text-foreground print:text-black">₹</span>
+               <input type="number" value={amount || ''} onChange={e => setAmount(parseFloat(e.target.value) || 0)} className="text-2xl font-black bg-transparent outline-none w-48 text-center text-foreground print:text-black border-none p-0 print:appearance-none" placeholder="0" />
+               <span className="text-2xl font-black absolute right-6 text-foreground print:text-black">/-</span>
             </div>
           </div>
 
