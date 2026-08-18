@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore, Bill } from '../store/useStore';
 
-import { Search, Printer, Download, Trash2, X } from 'lucide-react';
+import { Search, Printer, Download, Trash2, X, ChevronDown } from 'lucide-react';
 import { numberToWords } from '../utils/numberToWords';
 import { getLocalDateString } from '../utils/dateUtils';
 import CashBill from './CashBill';
@@ -209,18 +209,21 @@ export default function BillHistory() {
             className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-md outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          className="bg-background border border-border px-4 py-2 rounded-md outline-none focus:ring-2 focus:ring-primary/50"
-        >
-          <option value="ALL">All Types</option>
-          <option value="cash">Cash Bills</option>
-          <option value="credit">Credit/Chalan</option>
-          <option value="quick">Quick Bills</option>
-          <option value="return">Return Bills</option>
-          <option value="transport">Transport Bills</option>
-        </select>
+        <div className="relative">
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="appearance-none bg-background border border-border pl-4 pr-10 py-2 rounded-md outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer shadow-sm text-sm font-medium transition-colors hover:bg-muted/50"
+          >
+            <option value="ALL">All Types</option>
+            <option value="cash">Cash Bills</option>
+            <option value="credit">Credit/Chalan</option>
+            <option value="quick">Quick Bills</option>
+            <option value="return">Return Bills</option>
+            <option value="transport">Transport Bills</option>
+          </select>
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
+        </div>
       </div>
 
       {/* Bills Table */}
