@@ -24,6 +24,8 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
   const [transporterName, setTransporterName] = useState('');
   const [transporterAddress, setTransporterAddress] = useState('');
   const [transporterPhone, setTransporterPhone] = useState('');
+  const [vehicleNo, setVehicleNo] = useState('');
+  const [route, setRoute] = useState('');
 
   // Packet fields
   const [totalPacket, setTotalPacket] = useState('');
@@ -41,7 +43,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true);
 
-  const formStateStr = JSON.stringify({ billNo, date, buyerName, buyerProprietor, buyerAddress, buyerDistrict, buyerPin, buyerState, buyerMob, transporterName, transporterAddress, transporterPhone, totalPacket, value, material });
+  const formStateStr = JSON.stringify({ billNo, date, buyerName, buyerProprietor, buyerAddress, buyerDistrict, buyerPin, buyerState, buyerMob, transporterName, transporterAddress, transporterPhone, vehicleNo, route, totalPacket, value, material });
   const lastSavedStateRef = useRef(formStateStr);
 
   useEffect(() => {
@@ -94,6 +96,8 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
           setTransporterName(data.transporterName || '');
           setTransporterAddress(data.transporterAddress || '');
           setTransporterPhone(data.transporterPhone || '');
+          setVehicleNo(data.vehicleNo || '');
+          setRoute(data.route || '');
           
           setTotalPacket(data.totalPacket || '');
           setValue(data.value || '');
@@ -145,7 +149,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         lrNo: JSON.stringify({
           buyerName, buyerProprietor, buyerAddress, buyerDistrict, buyerPin, buyerState, buyerMob,
           totalPacket, value, material,
-          transporterName, transporterAddress, transporterPhone
+          transporterName, transporterAddress, transporterPhone, vehicleNo, route
         }),
         lineItems: []
       };
@@ -217,7 +221,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
     <div className="p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto w-full relative">
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">Transport / Dispatch Bill</h2>
-        <div className="flex flex-wrap gap-2 md:gap-3 justify-end flex-1">
+        <div className="flex flex-wrap gap-2 md:gap-3 justify-end flex-1 min-w-0">
           {!viewBill && (
             <>
               <button 
@@ -234,7 +238,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
                   setCreatedBillId(null);
                   getNextBillNumber('TRN-').then(setBillNo);
                   setBuyerName(''); setBuyerProprietor(''); setBuyerAddress(''); setBuyerDistrict(''); setBuyerPin(''); setBuyerState(''); setBuyerMob('');
-                  setTransporterName(''); setTransporterAddress(''); setTransporterPhone('');
+                  setTransporterName(''); setTransporterAddress(''); setTransporterPhone(''); setVehicleNo(''); setRoute('');
                   setTotalPacket(''); setValue(''); setMaterial('');
                   setPartyId(null); setTransporterId(null);
                   setHasUnsavedChanges(true);
@@ -283,125 +287,124 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 flex-1">
-          {/* LEFT COLUMN - BUYER */}
-          <div className="border-r-2 border-black p-4 flex flex-col gap-4">
-            <div className="font-bold text-lg border-b border-black pb-1 mb-2 uppercase">Buyer Details</div>
+        <div className="flex flex-col flex-1 min-w-0">
+          {/* BUYER COLUMN */}
+          <div className="border-b-2 border-black flex flex-col">
+            <div className="font-bold text-lg bg-gray-100 print:bg-gray-100 border-b-2 border-black p-2 uppercase text-center tracking-wider">Buyer Details</div>
             
-            <div className="relative no-print" ref={partyDropdownRef}>
-              <div className="flex items-center border border-gray-300 rounded px-2 text-sm bg-white">
-                <input 
-                  type="text"
-                  value={partySearch} 
-                  onChange={e => { setPartySearch(e.target.value); setPartyDropdownOpen(true); }} 
-                  onFocus={() => setPartyDropdownOpen(true)}
-                  className="w-full py-1.5 outline-none text-xs"
-                  placeholder="Auto-fill from saved parties..." 
-                />
-              </div>
-              {partyDropdownOpen && parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).length > 0 && (
-                <div className="absolute top-full left-0 mt-1 w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto no-print text-sm">
-                  {parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).map(p => (
-                    <div key={p.id} className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer border-b" onClick={() => { handlePartyLookup(p.phone); setPartySearch(''); setPartyDropdownOpen(false); }}>
-                      <div className="font-bold">{p.name}</div>
-                    </div>
-                  ))}
+            <div className="p-5 flex flex-col gap-4 relative">
+              <div className="relative no-print" ref={partyDropdownRef}>
+                <div className="flex items-center border border-gray-300 rounded px-2 text-sm bg-white">
+                  <input 
+                    type="text"
+                    value={partySearch} 
+                    onChange={e => { setPartySearch(e.target.value); setPartyDropdownOpen(true); }} 
+                    onFocus={() => setPartyDropdownOpen(true)}
+                    className="w-full py-1.5 outline-none text-xs"
+                    placeholder="Auto-fill from saved parties..." 
+                  />
                 </div>
-              )}
-            </div>
+                {partyDropdownOpen && parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).length > 0 && (
+                  <div className="absolute top-full left-0 mt-1 w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto no-print text-sm">
+                    {parties.filter(p => p.name.toLowerCase().includes(partySearch.toLowerCase()) || p.phone.includes(partySearch)).map(p => (
+                      <div key={p.id} className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer border-b" onClick={() => { handlePartyLookup(p.phone); setPartySearch(''); setPartyDropdownOpen(false); }}>
+                        <div className="font-bold">{p.name}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col">
-                <span className="text-base font-bold text-black">Buyer Name</span>
-                <input value={buyerName} onChange={e => setBuyerName(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
+              <div className="flex items-end gap-2 mt-2">
+                <span className="font-bold whitespace-nowrap w-32">Buyer Name :</span>
+                <input value={buyerName} onChange={e => setBuyerName(e.target.value)} className="border-b-2 border-dotted border-black outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
-              <div className="flex flex-col">
-                <span className="text-base font-bold text-black">Proprietor Name</span>
-                <input value={buyerProprietor} onChange={e => setBuyerProprietor(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
+              <div className="flex items-end gap-2">
+                <span className="font-bold whitespace-nowrap w-32">Proprietor Name :</span>
+                <input value={buyerProprietor} onChange={e => setBuyerProprietor(e.target.value)} className="border-b-2 border-dotted border-black outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
-              <div className="flex flex-col">
-                <span className="text-base font-bold text-black">Address</span>
-                <input value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
+              <div className="flex items-end gap-2">
+                <span className="font-bold whitespace-nowrap w-32">Address :</span>
+                <input value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} className="border-b-2 border-dotted border-black outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col">
-                  <span className="text-base font-bold text-black">District</span>
-                  <input value={buyerDistrict} onChange={e => setBuyerDistrict(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-base font-bold text-black">Pin Code</span>
-                  <input value={buyerPin} onChange={e => setBuyerPin(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
-                </div>
+              <div className="flex items-end gap-2">
+                <span className="font-bold whitespace-nowrap w-32">District :</span>
+                <input value={buyerDistrict} onChange={e => setBuyerDistrict(e.target.value)} className="border-b-2 border-dotted border-black outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
+                <span className="font-bold whitespace-nowrap ml-2">Pin Code :</span>
+                <input value={buyerPin} onChange={e => setBuyerPin(e.target.value)} className="border-b-2 border-dotted border-black outline-none font-normal text-sm bg-transparent w-24 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col">
-                  <span className="text-base font-bold text-black">State</span>
-                  <input value={buyerState} onChange={e => setBuyerState(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-base font-bold text-black">Mobile No.</span>
-                  <input value={buyerMob} onChange={e => setBuyerMob(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
-                </div>
+              <div className="flex items-end gap-2">
+                <span className="font-bold whitespace-nowrap w-32">State :</span>
+                <input value={buyerState} onChange={e => setBuyerState(e.target.value)} className="border-b-2 border-dotted border-black outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
+              </div>
+              <div className="flex items-end gap-2">
+                <span className="font-bold whitespace-nowrap w-32">Mobile No. :</span>
+                <input value={buyerMob} onChange={e => setBuyerMob(e.target.value)} className="border-b-2 border-dotted border-black outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
             </div>
           </div>
 
           {/* RIGHT COLUMN - TRANSPORTER & MATERIAL */}
-          <div className="p-4 flex flex-col gap-4">
-            <div className="font-bold text-lg border-b border-black pb-1 mb-2 uppercase">Transporter Details</div>
+          <div className="flex flex-col">
+            <div className="font-bold text-lg bg-gray-100 print:bg-gray-100 border-b-2 border-black p-2 uppercase text-center tracking-wider">Transporter Details</div>
             
-            <div className="relative no-print" ref={transporterDropdownRef}>
-              <div className="flex items-center border border-gray-300 rounded px-2 text-sm bg-white">
-                <input 
-                  type="text"
-                  value={transporterSearch} 
-                  onChange={e => { setTransporterSearch(e.target.value); setTransporterDropdownOpen(true); }} 
-                  onFocus={() => setTransporterDropdownOpen(true)}
-                  className="w-full py-1.5 outline-none text-xs"
-                  placeholder="Auto-fill from saved transporters..." 
-                />
-              </div>
-              {transporterDropdownOpen && transporters.filter(t => t.name.toLowerCase().includes(transporterSearch.toLowerCase()) || t.phone.includes(transporterSearch)).length > 0 && (
-                <div className="absolute top-full left-0 mt-1 w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto no-print text-sm">
-                  {transporters.filter(t => t.name.toLowerCase().includes(transporterSearch.toLowerCase()) || t.phone.includes(transporterSearch)).map(t => (
-                    <div key={t.id} className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer border-b" onClick={() => { handleTransporterLookup(t.phone); setTransporterSearch(''); setTransporterDropdownOpen(false); }}>
-                      <div className="font-bold">{t.name}</div>
-                    </div>
-                  ))}
+            <div className="p-5 flex flex-col gap-4 relative flex-1 min-w-0">
+              <div className="relative no-print" ref={transporterDropdownRef}>
+                <div className="flex items-center border border-gray-300 rounded px-2 text-sm bg-white">
+                  <input 
+                    type="text"
+                    value={transporterSearch} 
+                    onChange={e => { setTransporterSearch(e.target.value); setTransporterDropdownOpen(true); }} 
+                    onFocus={() => setTransporterDropdownOpen(true)}
+                    className="w-full py-1.5 outline-none text-xs"
+                    placeholder="Auto-fill from saved transporters..." 
+                  />
                 </div>
-              )}
+                {transporterDropdownOpen && transporters.filter(t => t.name.toLowerCase().includes(transporterSearch.toLowerCase()) || t.phone.includes(transporterSearch)).length > 0 && (
+                  <div className="absolute top-full left-0 mt-1 w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto no-print text-sm">
+                    {transporters.filter(t => t.name.toLowerCase().includes(transporterSearch.toLowerCase()) || t.phone.includes(transporterSearch)).map(t => (
+                      <div key={t.id} className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer border-b" onClick={() => { handleTransporterLookup(t.phone); setTransporterSearch(''); setTransporterDropdownOpen(false); }}>
+                        <div className="font-bold">{t.name}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-end gap-2 mt-2">
+                <span className="font-bold whitespace-nowrap w-40">Vehicle / Transport No. :</span>
+                <input value={vehicleNo} onChange={e => setVehicleNo(e.target.value)} className="border-b-2 border-dotted border-black outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
+              </div>
+              <div className="flex items-end gap-2">
+                <span className="font-bold whitespace-nowrap w-40">Route (From - To) :</span>
+                <input value={route} onChange={e => setRoute(e.target.value)} className="border-b-2 border-dotted border-black outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
+              </div>
+              <div className="flex items-end gap-2">
+                <span className="font-bold whitespace-nowrap w-40">Transporter Name :</span>
+                <input value={transporterName} onChange={e => setTransporterName(e.target.value)} className="border-b-2 border-dotted border-black outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
+              </div>
+              <div className="flex items-end gap-2">
+                <span className="font-bold whitespace-nowrap w-40">Transporter Address :</span>
+                <input value={transporterAddress} onChange={e => setTransporterAddress(e.target.value)} className="border-b-2 border-dotted border-black outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
+              </div>
+              <div className="flex items-end gap-2">
+                <span className="font-bold whitespace-nowrap w-40">Transporter Ph. No. :</span>
+                <input value={transporterPhone} onChange={e => setTransporterPhone(e.target.value)} className="border-b-2 border-dotted border-black outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
+              </div>
             </div>
 
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col">
-                <span className="text-base font-bold text-black">Transporter Name</span>
-                <input value={transporterName} onChange={e => setTransporterName(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
+            <div className="font-bold text-lg bg-gray-100 print:bg-gray-100 border-y-2 border-black p-2 uppercase text-center tracking-wider">Package Details</div>
+            
+            <div className="p-5 flex flex-col gap-4">
+              <div className="flex items-end gap-2">
+                <span className="font-bold whitespace-nowrap w-32">Total Packet :</span>
+                <input value={totalPacket} onChange={e => setTotalPacket(e.target.value)} className="border-b-2 border-dotted border-black outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
+                <span className="font-bold whitespace-nowrap ml-4">Value (₹) :</span>
+                <input value={value} onChange={e => setValue(e.target.value)} className="border-b-2 border-dotted border-black outline-none font-normal text-sm bg-transparent w-24 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
-              <div className="flex flex-col">
-                <span className="text-base font-bold text-black">Transporter Address</span>
-                <input value={transporterAddress} onChange={e => setTransporterAddress(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-base font-bold text-black">Transporter Phone No.</span>
-                <input value={transporterPhone} onChange={e => setTransporterPhone(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
-              </div>
-            </div>
-
-            <div className="font-bold text-lg border-b border-black pb-1 mt-4 mb-2 uppercase">Package Details</div>
-            <div className="flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col">
-                  <span className="text-base font-bold text-black">Total Packet</span>
-                  <input value={totalPacket} onChange={e => setTotalPacket(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-base font-bold text-black">Value (₹)</span>
-                  <input value={value} onChange={e => setValue(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-base font-bold text-black">Material in Packet</span>
-                <input value={material} onChange={e => setMaterial(e.target.value)} className="border-b border-gray-400 outline-none font-normal text-sm" readOnly={!!viewBill} />
+              <div className="flex items-end gap-2">
+                <span className="font-bold whitespace-nowrap w-32">Material Details :</span>
+                <input value={material} onChange={e => setMaterial(e.target.value)} className="border-b-2 border-dotted border-black outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
             </div>
 
