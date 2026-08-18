@@ -317,10 +317,13 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
   updateProduct: async (id, product) => {
+    const prev = get().products;
+    set(state => ({ products: state.products.map(p => p.id === id ? { ...p, ...product } : p) })); // Optimistic update
     try {
       const updated = await apiClient.put(`/products/${id}`, product);
       set(state => ({ products: state.products.map(p => p.id === id ? updated : p) }));
     } catch (err: any) {
+      set({ products: prev }); // Revert
       console.error('Update Product Error:', err);
       get().showDialog({ title: 'Update Error', message: err.message || 'Failed to update product', type: 'alert' });
     }
@@ -358,10 +361,13 @@ export const useStore = create<AppState>((set, get) => ({
   },
   
   updateParty: async (id, party) => {
+    const prev = get().parties;
+    set(state => ({ parties: state.parties.map(p => p.id === id ? { ...p, ...party } : p) })); // Optimistic update
     try {
       const updated = await apiClient.put(`/parties/${id}`, party);
       set(state => ({ parties: state.parties.map(p => p.id === id ? updated : p) }));
     } catch (err: any) {
+      set({ parties: prev }); // Revert
       console.error('Update Party Error:', err);
       get().showDialog({ title: 'Update Party Failed', message: err.message || 'Database error', type: 'alert' });
     }
@@ -393,10 +399,13 @@ export const useStore = create<AppState>((set, get) => ({
   },
   
   updateTransporter: async (id, transporter) => {
+    const prev = get().transporters;
+    set(state => ({ transporters: state.transporters.map(t => t.id === id ? { ...t, ...transporter } : t) })); // Optimistic update
     try {
       const updated = await apiClient.put(`/transporters/${id}`, transporter);
       set(state => ({ transporters: state.transporters.map(t => t.id === id ? updated : t) }));
     } catch (err: any) {
+      set({ transporters: prev }); // Revert
       get().showDialog({ title: 'Update Transporter Failed', message: err.message || 'Database error', type: 'alert' });
     }
   },
@@ -460,11 +469,14 @@ export const useStore = create<AppState>((set, get) => ({
   },
   
   updateBill: async (id, type, billData) => {
+    const prev = get().bills;
+    set(state => ({ bills: state.bills.map(b => b.id === id ? { ...b, ...billData, type } as any : b) })); // Optimistic update
     try {
       await apiClient.put(`/bills/${id}`, { ...billData, type });
       // Background refetch
       get().fetchInitialData();
     } catch (err: any) {
+      set({ bills: prev }); // Revert
       console.error('Update Bill Error:', err);
       get().showDialog({ title: 'Update Error', message: err.message, type: 'alert' });
     }

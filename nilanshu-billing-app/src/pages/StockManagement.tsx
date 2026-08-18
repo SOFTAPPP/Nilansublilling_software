@@ -101,7 +101,7 @@ export default function StockManagement() {
     setIsModalOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!formData.name || !formData.category) {
       showDialog({ title: 'Validation Error', message: 'Name and Category are required', type: 'alert' });
       return;
@@ -110,9 +110,9 @@ export default function StockManagement() {
     setIsModalOpen(false);
 
     if (editingId) {
-      await updateProduct(editingId, formData);
+      updateProduct(editingId, formData);
     } else {
-      await addProduct(formData);
+      addProduct(formData);
     }
   };
 
@@ -121,8 +121,8 @@ export default function StockManagement() {
       title: 'Delete Product',
       message: 'Are you sure you want to delete this product? This action cannot be undone.',
       type: 'confirm',
-      onConfirm: async () => {
-        await deleteProduct(id);
+      onConfirm: () => {
+        deleteProduct(id);
       }
     });
   };

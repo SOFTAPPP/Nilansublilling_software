@@ -130,7 +130,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
 
   const [createdBillId, setCreatedBillId] = useState<string | null>(null);
 
-  const handleSave = async () => {
+  const handleSave = () => {
     try {
       const payload = {
         type: 'transport' as const,
@@ -151,11 +151,15 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
       };
 
       if (createdBillId) {
-        await updateBill(createdBillId, 'transport', payload);
+        updateBill(createdBillId, 'transport', payload);
         showDialog({ title: 'Success', message: 'Transport Bill updated successfully!', type: 'alert' });
       } else {
-        const id = await createBill(payload);
-        setCreatedBillId(id);
+        createBill(payload).then(id => {
+          setCreatedBillId(id);
+        }).catch(err => {
+          showDialog({ title: 'Save Failed', message: err.message || 'Failed to save bill.', type: 'alert' });
+          setHasUnsavedChanges(true);
+        });
         showDialog({ title: 'Success', message: 'Transport Bill saved successfully!', type: 'alert' });
       }
       setHasUnsavedChanges(false);

@@ -259,12 +259,12 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
 
   const [createdBillId, setCreatedBillId] = useState<string | null>(null);
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!validate()) return;
 
     try {
       if (createdBillId) {
-        await updateBill(createdBillId, type, {
+        updateBill(createdBillId, type, {
           billNumber: invoiceNo,
           partyId: partyId,
           date: billDate,
@@ -288,7 +288,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
         });
         showDialog({ title: 'Success', message: `${type === 'return' ? 'Return' : 'Credit'} Bill updated successfully!`, type: 'alert' });
       } else {
-        const id = await createBill({
+        createBill({
           type: type,
           billNumber: invoiceNo,
           partyId: partyId,
@@ -310,8 +310,13 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
             rate: i.rate,
             hsn: i.hsn,
           }))
+        }).then(id => {
+          setCreatedBillId(id);
+        }).catch(err => {
+          const msg = typeof err === 'string' ? err : err.message;
+          showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
+          setHasUnsavedChanges(true);
         });
-        setCreatedBillId(id);
         showDialog({ title: 'Success', message: `${type === 'return' ? 'Return' : 'Credit'} Bill saved successfully!`, type: 'alert' });
       }
       setHasUnsavedChanges(false);
@@ -319,7 +324,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
 
     } catch (err: any) {
       const msg = typeof err === 'string' ? err : err.message;
-      showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
+      showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill.', type: 'alert' });
     }
   };
 

@@ -49,7 +49,7 @@ export default function CustomerManagement() {
     }
   };
 
-  const handleEditSave = async () => {
+  const handleEditSave = () => {
     if (!editingParty) return;
     if (!editForm.name) {
       showDialog({ title: 'Validation Error', message: 'Buyer\'s Name is required', type: 'alert' });
@@ -63,7 +63,7 @@ export default function CustomerManagement() {
     setEditingParty(null);
     setEditForm({});
     
-    await updateParty(currentId, currentForm);
+    updateParty(currentId, currentForm);
   };
 
   const [newParty, setNewParty] = useState<Partial<Party>>({

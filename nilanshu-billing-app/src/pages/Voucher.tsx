@@ -54,7 +54,7 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
     setPartyDropdownOpen(false);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!payTo) {
       showDialog({ title: 'Validation', message: 'Please enter "Pay to" name.', type: 'alert' });
       return;
@@ -65,7 +65,7 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
     }
 
     try {
-      await createBill({
+      createBill({
         type: 'voucher',
         billNumber: voucherNo,
         partyId: partyId,
@@ -77,6 +77,8 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
         status: 'completed',
         date: voucherDate,
         lineItems: [],
+      }).catch(err => {
+        showDialog({ title: 'Error', message: err.message || 'Failed to save voucher', type: 'alert' });
       });
 
       showDialog({ title: 'Success', message: 'Voucher saved successfully!', type: 'alert' });

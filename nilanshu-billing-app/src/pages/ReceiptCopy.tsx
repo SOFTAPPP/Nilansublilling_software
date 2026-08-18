@@ -56,7 +56,7 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
     setPartyDropdownOpen(false);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!customerName) {
       showDialog({ title: 'Validation', message: 'Please enter customer name.', type: 'alert' });
       return;
@@ -67,7 +67,7 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
     }
 
     try {
-      await createBill({
+      createBill({
         type: 'receipt',
         billNumber: receiptNo,
         partyId: partyId,
@@ -79,6 +79,8 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
         status: 'completed',
         date: receiptDate,
         lineItems: [],
+      }).catch(err => {
+        showDialog({ title: 'Error', message: err.message || 'Failed to save receipt', type: 'alert' });
       });
 
       showDialog({ title: 'Success', message: 'Receipt saved successfully!', type: 'alert' });

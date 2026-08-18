@@ -76,12 +76,12 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
   const roundOff = Math.round(subtotalBeforeRound) - subtotalBeforeRound;
   const grandTotal = Math.round(subtotalBeforeRound);
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!validate()) return;
 
     try {
       if (createdBillId) {
-        await updateBill(createdBillId, 'quick', {
+        updateBill(createdBillId, 'quick', {
           billNumber: billNo,
           date: billDate,
           subtotal: totalAmount,
@@ -102,7 +102,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
         });
         showDialog({ title: 'Success', message: 'Quick Bill updated successfully!', type: 'alert' });
       } else {
-        const id = await createBill({
+        createBill({
           type: 'quick',
           billNumber: billNo,
           date: billDate,
@@ -121,15 +121,20 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
             rate: i.rate,
             hsn: i.hsn,
           }))
+        }).then(id => {
+          setCreatedBillId(id);
+        }).catch(err => {
+          const msg = typeof err === 'string' ? err : err.message;
+          showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
+          setHasUnsavedChanges(true);
         });
-        setCreatedBillId(id);
         showDialog({ title: 'Success', message: 'Quick Bill saved successfully!', type: 'alert' });
       }
       setHasUnsavedChanges(false);
       lastSavedStateRef.current = formStateStr;
     } catch (err: any) {
       const msg = typeof err === 'string' ? err : err.message;
-      showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
+      showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill.', type: 'alert' });
     }
   };
 

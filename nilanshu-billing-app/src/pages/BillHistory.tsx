@@ -115,9 +115,8 @@ export default function BillHistory() {
       title: 'Confirm Delete',
       message: 'Are you sure you want to delete this bill? Stock and party balances will be automatically reverted.',
       type: 'confirm',
-      onConfirm: async () => {
-        await deleteBill(id);
-        fetchAllBills();
+      onConfirm: () => {
+        deleteBill(id);
       }
     });
   };

@@ -177,12 +177,12 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
 
   const [createdBillId, setCreatedBillId] = useState<string | null>(null);
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!validate()) return;
 
     try {
       if (createdBillId) {
-        await updateBill(createdBillId, 'cash', {
+        updateBill(createdBillId, 'cash', {
           billNumber: memoNo,
           partyId: partyId,
           date: billDate,
@@ -205,7 +205,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         });
         showDialog({ title: 'Success', message: 'Bill updated successfully!', type: 'alert' });
       } else {
-        const id = await createBill({
+        createBill({
           type: 'cash',
           billNumber: memoNo,
           partyId: partyId,
@@ -226,15 +226,20 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
             rate: i.rate,
             hsn: i.hsn,
           }))
+        }).then(id => {
+          setCreatedBillId(id);
+        }).catch(err => {
+          const msg = typeof err === 'string' ? err : err.message;
+          showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
+          setHasUnsavedChanges(true);
         });
-        setCreatedBillId(id);
         showDialog({ title: 'Success', message: 'Bill saved successfully!', type: 'alert' });
       }
       setHasUnsavedChanges(false);
       lastSavedStateRef.current = formStateStr;
     } catch (err: any) {
       const msg = typeof err === 'string' ? err : err.message;
-      showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill. Bill number might be duplicate.', type: 'alert' });
+      showDialog({ title: 'Save Failed', message: msg || 'Failed to save bill.', type: 'alert' });
     }
   };
 
