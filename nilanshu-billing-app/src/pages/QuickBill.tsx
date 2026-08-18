@@ -150,14 +150,15 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
   const handleSendSMS = () => {
     showDialog({
       title: 'Send SMS',
-      message: 'Enter customer phone number (10 digits):',
+      message: 'Enter customer phone number:',
       type: 'prompt',
+      defaultValue: '+91 ',
       onConfirm: async (phone?: string) => {
         if (!phone) return;
         
         try {
           const cleanPhone = phone.replace(/\D/g, '').slice(-10);
-          if (cleanPhone.length !== 10) throw new Error('Invalid phone number');
+          if (cleanPhone.length !== 10) throw new Error('Invalid phone number format');
 
           const { formatBillMessage } = await import('../utils/smsFormatter');
           const smsData = {
@@ -177,13 +178,16 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ phone: cleanPhone, message })
           });
+          
           if (response.ok) {
-            showDialog({ title: 'SMS Sent', message: `SMS sent to ${cleanPhone} successfully!`, type: 'alert' });
+            showDialog({ title: 'SMS Sent', message: `SMS sent to +91 ${cleanPhone} successfully!`, type: 'alert' });
           } else {
-            throw new Error('Failed to send SMS');
+            const errorData = await response.json();
+            const serverMsg = errorData.details?.message || errorData.error || 'Failed to send SMS';
+            throw new Error(serverMsg);
           }
-        } catch (err) {
-          showDialog({ title: 'SMS Failed', message: `Could not send SMS. Ensure it is a valid 10-digit number.`, type: 'alert' });
+        } catch (err: any) {
+          showDialog({ title: 'SMS Failed', message: err.message, type: 'alert' });
         }
       }
     });
