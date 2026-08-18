@@ -83,16 +83,19 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
 
       showDialog({ title: 'Success', message: 'Voucher saved successfully!', type: 'alert' });
 
-      // Reset
-      setPayTo('');
-      setPartyId(null);
-      setDebitors('');
-      setAmount(0);
-      setChequeNo('');
-      getNextBillNumber('VCH-').then(setVoucherNo);
+      // Removed automatic reset so user can print after saving.
     } catch (err: any) {
       showDialog({ title: 'Error', message: err.message || 'Failed to save voucher', type: 'alert' });
     }
+  };
+
+  const handleNew = () => {
+    setPayTo('');
+    setPartyId(null);
+    setDebitors('');
+    setAmount(0);
+    setChequeNo('');
+    getNextBillNumber('VCH-').then(setVoucherNo);
   };
 
   const handlePrint = () => {
@@ -104,6 +107,7 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">Voucher</h2>
         <div className="flex gap-3">
+          <button onClick={handleNew} className="bg-gray-500 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-gray-600 transition-colors">New Voucher</button>
           <button onClick={handleSave} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold text-sm">Save Voucher</button>
           <button onClick={handlePrint} className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg font-bold text-sm">Print Voucher</button>
         </div>

@@ -109,18 +109,21 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
 
       showDialog({ title: 'Success', message: 'Receipt saved successfully!', type: 'alert' });
 
-      // Reset
-      setCustomerName('');
-      setPartyId(null);
-      setAmount(0);
-      setChequeNo('');
-      setPlace('');
-      setDistrict('');
-      setPaymentMode('Cash');
-      getNextBillNumber('RCP-').then(setReceiptNo);
+      // Removed automatic reset so user can print after saving.
     } catch (err: any) {
       showDialog({ title: 'Error', message: err.message || 'Failed to save receipt', type: 'alert' });
     }
+  };
+
+  const handleNew = () => {
+    setCustomerName('');
+    setPartyId(null);
+    setAmount(0);
+    setChequeNo('');
+    setPlace('');
+    setDistrict('');
+    setPaymentMode('Cash');
+    getNextBillNumber('RCP-').then(setReceiptNo);
   };
 
   const handlePrint = () => {
@@ -232,6 +235,7 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
       <div className="mb-6 w-[210mm] flex-shrink-0 flex justify-between items-center no-print">
         <h2 className="text-2xl font-bold">Payment Receipt</h2>
         <div className="flex gap-3">
+          <button onClick={handleNew} className="bg-gray-500 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-gray-600 transition-colors">New Receipt</button>
           <button onClick={handleSave} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold text-sm">Save Receipt</button>
           <button onClick={handlePrint} className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg font-bold text-sm">Print Receipt</button>
         </div>
