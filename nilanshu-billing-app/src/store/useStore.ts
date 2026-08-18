@@ -282,11 +282,13 @@ export const useStore = create<AppState>((set, get) => ({
       });
     } catch (error: any) {
       console.error('Failed to fetch initial sync data', error);
-      get().showDialog({ 
-        title: 'Network Error', 
-        message: 'Could not connect to the server to fetch initial data. ' + (error.message || String(error)), 
-        type: 'alert' 
-      });
+      if (error.message !== 'Unauthorized') {
+        get().showDialog({ 
+          title: 'Network Error', 
+          message: 'Could not connect to the server to fetch initial data. ' + (error.message || String(error)), 
+          type: 'alert' 
+        });
+      }
     }
   },
   
