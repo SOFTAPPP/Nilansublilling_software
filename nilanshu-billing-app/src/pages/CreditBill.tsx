@@ -62,8 +62,12 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           setBuyerName(p.name);
           setBuyerPhone(p.phone);
           setBuyerAddress(p.address);
-          setPartyDiscount(p.discountPercentage || 0);
+          // Don't set party discount from customer default here if viewing a saved bill.
+          // It will be inferred from the line items.
         }
+      }
+      if (viewBill.lineItems && viewBill.lineItems.length > 0) {
+        setPartyDiscount(viewBill.lineItems[0].discountPercent || 0);
       }
       if (viewBill.lineItems) {
         setItems(viewBill.lineItems.map((li: any) => ({
