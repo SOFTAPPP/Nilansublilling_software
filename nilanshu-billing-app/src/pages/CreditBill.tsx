@@ -334,6 +334,9 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
       return;
     }
     try {
+      const cleanPhone = buyerPhone.replace(/\D/g, '').slice(-10);
+      if (cleanPhone.length !== 10) throw new Error('Invalid phone number');
+
       const { formatBillMessage } = await import('../utils/smsFormatter');
       const smsData = {
         companyName: settings.companyName || 'NILANSU PUBLICATION',
@@ -351,16 +354,16 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
       const response = await fetch(`${baseUrl}/sms/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: buyerPhone, message })
+        body: JSON.stringify({ phone: cleanPhone, message })
       });
       if (response.ok) {
-        showDialog({ title: 'SMS Sent', message: `SMS sent to ${buyerName} at ${buyerPhone} successfully!`, type: 'alert' });
+        showDialog({ title: 'SMS Sent', message: `SMS sent to ${buyerName} at ${cleanPhone} successfully!`, type: 'alert' });
       } else {
         throw new Error('Failed to send SMS');
       }
     } catch (err) {
       console.error(err);
-      showDialog({ title: 'SMS Failed', message: `Could not send SMS to ${buyerPhone}. Ensure server is running.`, type: 'alert' });
+      showDialog({ title: 'SMS Failed', message: `Could not send SMS to ${buyerPhone}. Ensure it is a valid 10-digit number.`, type: 'alert' });
     }
   };
 

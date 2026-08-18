@@ -70,12 +70,13 @@ export interface DialogOptions {
   isOpen: boolean;
   title: string;
   message: string;
-  type: 'alert' | 'confirm';
+  type: 'alert' | 'confirm' | 'prompt';
   confirmText?: string;
   cancelText?: string;
   hideCancel?: boolean;
   hideAllButtons?: boolean;
-  onConfirm?: () => void;
+  defaultValue?: string;
+  onConfirm?: (value?: string) => void;
   onCancel?: () => void;
 }
 
@@ -158,7 +159,8 @@ export const useStore = create<AppState>((set, get) => ({
     isOpen: false,
     title: '',
     message: '',
-    type: 'alert'
+    type: 'alert',
+    defaultValue: ''
   },
   
   showDialog: (options) => set({ dialog: { ...options, isOpen: true } }),

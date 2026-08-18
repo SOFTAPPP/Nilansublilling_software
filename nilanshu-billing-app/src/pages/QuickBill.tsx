@@ -147,37 +147,46 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
     }
   };
 
-  const handleSendSMS = async () => {
-    const phone = window.prompt("Enter customer phone number:");
-    if (!phone) return;
-    
-    try {
-      const { formatBillMessage } = await import('../utils/smsFormatter');
-      const smsData = {
-        companyName: settings.companyName || 'NILANSU PUBLICATION',
-        billType: 'QUICK BILL',
-        billNo: billNo,
-        items: items,
-        subtotal: totalAmount,
-        discount: discountTotal,
-        grandTotal: grandTotal,
-      };
-      const message = formatBillMessage(smsData);
+  const handleSendSMS = () => {
+    showDialog({
+      title: 'Send SMS',
+      message: 'Enter customer phone number (10 digits):',
+      type: 'prompt',
+      onConfirm: async (phone?: string) => {
+        if (!phone) return;
+        
+        try {
+          const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+          if (cleanPhone.length !== 10) throw new Error('Invalid phone number');
 
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://72.61.231.155:5004/api';
-      const response = await fetch(`${baseUrl}/sms/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, message })
-      });
-      if (response.ok) {
-        showDialog({ title: 'SMS Sent', message: `SMS sent to ${phone} successfully!`, type: 'alert' });
-      } else {
-        throw new Error('Failed to send SMS');
+          const { formatBillMessage } = await import('../utils/smsFormatter');
+          const smsData = {
+            companyName: settings.companyName || 'NILANSU PUBLICATION',
+            billType: 'QUICK BILL',
+            billNo: billNo,
+            items: items,
+            subtotal: totalAmount,
+            discount: discountTotal,
+            grandTotal: grandTotal,
+          };
+          const message = formatBillMessage(smsData);
+
+          const baseUrl = import.meta.env.VITE_API_URL || 'http://72.61.231.155:5004/api';
+          const response = await fetch(`${baseUrl}/sms/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: cleanPhone, message })
+          });
+          if (response.ok) {
+            showDialog({ title: 'SMS Sent', message: `SMS sent to ${cleanPhone} successfully!`, type: 'alert' });
+          } else {
+            throw new Error('Failed to send SMS');
+          }
+        } catch (err) {
+          showDialog({ title: 'SMS Failed', message: `Could not send SMS. Ensure it is a valid 10-digit number.`, type: 'alert' });
+        }
       }
-    } catch (err) {
-      showDialog({ title: 'SMS Failed', message: `Could not send SMS to ${phone}. Ensure server is running.`, type: 'alert' });
-    }
+    });
   };
 
   return (

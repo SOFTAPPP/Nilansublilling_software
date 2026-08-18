@@ -175,6 +175,9 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
       return;
     }
     try {
+      const cleanPhone = buyerMob.replace(/\D/g, '').slice(-10);
+      if (cleanPhone.length !== 10) throw new Error('Invalid phone number');
+
       const { formatTransportBillMessage } = await import('../utils/smsFormatter');
       const smsData = {
         companyName: settings.companyName || 'NILANSU PUBLICATION',
@@ -190,16 +193,16 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
       const response = await fetch(`${baseUrl}/sms/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: buyerMob, message })
+        body: JSON.stringify({ phone: cleanPhone, message })
       });
       if (response.ok) {
-        showDialog({ title: 'SMS Sent', message: `SMS sent to ${buyerName} at ${buyerMob} successfully!`, type: 'alert' });
+        showDialog({ title: 'SMS Sent', message: `SMS sent to ${buyerName} at ${cleanPhone} successfully!`, type: 'alert' });
       } else {
         throw new Error('Failed to send SMS');
       }
     } catch (err) {
       console.error(err);
-      showDialog({ title: 'SMS Failed', message: `Could not send SMS to ${buyerMob}. Ensure server is running.`, type: 'alert' });
+      showDialog({ title: 'SMS Failed', message: `Could not send SMS to ${buyerMob}. Ensure it is a valid 10-digit number.`, type: 'alert' });
     }
   };
 
