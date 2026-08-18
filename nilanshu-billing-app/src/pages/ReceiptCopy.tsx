@@ -57,6 +57,21 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
   const selectParty = (party: typeof parties[0]) => {
     setCustomerName(party.name);
     setPartyId(party.id);
+    
+    let parsedAddress = party.address || '';
+    let parsedDistrict = '';
+    
+    const distMatch = parsedAddress.match(/ \| Dist: (.*)(?= \| PIN:| \| State:|$)/);
+    // Alternatively, simpler regex:
+    const distMatch2 = parsedAddress.match(/ \| Dist: (.*?)(?= \| PIN:| \| State:|$)/);
+    if (distMatch2) {
+      parsedDistrict = distMatch2[1].trim();
+    } else {
+       const distMatch3 = parsedAddress.match(/ \| Dist: (.*)$/);
+       if (distMatch3) parsedDistrict = distMatch3[1].trim();
+    }
+    
+    setDistrict(parsedDistrict);
     setPartyDropdownOpen(false);
   };
 

@@ -21,8 +21,10 @@ export default function CustomerManagement() {
   const [editForm, setEditForm] = useState<Partial<Party>>({});
   const [newDistrict, setNewDistrict] = useState('');
   const [newPincode, setNewPincode] = useState('');
+  const [newState, setNewState] = useState('');
   const [editDistrict, setEditDistrict] = useState('');
   const [editPincode, setEditPincode] = useState('');
+  const [editState, setEditState] = useState('');
   const [editPhoneCode, setEditPhoneCode] = useState('+91');
   const [newPhoneCode, setNewPhoneCode] = useState('+91');
   const [newPhoneCodeOpen, setNewPhoneCodeOpen] = useState(false);
@@ -35,21 +37,29 @@ export default function CustomerManagement() {
     let parsedAddress = party.address || '';
     let parsedDistrict = '';
     let parsedPincode = '';
+    let parsedState = '';
     
-    const distMatch = parsedAddress.match(/ \| Dist: (.*?)(?= \| PIN:|$)/);
-    const pinMatch = parsedAddress.match(/ \| PIN: (.*)$/);
-    
-    if (distMatch) {
-      parsedDistrict = distMatch[1].trim();
-      parsedAddress = parsedAddress.replace(distMatch[0], '');
+    const stateMatch = parsedAddress.match(/ \| State: (.*)$/);
+    if (stateMatch) {
+      parsedState = stateMatch[1].trim();
+      parsedAddress = parsedAddress.replace(stateMatch[0], '');
     }
+    
+    const pinMatch = parsedAddress.match(/ \| PIN: (.*)$/);
     if (pinMatch) {
       parsedPincode = pinMatch[1].trim();
       parsedAddress = parsedAddress.replace(pinMatch[0], '');
     }
+    
+    const distMatch = parsedAddress.match(/ \| Dist: (.*)$/);
+    if (distMatch) {
+      parsedDistrict = distMatch[1].trim();
+      parsedAddress = parsedAddress.replace(distMatch[0], '');
+    }
 
     setEditDistrict(parsedDistrict);
     setEditPincode(parsedPincode);
+    setEditState(parsedState);
 
     if (party.phone && party.phone.includes(' ')) {
       const parts = party.phone.split(' ');
@@ -69,7 +79,7 @@ export default function CustomerManagement() {
     }
     const currentId = editingParty.id;
     const finalPhone = editForm.phone ? `${editPhoneCode} ${editForm.phone}` : '';
-    const finalAddress = `${editForm.address || ''}${editDistrict ? ` | Dist: ${editDistrict}` : ''}${editPincode ? ` | PIN: ${editPincode}` : ''}`;
+    const finalAddress = `${editForm.address || ''}${editDistrict ? ` | Dist: ${editDistrict}` : ''}${editPincode ? ` | PIN: ${editPincode}` : ''}${editState ? ` | State: ${editState}` : ''}`;
     
     const currentForm = { ...editForm, phone: finalPhone, address: finalAddress };
     setEditingParty(null);
@@ -99,7 +109,7 @@ export default function CustomerManagement() {
     }
     
     const finalPhone = newParty.phone ? `${newPhoneCode} ${newParty.phone}` : '';
-    const finalAddress = `${newParty.address || ''}${newDistrict ? ` | Dist: ${newDistrict}` : ''}${newPincode ? ` | PIN: ${newPincode}` : ''}`;
+    const finalAddress = `${newParty.address || ''}${newDistrict ? ` | Dist: ${newDistrict}` : ''}${newPincode ? ` | PIN: ${newPincode}` : ''}${newState ? ` | State: ${newState}` : ''}`;
     
     const party: Party = {
       id: `PARTY-${Date.now()}`,
@@ -121,6 +131,7 @@ export default function CustomerManagement() {
     setNewParty({ name: '', proprietorName: '', address: '', phone: '', email: '', aadharNumber: '', discountPercentage: 0, outstandingBalance: 0, bankName: '', bankAccountNo: '', bankIfsc: '' });
     setNewDistrict('');
     setNewPincode('');
+    setNewState('');
     setNewPhoneCode('+91');
   };
 
@@ -204,7 +215,7 @@ export default function CustomerManagement() {
               <label className={labelClass}>Address</label>
               <input type="text" placeholder="Full Address" value={newParty.address} onChange={e => setNewParty({...newParty, address: e.target.value})} className={inputClass} />
             </div>
-            {/* District & Pincode */}
+            {/* District & Pincode & State */}
             <div>
               <label className={labelClass}>District</label>
               <input type="text" placeholder="District" value={newDistrict} onChange={e => setNewDistrict(e.target.value)} className={inputClass} />
@@ -212,6 +223,10 @@ export default function CustomerManagement() {
             <div>
               <label className={labelClass}>Pin Code</label>
               <input type="text" placeholder="Pin Code" value={newPincode} onChange={e => setNewPincode(e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>State</label>
+              <input type="text" placeholder="State" value={newState} onChange={e => setNewState(e.target.value)} className={inputClass} />
             </div>
             {/* Aadhar Number */}
             <div>
@@ -308,7 +323,7 @@ export default function CustomerManagement() {
                 <label className={labelClass}>Address</label>
                 <input type="text" placeholder="Full Address" value={editForm.address || ''} onChange={e => setEditForm({...editForm, address: e.target.value})} className={inputClass} />
               </div>
-              {/* District & Pincode */}
+              {/* District & Pincode & State */}
               <div>
                 <label className={labelClass}>District</label>
                 <input type="text" placeholder="District" value={editDistrict} onChange={e => setEditDistrict(e.target.value)} className={inputClass} />
@@ -316,6 +331,10 @@ export default function CustomerManagement() {
               <div>
                 <label className={labelClass}>Pin Code</label>
                 <input type="text" placeholder="Pin Code" value={editPincode} onChange={e => setEditPincode(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>State</label>
+                <input type="text" placeholder="State" value={editState} onChange={e => setEditState(e.target.value)} className={inputClass} />
               </div>
               {/* Aadhar Number */}
               <div>

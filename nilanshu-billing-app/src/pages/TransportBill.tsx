@@ -117,8 +117,35 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
       setPartyId(p.id);
       setBuyerName(p.name);
       setBuyerProprietor(p.proprietorName || '');
-      setBuyerAddress(p.address || '');
       setBuyerMob(p.phone || '');
+      
+      let parsedAddress = p.address || '';
+      let parsedDistrict = '';
+      let parsedPin = '';
+      let parsedState = '';
+
+      const stateMatch = parsedAddress.match(/ \| State: (.*)$/);
+      if (stateMatch) {
+        parsedState = stateMatch[1].trim();
+        parsedAddress = parsedAddress.replace(stateMatch[0], '');
+      }
+
+      const pinMatch = parsedAddress.match(/ \| PIN: (.*)$/);
+      if (pinMatch) {
+        parsedPin = pinMatch[1].trim();
+        parsedAddress = parsedAddress.replace(pinMatch[0], '');
+      }
+
+      const distMatch = parsedAddress.match(/ \| Dist: (.*)$/);
+      if (distMatch) {
+        parsedDistrict = distMatch[1].trim();
+        parsedAddress = parsedAddress.replace(distMatch[0], '');
+      }
+
+      setBuyerAddress(parsedAddress.trim());
+      setBuyerDistrict(parsedDistrict);
+      setBuyerPin(parsedPin);
+      setBuyerState(parsedState);
     }
   };
 
