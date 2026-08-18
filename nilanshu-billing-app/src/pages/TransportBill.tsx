@@ -315,6 +315,26 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
             <span className="text-6xl font-bold uppercase tracking-widest">PAID</span>
           </div>
         )}
+        
+        {/* TOP COMPANY HEADER */}
+        <div className="flex flex-col items-center text-center w-full p-4 border-b-2 border-black print:border-black dark:border-white">
+          <input 
+            value={customCompanyName || settings.companyName || ''} 
+            onChange={e => setCustomCompanyName(e.target.value)} 
+            className="text-3xl font-bold uppercase tracking-wide text-center w-full bg-transparent border-none outline-none hover:bg-black/5 dark:hover:bg-white/5 focus:bg-black/5 dark:focus:bg-white/5 transition-colors print:hover:bg-transparent" 
+            placeholder="COMPANY NAME"
+            readOnly={!!viewBill} 
+          />
+          <div className="text-base mt-1 text-center">{settings.companyAddress}</div>
+          <div className="text-base text-center">{settings.companyCity}</div>
+          <div className="flex gap-2 text-base justify-center items-center mt-1">
+            <span className="flex items-center whitespace-nowrap font-semibold">IT PAN: <span className="ml-1 uppercase font-normal">{settings.companyPan}</span></span>
+            <span className="text-gray-400">|</span>
+            <span className="flex items-center whitespace-nowrap font-semibold">Phone: <span className="ml-1 font-normal">{settings.companyContact}</span></span>
+            <span className="text-gray-400">|</span>
+            <span className="flex items-center whitespace-nowrap font-semibold">Email: <span className="ml-1 font-normal">{settings.companyEmail}</span></span>
+          </div>
+        </div>
         <div className="text-center py-4 border-b-2 border-black print:border-black dark:border-white font-bold text-2xl tracking-wider">
           TRANSPORT BILL
         </div>
@@ -456,24 +476,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
 
         {/* BOTTOM SIGNATURE AREA */}
         <div className="border-t-2 border-black print:border-black dark:border-white min-h-[150px] p-4 flex flex-col justify-between">
-          <div className="flex flex-col items-center text-center w-full mb-8">
-            <input 
-              value={customCompanyName || settings.companyName || ''} 
-              onChange={e => setCustomCompanyName(e.target.value)} 
-              className="text-3xl font-bold uppercase tracking-wide text-center w-full bg-transparent border-none outline-none hover:bg-black/5 dark:hover:bg-white/5 focus:bg-black/5 dark:focus:bg-white/5 transition-colors print:hover:bg-transparent" 
-              placeholder="COMPANY NAME"
-              readOnly={!!viewBill} 
-            />
-            <div className="text-base mt-1 text-center">{settings.companyAddress}</div>
-            <div className="text-base text-center">{settings.companyCity}</div>
-            <div className="flex gap-2 text-base justify-center items-center mt-1">
-              <span className="flex items-center whitespace-nowrap font-semibold">IT PAN: <span className="ml-1 uppercase font-normal">{settings.companyPan}</span></span>
-              <span className="text-gray-400">|</span>
-              <span className="flex items-center whitespace-nowrap font-semibold">Phone: <span className="ml-1 font-normal">{settings.companyContact}</span></span>
-              <span className="text-gray-400">|</span>
-              <span className="flex items-center whitespace-nowrap font-semibold">Email: <span className="ml-1 font-normal">{settings.companyEmail}</span></span>
-            </div>
-          </div>
+          {/* COMPANY DETAILS MOVED TO TOP */}
           <div className="flex justify-end w-full">
             <div className="w-1/3 text-center border-t border-dashed border-gray-400 pt-2 font-bold text-base">
               Transport Received Sign. with seal
