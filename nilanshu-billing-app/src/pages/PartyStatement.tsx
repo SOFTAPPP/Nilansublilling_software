@@ -56,7 +56,16 @@ export default function PartyStatement() {
   const partyBills = bills.filter(b => b.partyId === selectedPartyId && (b.type === 'credit' || b.type === 'return' || b.type === 'receipt' || b.type === 'cash'));
   const sortedBillsByDate = [...partyBills].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  let running = selectedParty?.outstandingBalance || 0;
+  let originalBalance = selectedParty?.outstandingBalance || 0;
+  for (const bill of partyBills) {
+    if (bill.type === 'credit') {
+       originalBalance -= (bill.total - (bill.paymentAmount || 0));
+    } else if (bill.type === 'return' || bill.type === 'receipt') {
+       originalBalance += bill.total;
+    }
+  }
+
+  let running = originalBalance;
   const rawHistory: any[] = [];
   
   for (const bill of sortedBillsByDate) {

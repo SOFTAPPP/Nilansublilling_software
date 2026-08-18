@@ -114,7 +114,12 @@ router.put('/:id', async (req, res) => {
 
       // Revert old party balance
       if (oldBill.partyId) {
-        const revert = oldBill.type === 'credit' ? -oldBill.total : oldBill.type === 'return' ? oldBill.total : 0;
+        let revert = 0;
+        if (oldBill.type === 'credit') {
+          revert = - (oldBill.total - ((oldBill as any).paymentAmount || 0));
+        } else if (oldBill.type === 'return' || oldBill.type === 'receipt') {
+          revert = oldBill.total;
+        }
         if (revert !== 0) {
           await tx.party.update({
             where: { id: oldBill.partyId },
@@ -242,7 +247,7 @@ router.delete('/:id', async (req, res) => {
             where: { id: bill.partyId },
             data: { outstandingBalance: { decrement: change } }
           });
-        } else if (bill.type === 'return') {
+        } else if (bill.type === 'return' || bill.type === 'receipt') {
           await tx.party.update({
             where: { id: bill.partyId },
             data: { outstandingBalance: { increment: bill.total } }
