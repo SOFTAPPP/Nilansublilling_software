@@ -22,7 +22,10 @@ export const useLiveSync = () => {
     isSyncingRef.current = true;
 
     try {
-      const { fetchProducts, fetchParties, fetchTransporters, fetchBills, fetchSettings } = useStore.getState();
+      const { fetchProducts, fetchParties, fetchTransporters, fetchBills, fetchSettings, isAuthenticated } = useStore.getState();
+      
+      if (!isAuthenticated) return;
+
       
       // Run fetches sequentially to prevent exhausting the remote database connection pool
       await fetchProducts();
