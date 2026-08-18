@@ -315,29 +315,29 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
                 )}
               </div>
 
-              <div className="flex items-end gap-2 mt-2">
+              <div className="flex items-baseline gap-2 mt-2">
                 <span className="font-bold whitespace-nowrap w-32">Buyer Name :</span>
                 <input value={buyerName} onChange={e => setBuyerName(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
-              <div className="flex items-end gap-2">
+              <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap w-32">Proprietor Name :</span>
                 <input value={buyerProprietor} onChange={e => setBuyerProprietor(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
-              <div className="flex items-end gap-2">
+              <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap w-32">Address :</span>
                 <input value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
-              <div className="flex items-end gap-2">
+              <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap w-32">District :</span>
                 <input value={buyerDistrict} onChange={e => setBuyerDistrict(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
                 <span className="font-bold whitespace-nowrap ml-2">Pin Code :</span>
                 <input value={buyerPin} onChange={e => setBuyerPin(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent w-24 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
-              <div className="flex items-end gap-2">
+              <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap w-32">State :</span>
                 <input value={buyerState} onChange={e => setBuyerState(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
-              <div className="flex items-end gap-2">
+              <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap w-32">Mobile No. :</span>
                 <input value={buyerMob} onChange={e => setBuyerMob(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
@@ -371,23 +371,23 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
                 )}
               </div>
 
-              <div className="flex items-end gap-2 mt-2">
+              <div className="flex items-baseline gap-2 mt-2">
                 <span className="font-bold whitespace-nowrap w-40">Vehicle / Transport No. :</span>
                 <input value={vehicleNo} onChange={e => setVehicleNo(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
-              <div className="flex items-end gap-2">
+              <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap w-40">Route (From - To) :</span>
                 <input value={route} onChange={e => setRoute(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
-              <div className="flex items-end gap-2">
+              <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap w-40">Transporter Name :</span>
                 <input value={transporterName} onChange={e => setTransporterName(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
-              <div className="flex items-end gap-2">
+              <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap w-40">Transporter Address :</span>
                 <input value={transporterAddress} onChange={e => setTransporterAddress(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
-              <div className="flex items-end gap-2">
+              <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap w-40">Transporter Ph. No. :</span>
                 <input value={transporterPhone} onChange={e => setTransporterPhone(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
@@ -396,13 +396,13 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
             <div className="font-bold text-lg bg-gray-100 dark:bg-transparent print:bg-gray-100 dark:bg-transparent border-y-2 border-black print:border-black dark:border-white p-2 uppercase text-center tracking-wider">Package Details</div>
             
             <div className="p-5 flex flex-col gap-4">
-              <div className="flex items-end gap-2">
+              <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap w-32">Total Packet :</span>
                 <input value={totalPacket} onChange={e => setTotalPacket(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
                 <span className="font-bold whitespace-nowrap ml-4">Value (₹) :</span>
                 <input value={value} onChange={e => setValue(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent w-24 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
-              <div className="flex items-end gap-2">
+              <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap w-32">Material Details :</span>
                 <input value={material} onChange={e => setMaterial(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
