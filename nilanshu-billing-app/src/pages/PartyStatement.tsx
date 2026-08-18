@@ -62,6 +62,8 @@ export default function PartyStatement() {
        originalBalance -= (bill.total - (bill.paymentAmount || 0));
     } else if (bill.type === 'return' || bill.type === 'receipt') {
        originalBalance += bill.total;
+    } else if (bill.type === 'cash') {
+       originalBalance += (bill.paymentAmount || 0);
     }
   }
 
@@ -166,7 +168,7 @@ export default function PartyStatement() {
   const start = new Date(fromDate).getTime();
   const end = new Date(toDate + 'T23:59:59').getTime();
   
-  let openingBalance = selectedParty?.outstandingBalance || 0;
+  let openingBalance = originalBalance;
   const periodHistory: any[] = [];
   
   for (const entry of rawHistory) {

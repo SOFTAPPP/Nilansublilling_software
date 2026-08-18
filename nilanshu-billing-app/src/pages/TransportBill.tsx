@@ -32,6 +32,15 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
   const [value, setValue] = useState('');
   const [material, setMaterial] = useState('');
 
+  // Custom Company Name override
+  const [customCompanyName, setCustomCompanyName] = useState('');
+
+  useEffect(() => {
+    if (!viewBill && !customCompanyName && settings?.companyName) {
+      setCustomCompanyName(settings.companyName);
+    }
+  }, [settings?.companyName, viewBill]);
+
   // Dropdown states
   const [partySearch, setPartySearch] = useState('');
   const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
@@ -43,7 +52,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true);
 
-  const formStateStr = JSON.stringify({ billNo, date, buyerName, buyerProprietor, buyerAddress, buyerDistrict, buyerPin, buyerState, buyerMob, transporterName, transporterAddress, transporterPhone, vehicleNo, route, totalPacket, value, material });
+  const formStateStr = JSON.stringify({ billNo, date, buyerName, buyerProprietor, buyerAddress, buyerDistrict, buyerPin, buyerState, buyerMob, transporterName, transporterAddress, transporterPhone, vehicleNo, route, totalPacket, value, material, customCompanyName });
   const lastSavedStateRef = useRef(formStateStr);
 
   useEffect(() => {
@@ -102,6 +111,12 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
           setTotalPacket(data.totalPacket || '');
           setValue(data.value || '');
           setMaterial(data.material || '');
+          
+          if (data.customCompanyName) {
+            setCustomCompanyName(data.customCompanyName);
+          } else {
+            setCustomCompanyName(settings?.companyName || '');
+          }
         } catch (e) {
           // fallback if it wasn't JSON
         }
@@ -176,7 +191,8 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         lrNo: JSON.stringify({
           buyerName, buyerProprietor, buyerAddress, buyerDistrict, buyerPin, buyerState, buyerMob,
           totalPacket, value, material,
-          transporterName, transporterAddress, transporterPhone, vehicleNo, route
+          transporterName, transporterAddress, transporterPhone, vehicleNo, route,
+          customCompanyName
         }),
         lineItems: []
       };
@@ -441,7 +457,13 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         {/* BOTTOM SIGNATURE AREA */}
         <div className="border-t-2 border-black print:border-black dark:border-white min-h-[150px] p-4 flex flex-col justify-between">
           <div className="flex flex-col items-center text-center w-full mb-8">
-            <div className="text-3xl font-bold uppercase tracking-wide text-center">{settings.companyName}</div>
+            <input 
+              value={customCompanyName || settings.companyName || ''} 
+              onChange={e => setCustomCompanyName(e.target.value)} 
+              className="text-3xl font-bold uppercase tracking-wide text-center w-full bg-transparent border-none outline-none hover:bg-black/5 dark:hover:bg-white/5 focus:bg-black/5 dark:focus:bg-white/5 transition-colors print:hover:bg-transparent" 
+              placeholder="COMPANY NAME"
+              readOnly={!!viewBill} 
+            />
             <div className="text-base mt-1 text-center">{settings.companyAddress}</div>
             <div className="text-base text-center">{settings.companyCity}</div>
             <div className="flex gap-2 text-base justify-center items-center mt-1">

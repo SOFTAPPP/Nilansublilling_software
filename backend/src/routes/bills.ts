@@ -76,10 +76,12 @@ router.post('/', async (req, res) => {
             data: { outstandingBalance: { increment: change } }
           });
         } else if (type === 'cash') {
-          // Cash bill usually means fully paid, but if there's overpayment or partial?
-          // The frontend logic for cash: if addedPayment > 0, decrease balance. (addedPayment = deducted < 0)
-          // To mirror exact frontend logic: paymentAmount is Math.abs(deductedAmount)
-          // For simplicity, we just use the raw values if passed, but typically cash doesn't change balance
+          if (deducted > 0) {
+            await tx.party.update({
+              where: { id: billData.partyId },
+              data: { outstandingBalance: { decrement: deducted } }
+            });
+          }
         } else if (type === 'return' || type === 'receipt') {
           await tx.party.update({
             where: { id: billData.partyId },
@@ -119,6 +121,8 @@ router.put('/:id', async (req, res) => {
           revert = - (oldBill.total - ((oldBill as any).paymentAmount || 0));
         } else if (oldBill.type === 'return' || oldBill.type === 'receipt') {
           revert = oldBill.total;
+        } else if (oldBill.type === 'cash') {
+          revert = ((oldBill as any).paymentAmount || 0);
         }
         if (revert !== 0) {
           await tx.party.update({
@@ -194,6 +198,13 @@ router.put('/:id', async (req, res) => {
             where: { id: billData.partyId },
             data: { outstandingBalance: { increment: change } }
           });
+        } else if (type === 'cash') {
+          if (deducted > 0) {
+            await tx.party.update({
+              where: { id: billData.partyId },
+              data: { outstandingBalance: { decrement: deducted } }
+            });
+          }
         } else if (type === 'return' || type === 'receipt') {
           await tx.party.update({
             where: { id: billData.partyId },
@@ -252,6 +263,14 @@ router.delete('/:id', async (req, res) => {
             where: { id: bill.partyId },
             data: { outstandingBalance: { increment: bill.total } }
           });
+        } else if (bill.type === 'cash') {
+          const extra = (bill as any).paymentAmount || 0;
+          if (extra > 0) {
+            await tx.party.update({
+              where: { id: bill.partyId },
+              data: { outstandingBalance: { increment: extra } }
+            });
+          }
         }
       }
 
