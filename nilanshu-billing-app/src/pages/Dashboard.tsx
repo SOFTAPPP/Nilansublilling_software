@@ -25,7 +25,7 @@ export default function Dashboard() {
   const { products, parties, bills } = useStore();
 
   const validProducts = products.filter(p => p.category !== 'Miscellaneous');
-  const lowStockProducts = products.filter(p => p.stock <= p.lowStockThreshold);
+  const lowStockProducts = validProducts.filter(p => p.stock <= p.lowStockThreshold);
   const totalOutstanding = parties.reduce((sum, p) => sum + p.outstandingBalance, 0);
   const todayBills = bills.filter(b => {
     const today = new Date();
