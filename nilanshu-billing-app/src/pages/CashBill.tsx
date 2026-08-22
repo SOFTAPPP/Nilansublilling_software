@@ -452,9 +452,8 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
 
             {/* QR Code in the middle space */}
             <div className="flex my-3">
-              <div className="w-20 h-20 border border-gray-300 p-1 flex items-center justify-center relative">
-                <div className="text-[8px] text-gray-400 text-center leading-tight">SCAN<br />TO<br />PAY</div>
-                <img src="/qr.png" alt="QR" className="absolute w-18 h-18 object-contain opacity-0" onError={(e) => (e.currentTarget.style.opacity = '0')} onLoad={(e) => (e.currentTarget.style.opacity = '1')} />
+              <div className="w-20 h-20 border border-gray-300 p-1 flex items-center justify-center">
+                <img src="/nilansu-qr-code.png" alt="QR" className="w-full h-full object-contain" />
               </div>
             </div>
 
