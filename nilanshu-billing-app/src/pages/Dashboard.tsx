@@ -24,6 +24,7 @@ const LiveClock = () => {
 export default function Dashboard() {
   const { products, parties, bills } = useStore();
 
+  const validProducts = products.filter(p => p.category !== 'Miscellaneous');
   const lowStockProducts = products.filter(p => p.stock <= p.lowStockThreshold);
   const totalOutstanding = parties.reduce((sum, p) => sum + p.outstandingBalance, 0);
   const todayBills = bills.filter(b => {
@@ -110,7 +111,7 @@ export default function Dashboard() {
             },
             { 
               title: 'Total Products', 
-              value: products.length, 
+              value: validProducts.length, 
               icon: Package, 
               color: { bg: 'bg-purple-500/10', text: 'text-purple-500', glow: 'bg-purple-500' }, 
               gradient: 'bg-gradient-to-r from-purple-500 to-indigo-500' 
