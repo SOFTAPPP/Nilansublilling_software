@@ -9,6 +9,7 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
   const [voucherNo, setVoucherNo] = useState('');
   const [voucherDate, setVoucherDate] = useState(() => getLocalDateString());
   const [payTo, setPayTo] = useState('');
+  const [address, setAddress] = useState('');
   const [debitors, setDebitors] = useState('');
   const [amount, setAmount] = useState<number>(0);
   const [chequeNo, setChequeNo] = useState('');
@@ -28,7 +29,10 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
       if (viewBill.partyId) {
         setPartyId(viewBill.partyId);
         const p = parties.find(p => p.id === viewBill.partyId);
-        if (p) setPayTo(p.name);
+        if (p) {
+          setPayTo(p.name);
+          setAddress(p.address.split('|')[0].trim());
+        }
       }
     }
   }, [viewBill, parties]);
@@ -50,6 +54,7 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
 
   const selectParty = (party: typeof parties[0]) => {
     setPayTo(party.name);
+    setAddress(party.address.split('|')[0].trim());
     setPartyId(party.id);
     setPartyDropdownOpen(false);
   };
@@ -91,6 +96,7 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
 
   const handleNew = () => {
     setPayTo('');
+    setAddress('');
     setPartyId(null);
     setDebitors('');
     setAmount(0);
@@ -135,7 +141,8 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
               className="text-3xl font-black tracking-wide bg-transparent outline-none text-center w-full text-foreground print:text-black" 
               style={{ fontFamily: 'serif' }}
             />
-            <p className="text-sm mt-1">34, BENIATOLA LANE, KOLKATA</p>
+            <p className="text-sm mt-1">34, BENIATOLA LANE, KOLKATA - KOL - 9</p>
+            <p className="text-sm">CONT - 8240160147</p>
           </div>
 
           <div className="space-y-4 text-[14px] mt-8">
@@ -167,6 +174,13 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
                     ))}
                   </div>
                 )}
+              </span>
+            </div>
+
+            <div className="flex items-baseline gap-3">
+              <span className="whitespace-nowrap font-bold">Address</span>
+              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2 flex">
+                <input type="text" value={address} onChange={e => setAddress(e.target.value)} className="bg-transparent outline-none w-full p-0 border-none h-5 text-foreground print:text-black print:appearance-none" />
               </span>
             </div>
 

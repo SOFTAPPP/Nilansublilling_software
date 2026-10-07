@@ -234,6 +234,20 @@
   input::placeholder {
     color: transparent !important;
   }
+  /* Force all gray/muted text to proper black in print */
+  .text-muted-foreground,
+  .text-gray-400,
+  .text-gray-500,
+  .text-gray-600,
+  .text-gray-700 {
+    color: black !important;
+  }
+  /* Make stamps print clearly */
+  .opacity-60,
+  .opacity-70 {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
   /* Hide date picker calendar icons and spin buttons in print */
   input[type="date"]::-webkit-calendar-picker-indicator,
   input[type="date"]::-webkit-inner-spin-button,

@@ -309,9 +309,10 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         </div>
       </div>
 
-      <div className="a4-page border-2 border-foreground print:border-black relative flex flex-col bg-card text-foreground print:bg-white print:text-black overflow-hidden">
+      <div className="print:block" style={{ pageBreakInside: 'avoid' }}>
+        <div className="w-[210mm] border-2 border-foreground print:border-black relative flex flex-col bg-card text-foreground print:bg-white print:text-black overflow-hidden print:w-full print:m-0 print:border-0" style={{ pageBreakInside: 'avoid' }}>
         {showPaidStamp && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-green-600 border-4 border-green-600 rounded-full w-64 h-64 flex items-center justify-center opacity-30 pointer-events-none z-0">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-green-600 border-4 border-green-600 rounded-full w-64 h-64 flex items-center justify-center opacity-60 pointer-events-none z-0">
             <span className="text-6xl font-bold uppercase tracking-widest">PAID</span>
           </div>
         )}
@@ -353,9 +354,9 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         <div className="flex flex-col flex-1 min-w-0">
           {/* BUYER COLUMN */}
           <div className="border-b-2 border-black print:border-black dark:border-white flex flex-col">
-            <div className="font-bold text-lg bg-gray-100 dark:bg-transparent print:bg-gray-100 dark:bg-transparent border-b-2 border-black print:border-black dark:border-white p-2 uppercase text-center tracking-wider">Buyer Details</div>
+            <div className="font-bold text-lg bg-gray-100 dark:bg-transparent print:bg-gray-100 dark:bg-transparent border-b-2 border-black print:border-black dark:border-white p-1.5 uppercase text-center tracking-wider">Buyer Details</div>
             
-            <div className="p-5 flex flex-col gap-4 relative">
+            <div className="p-3 print:p-2 flex flex-col gap-3 print:gap-2 relative">
               <div className="relative no-print" ref={partyDropdownRef}>
                 <div className="flex items-center border border-gray-300 rounded px-2 text-sm bg-background text-foreground">
                   <input 
@@ -380,7 +381,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
 
               <div className="flex items-baseline gap-2 mt-2">
                 <span className="font-bold whitespace-nowrap w-32">Buyer Name :</span>
-                <input value={buyerName} onChange={e => setBuyerName(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
+                <input value={buyerName} onChange={e => setBuyerName(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-bold text-lg print:text-lg print:font-bold bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap w-32">Proprietor Name :</span>
@@ -409,9 +410,9 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
 
           {/* RIGHT COLUMN - TRANSPORTER & MATERIAL */}
           <div className="flex flex-col">
-            <div className="font-bold text-lg bg-gray-100 dark:bg-transparent print:bg-gray-100 dark:bg-transparent border-b-2 border-black print:border-black dark:border-white p-2 uppercase text-center tracking-wider">Transporter Details</div>
+            <div className="font-bold text-lg bg-gray-100 dark:bg-transparent print:bg-gray-100 dark:bg-transparent border-b-2 border-black print:border-black dark:border-white p-1.5 uppercase text-center tracking-wider">Transporter Details</div>
             
-            <div className="p-5 flex flex-col gap-4 relative flex-1 min-w-0">
+            <div className="p-3 print:p-2 flex flex-col gap-3 print:gap-2 relative flex-1 min-w-0">
               <div className="relative no-print" ref={transporterDropdownRef}>
                 <div className="flex items-center border border-gray-300 rounded px-2 text-sm bg-background text-foreground">
                   <input 
@@ -444,7 +445,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap w-40">Transporter Name :</span>
-                <input value={transporterName} onChange={e => setTransporterName(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
+                <input value={transporterName} onChange={e => setTransporterName(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-bold text-lg print:text-lg print:font-bold bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap w-40">Transporter Address :</span>
@@ -456,18 +457,18 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
               </div>
             </div>
 
-            <div className="font-bold text-lg bg-gray-100 dark:bg-transparent print:bg-gray-100 dark:bg-transparent border-y-2 border-black print:border-black dark:border-white p-2 uppercase text-center tracking-wider">Package Details</div>
+            <div className="font-bold text-lg bg-gray-100 dark:bg-transparent print:bg-gray-100 dark:bg-transparent border-y-2 border-black print:border-black dark:border-white p-1.5 uppercase text-center tracking-wider">Package Details</div>
             
-            <div className="p-5 flex flex-col gap-4">
+            <div className="p-3 print:p-2 flex flex-col gap-3 print:gap-2">
               <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap w-32">Total Packet :</span>
-                <input value={totalPacket} onChange={e => setTotalPacket(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
+                <input value={totalPacket} onChange={e => setTotalPacket(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-bold text-lg print:text-lg print:font-bold bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
                 <span className="font-bold whitespace-nowrap ml-4">Value (₹) :</span>
-                <input value={value} onChange={e => setValue(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent w-24 px-1 pb-0.5" readOnly={!!viewBill} />
+                <input value={value} onChange={e => setValue(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-bold text-lg print:text-lg print:font-bold bg-transparent w-32 px-1 pb-0.5 text-right" readOnly={!!viewBill} />
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap w-32">Material Details :</span>
-                <input value={material} onChange={e => setMaterial(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
+                <input value={material} onChange={e => setMaterial(e.target.value)} className="border-b-2 border-dotted border-black print:border-black dark:border-white outline-none font-bold text-lg print:text-lg print:font-bold bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
             </div>
 
@@ -475,15 +476,15 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
         </div>
 
         {/* BOTTOM SIGNATURE AREA */}
-        <div className="border-t-2 border-black print:border-black dark:border-white min-h-[150px] p-4 flex flex-col justify-between">
-          {/* COMPANY DETAILS MOVED TO TOP */}
-          <div className="flex justify-end w-full">
-            <div className="w-1/3 text-center border-t border-dashed border-gray-400 pt-2 font-bold text-base">
+        <div className="border-t-2 border-black print:border-black dark:border-white min-h-[80px] print:min-h-[60px] p-3 print:p-2 flex flex-col justify-between">
+          <div className="flex justify-end w-full h-full items-end mt-8">
+            <div className="w-1/3 text-center border-t border-dashed border-gray-400 pt-1 font-bold text-sm">
               Transport Received Sign. with seal
             </div>
           </div>
         </div>
 
+      </div>
       </div>
     </div>
   );

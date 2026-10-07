@@ -3,6 +3,14 @@ import { Plus, Trash2, ChevronDown } from 'lucide-react';
 import { useStore, BillLineItem, Product } from '../../store/useStore';
 import { BarcodeScanIndicator } from '../BarcodeScanIndicator';
 
+const formatProductName = (name: string, part?: string) => {
+  if (!part) return name;
+  const p = String(part).trim();
+  if (p === '0' || p === '') return name;
+  if (name.trim().endsWith(p)) return name;
+  return `${name} (${p})`;
+};
+
 interface BillEngineProps {
   items: BillLineItem[];
   onChange: (items: BillLineItem[]) => void;
@@ -145,11 +153,11 @@ export const BillEngine: React.FC<BillEngineProps> = ({
       return;
     }
 
-    const discountPct = globalDiscount > 0 ? globalDiscount : 0;
+    const discountPct = (globalDiscount > 0 && columns.includes('discount')) ? globalDiscount : 0;
     const newItem: BillLineItem = {
       id: crypto.randomUUID(),
       productId: product?.id || '',
-      productName: product?.name || '',
+      productName: product ? formatProductName(product.name, product.part) : '',
       quantity: 1,
       mrp: product?.price || 0,
       discountPercent: discountPct,
@@ -187,7 +195,7 @@ export const BillEngine: React.FC<BillEngineProps> = ({
           };
           const basePrice = columns.includes('rate') ? (updatedItems[existingIndex].rate || 0) : updatedItems[existingIndex].mrp;
           const effectiveDiscount = updatedItems[existingIndex].discountPercent > 0 ? updatedItems[existingIndex].discountPercent : globalDiscount;
-          const discountAmount = (basePrice * effectiveDiscount) / 100;
+          const discountAmount = columns.includes('discount') ? ((basePrice * effectiveDiscount) / 100) : 0;
           updatedItems[existingIndex].quantity += 1;
           updatedItems[existingIndex].amount = (basePrice - discountAmount) * updatedItems[existingIndex].quantity;
           
@@ -196,7 +204,7 @@ export const BillEngine: React.FC<BillEngineProps> = ({
           return;
         }
 
-        item.productName = prod.name;
+        item.productName = formatProductName(prod.name, prod.part);
         item.mrp = prod.price;
         item.hsn = prod.hsn || '';
         item.rate = prod.price;
@@ -219,7 +227,7 @@ export const BillEngine: React.FC<BillEngineProps> = ({
           };
           const basePrice = columns.includes('rate') ? (updatedItems[existingIndex].rate || 0) : updatedItems[existingIndex].mrp;
           const effectiveDiscount = updatedItems[existingIndex].discountPercent > 0 ? updatedItems[existingIndex].discountPercent : globalDiscount;
-          const discountAmount = (basePrice * effectiveDiscount) / 100;
+          const discountAmount = columns.includes('discount') ? ((basePrice * effectiveDiscount) / 100) : 0;
           updatedItems[existingIndex].quantity += 1;
           updatedItems[existingIndex].amount = (basePrice - discountAmount) * updatedItems[existingIndex].quantity;
           
@@ -229,6 +237,7 @@ export const BillEngine: React.FC<BillEngineProps> = ({
         }
 
         item.productId = match.id;
+        item.productName = formatProductName(match.name, match.part);
         item.mrp = match.price;
         item.hsn = match.hsn || '';
         item.rate = match.price;
@@ -240,10 +249,15 @@ export const BillEngine: React.FC<BillEngineProps> = ({
       }
     }
 
-    // Recalculate amount with per-item discount
+    // Recalculate amount — only apply per-item discount when the discount column is visible
     const basePrice = columns.includes('rate') ? (item.rate || 0) : item.mrp;
-    const discountAmount = (basePrice * (item.discountPercent || 0)) / 100;
-    item.amount = (basePrice - discountAmount) * item.quantity;
+    if (columns.includes('discount')) {
+      const discountAmount = (basePrice * (item.discountPercent || 0)) / 100;
+      item.amount = (basePrice - discountAmount) * item.quantity;
+    } else {
+      // No discount column: amount = basePrice * qty (discount applied globally at total level)
+      item.amount = basePrice * item.quantity;
+    }
 
     newItems[index] = item;
     onChange(newItems);
@@ -277,7 +291,7 @@ export const BillEngine: React.FC<BillEngineProps> = ({
               setActiveRow(null);
             }}
           >
-            <span className="flex-1 truncate"><span className="text-muted-foreground font-mono text-xs mr-2">{p.id}</span>{p.name}</span>
+            <span className="flex-1 truncate"><span className="text-muted-foreground font-mono text-xs mr-2">{p.id}</span>{formatProductName(p.name, p.part)}</span>
             <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
               {p.barcode ? `🏷${p.barcode} | ` : ''}{p.category} | Stock: {p.stock} | ₹{p.price}
             </span>
@@ -290,7 +304,7 @@ export const BillEngine: React.FC<BillEngineProps> = ({
   return (
     <div className="w-full">
       <table className="w-full text-sm text-left border-collapse border border-border">
-        <thead className="bg-muted text-muted-foreground">
+        <thead className="bg-muted text-foreground print:text-black font-bold">
           <tr>
             {columns.includes('sno') && <th className="p-2 border border-border w-12 text-center">SI No.</th>}
             {columns.includes('name') && <th className="p-2 border border-border">Description of Goods</th>}
@@ -388,7 +402,7 @@ export const BillEngine: React.FC<BillEngineProps> = ({
                 </td>
               )}
               {columns.includes('per') && (
-                <td className="p-2 border border-border text-center text-muted-foreground">Pkt.</td>
+                <td className="p-2 border border-border text-center text-foreground print:text-black">Pkt.</td>
               )}
               {columns.includes('mrp') && (
                 <td className="p-0 border border-border">

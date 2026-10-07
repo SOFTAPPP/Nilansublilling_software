@@ -22,7 +22,7 @@ export default function PartyStatement() {
   
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
-    d.setMonth(d.getMonth() - 1);
+    d.setFullYear(d.getFullYear() - 1);
     return getLocalDateString(d);
   });
   const [toDate, setToDate] = useState(() => getLocalDateString());
@@ -82,12 +82,7 @@ export default function PartyStatement() {
 
     let particularsText = '';
     if (isCredit) {
-      const items = (bill as any).lineItems || [];
-      if (items.length > 0) {
-         particularsText = `${bill.billNumber}`;
-      } else {
-         particularsText = `${bill.billNumber}`;
-      }
+      particularsText = `Invoice: ${bill.billNumber}`;
       running += bill.total;
       rawHistory.push({
         billId: bill.id,
@@ -248,8 +243,8 @@ export default function PartyStatement() {
           dateStr,
           timestamp,
           name: product?.name || 'Unknown Item',
-          quantity: -item.quantity,
-          amount: -item.amount,
+          quantity: item.quantity,
+          amount: item.amount,
           isReturn: true
         });
       });
@@ -259,8 +254,12 @@ export default function PartyStatement() {
   itemDetails.sort((a, b) => a.timestamp - b.timestamp);
   
   // Also calculate total summary for the bottom row
-  const totalMaterialQty = itemDetails.reduce((sum, item) => sum + item.quantity, 0);
-  const totalMaterialAmt = itemDetails.reduce((sum, item) => sum + item.amount, 0);
+  const totalSoldQty = itemDetails.filter(i => !i.isReturn).reduce((sum, item) => sum + item.quantity, 0);
+  const totalSoldAmt = itemDetails.filter(i => !i.isReturn).reduce((sum, item) => sum + item.amount, 0);
+  const totalReturnedQty = itemDetails.filter(i => i.isReturn).reduce((sum, item) => sum + item.quantity, 0);
+  const totalReturnedAmt = itemDetails.filter(i => i.isReturn).reduce((sum, item) => sum + item.amount, 0);
+  const totalMaterialQty = totalSoldQty - totalReturnedQty;
+  const totalMaterialAmt = totalSoldAmt - totalReturnedAmt;
 
 
   const formatMoney = (val: number) => {
@@ -340,11 +339,29 @@ export default function PartyStatement() {
               <FileText className="w-6 h-6" strokeWidth={1.5} />
               <span className="text-[10px] font-bold uppercase tracking-widest">Report</span>
             </button>
-            <button className="flex flex-col items-center gap-1.5 text-blue-800 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors">
+            <button onClick={async () => {
+              if (!selectedParty?.phone) { showDialog({ title: 'No Phone', message: 'This party has no phone number.', type: 'alert' }); return; }
+              const msg = `Reminder: Dear ${selectedParty.name}, your outstanding balance with ${settings.companyName || 'NILANSU PUBLICATION'} is Rs.${formatBalance(finalBalance)} ${getBalanceSuffix(finalBalance)}. Please clear the dues at the earliest. Thank you.`;
+              try {
+                const baseUrl = import.meta.env.VITE_API_URL || 'http://72.61.231.155:5004/api';
+                const res = await fetch(`${baseUrl}/sms/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: selectedParty.phone, message: msg }) });
+                if (res.ok) { showDialog({ title: 'Reminder Sent', message: `Reminder SMS sent to ${selectedParty.name} at ${selectedParty.phone}!`, type: 'alert' }); }
+                else { throw new Error('Failed'); }
+              } catch { showDialog({ title: 'SMS Failed', message: 'Could not send reminder SMS.', type: 'alert' }); }
+            }} className="flex flex-col items-center gap-1.5 text-blue-800 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors">
               <MessageCircle className="w-6 h-6" strokeWidth={1.5} />
               <span className="text-[10px] font-bold uppercase tracking-widest">Reminder</span>
             </button>
-            <button className="flex flex-col items-center gap-1.5 text-blue-800 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors">
+            <button onClick={async () => {
+              if (!selectedParty?.phone) { showDialog({ title: 'No Phone', message: 'This party has no phone number.', type: 'alert' }); return; }
+              const msg = `${settings.companyName || 'NILANSU PUBLICATION'}\nStatement: ${selectedParty.name}\nPeriod: ${new Date(fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} - ${new Date(toDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}\nOpening: Rs.${formatBalance(openingBalance)}\nDebit: Rs.${formatMoney(totalDebit)}\nCredit: Rs.${formatMoney(totalCredit)}\nBalance: Rs.${formatBalance(finalBalance)} ${getBalanceSuffix(finalBalance)}\nThank you!`;
+              try {
+                const baseUrl = import.meta.env.VITE_API_URL || 'http://72.61.231.155:5004/api';
+                const res = await fetch(`${baseUrl}/sms/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: selectedParty.phone, message: msg }) });
+                if (res.ok) { showDialog({ title: 'SMS Sent', message: `Statement SMS sent to ${selectedParty.name} at ${selectedParty.phone}!`, type: 'alert' }); }
+                else { throw new Error('Failed'); }
+              } catch { showDialog({ title: 'SMS Failed', message: 'Could not send SMS.', type: 'alert' }); }
+            }} className="flex flex-col items-center gap-1.5 text-blue-800 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors">
               <MessageSquare className="w-6 h-6" strokeWidth={1.5} />
               <span className="text-[10px] font-bold uppercase tracking-widest">SMS</span>
             </button>
@@ -522,17 +539,17 @@ export default function PartyStatement() {
                           <td className="py-2 px-3 font-medium border-r border-gray-400 dark:border-slate-600 print:border-gray-400">
                             {item.name} {item.isReturn && <span className="text-xs ml-1">(Returned)</span>}
                           </td>
-                          <td className="py-2 px-3 text-right font-semibold border-r border-gray-400 dark:border-slate-600 print:border-gray-400">{item.quantity > 0 ? item.quantity : Math.abs(item.quantity)}</td>
-                          <td className="py-2 px-3 text-right font-medium">{formatMoney(Math.abs(item.amount))}</td>
+                          <td className="py-2 px-3 text-right font-semibold border-r border-gray-400 dark:border-slate-600 print:border-gray-400">{item.quantity}</td>
+                          <td className="py-2 px-3 text-right font-medium">{formatMoney(item.amount)}</td>
                         </tr>
                       ))}
                       <tr className="bg-gray-50 dark:bg-slate-800 print:bg-gray-50 border-t-2 border-gray-400 dark:border-slate-600 print:border-gray-400">
                         <td colSpan={2} className="py-2 px-3 font-bold border-r border-gray-400 dark:border-slate-600 print:border-gray-400 text-slate-800 dark:text-slate-100 text-right">Net Materials Taken</td>
                         <td className="py-2 px-3 text-right font-bold border-r border-gray-400 dark:border-slate-600 print:border-gray-400 text-slate-800 dark:text-slate-100">
-                          {totalMaterialQty}
+                          {Math.abs(totalMaterialQty)}
                         </td>
                         <td className="py-2 px-3 text-right font-bold text-slate-800 dark:text-slate-100">
-                          {formatMoney(totalMaterialAmt)}
+                          {formatMoney(Math.abs(totalMaterialAmt))}
                         </td>
                       </tr>
                     </tbody>

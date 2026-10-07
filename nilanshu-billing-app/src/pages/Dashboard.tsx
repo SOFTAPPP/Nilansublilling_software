@@ -26,7 +26,9 @@ export default function Dashboard() {
 
   const validProducts = products.filter(p => p.category !== 'Miscellaneous');
   const lowStockProducts = validProducts.filter(p => p.stock <= p.lowStockThreshold);
-  const totalOutstanding = parties.reduce((sum, p) => sum + p.outstandingBalance, 0);
+  const totalDues = parties.reduce((sum, p) => p.outstandingBalance > 0 ? sum + p.outstandingBalance : sum, 0);
+  const totalAdvances = parties.reduce((sum, p) => p.outstandingBalance < 0 ? sum + Math.abs(p.outstandingBalance) : sum, 0);
+  const totalOutstanding = totalDues - totalAdvances;
   const todayBills = bills.filter(b => {
     const today = new Date();
     const bd = new Date(b.date);
@@ -97,7 +99,8 @@ export default function Dashboard() {
             },
             { 
               title: 'Outstanding Dues', 
-              value: formatAmount(totalOutstanding), 
+              value: formatAmount(totalDues), 
+              subValue: totalAdvances > 0 ? `Advances: ${formatAmount(totalAdvances)}` : undefined,
               icon: IndianRupee, 
               color: { bg: 'bg-blue-500/10', text: 'text-blue-500', glow: 'bg-blue-500' }, 
               gradient: 'bg-gradient-to-r from-blue-500 to-cyan-500' 

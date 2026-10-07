@@ -31,6 +31,36 @@ export default function CustomerManagement() {
   const [editPhoneCodeOpen, setEditPhoneCodeOpen] = useState(false);
   const countryCodes = ['+91', '+1', '+44', '+61', '+971'];
 
+  const handlePincodeChange = async (value: string, isEdit: boolean) => {
+    const cleanValue = value.replace(/\D/g, '').slice(0, 6);
+    if (isEdit) {
+      setEditPincode(cleanValue);
+    } else {
+      setNewPincode(cleanValue);
+    }
+
+    if (cleanValue.length === 6) {
+      try {
+        const response = await fetch(`https://api.postalpincode.in/pincode/${cleanValue}`);
+        const data = await response.json();
+        
+        if (data && data[0] && data[0].Status === 'Success' && data[0].PostOffice && data[0].PostOffice.length > 0) {
+          const { State, District } = data[0].PostOffice[0];
+          
+          if (isEdit) {
+            setEditState(State);
+            setEditDistrict(District);
+          } else {
+            setNewState(State);
+            setNewDistrict(District);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch pincode details', error);
+      }
+    }
+  };
+
   const handleEditClick = (party: Party) => {
     setEditingParty(party);
     setEditPhoneCodeOpen(false);
@@ -225,7 +255,7 @@ export default function CustomerManagement() {
             </div>
             <div>
               <label className={labelClass}>Pin Code</label>
-              <input type="text" placeholder="Pin Code" value={newPincode} onChange={e => setNewPincode(e.target.value)} className={inputClass} />
+              <input type="text" placeholder="Pin Code" value={newPincode} onChange={e => handlePincodeChange(e.target.value, false)} className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>State</label>
@@ -241,10 +271,11 @@ export default function CustomerManagement() {
               <label className={labelClass}>Default Discount %</label>
               <input type="number" placeholder="0" value={newParty.discountPercentage} onChange={e => setNewParty({...newParty, discountPercentage: parseFloat(e.target.value) || 0})} className={inputClass} />
             </div>
-            {/* Outstanding Balance */}
+            {/* Outstanding Balance - Read-only, auto-calculated */}
             <div>
               <label className={labelClass}>Amount to receive (₹)</label>
               <input type="number" placeholder="0" value={newParty.outstandingBalance !== undefined ? Number(Number(newParty.outstandingBalance).toFixed(2)) : 0} onChange={e => setNewParty({...newParty, outstandingBalance: parseFloat(e.target.value) || 0})} className={inputClass} />
+              <p className="text-xs text-muted-foreground mt-1">Set initial balance for new customer (will auto-update from bills afterwards)</p>
             </div>
 
             {/* Bank Details Section */}
@@ -335,7 +366,7 @@ export default function CustomerManagement() {
               </div>
               <div>
                 <label className={labelClass}>Pin Code</label>
-                <input type="text" placeholder="Pin Code" value={editPincode} onChange={e => setEditPincode(e.target.value)} className={inputClass} />
+                <input type="text" placeholder="Pin Code" value={editPincode} onChange={e => handlePincodeChange(e.target.value, true)} className={inputClass} />
               </div>
               <div>
                 <label className={labelClass}>State</label>
@@ -351,10 +382,11 @@ export default function CustomerManagement() {
                 <label className={labelClass}>Default Discount %</label>
                 <input type="number" value={editForm.discountPercentage || 0} onChange={e => setEditForm({...editForm, discountPercentage: parseFloat(e.target.value) || 0})} className={inputClass} />
               </div>
-              {/* Outstanding Balance */}
+              {/* Outstanding Balance - Read-only, auto-calculated from bills */}
               <div>
-                <label className={labelClass}>Amount to receive (₹)</label>
-                <input type="number" value={editForm.outstandingBalance !== undefined ? Number(Number(editForm.outstandingBalance).toFixed(2)) : 0} onChange={e => setEditForm({...editForm, outstandingBalance: parseFloat(e.target.value) || 0})} className={inputClass} />
+                <label className={labelClass}>Amount to receive (₹) — Auto-calculated</label>
+                <input type="number" value={editForm.outstandingBalance !== undefined ? Number(Number(editForm.outstandingBalance).toFixed(2)) : 0} readOnly disabled className={`${inputClass} opacity-70 cursor-not-allowed bg-muted`} />
+                <p className="text-xs text-muted-foreground mt-1">This is auto-calculated from bills. Create Credit Bills to increase, Receipts/Returns to decrease.</p>
               </div>
 
               {/* Bank Details */}

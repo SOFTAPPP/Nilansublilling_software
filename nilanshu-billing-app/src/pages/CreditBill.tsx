@@ -6,7 +6,7 @@ import { getLocalDateString } from '../utils/dateUtils';
 import { numberToWords } from '../utils/numberToWords';
 
 export default function CreditBill({ type = 'credit', viewBill }: { type?: 'credit' | 'return', viewBill?: any }) {
-  const { parties, settings, updateSettings, createBill, updateBill, showDialog } = useStore();
+  const { parties, transporters, settings, updateSettings, createBill, updateBill, showDialog } = useStore();
   const [items, setItems] = useState<BillLineItem[]>([]);
 
   // Consignee Details
@@ -26,6 +26,19 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   const [buyerState, setBuyerState] = useState('');
   const bills = useStore(state => state.bills);
   const [invoiceNo, setInvoiceNo] = useState(() => viewBill ? (viewBill.billNumber || '') : getNextBillNumberSync('INV-', bills));
+  
+  const [transporterDropdownOpen, setTransporterDropdownOpen] = useState(false);
+  const transporterDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (transporterDropdownRef.current && !transporterDropdownRef.current.contains(event.target as Node)) {
+        setTransporterDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Auto-fill next invoice number
   // (No longer needed to run asynchronously on mount since we initialized it synchronously)
@@ -73,7 +86,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
         setItems(viewBill.lineItems.map((li: any) => ({
           ...li,
           mrp: li.mrp || li.rate,
-          amount: li.amount,
+          amount: (li.rate || li.mrp) * li.quantity,
           discountPercent: li.discountPercent || 0,
         })));
       }
@@ -107,8 +120,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
     setItems(prevItems => prevItems.map(item => {
       if (!item.productId && !item.productName) return item;
       const basePrice = item.rate || item.mrp;
-      const discountAmount = (basePrice * discount) / 100;
-      const newAmount = (basePrice - discountAmount) * item.quantity;
+      const newAmount = basePrice * item.quantity;
       return { ...item, discountPercent: discount, amount: newAmount };
     }));
   };
@@ -170,9 +182,10 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
 
   // Calculates
   const mrpTotal = items.reduce((sum, item) => sum + ((item.rate || item.mrp) * item.quantity), 0);
-  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0); // Discounted total
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
-  const discountTotal = mrpTotal - totalAmount;
+  // Discount is applied globally, NOT per-item (items have amount = rate * qty without discount)
+  const discountTotal = (mrpTotal * partyDiscount) / 100;
+  const totalAmount = mrpTotal - discountTotal;
 
   // Tax calculations on discounted total
   const taxableAmount = totalAmount;
@@ -445,12 +458,12 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
 
         {/* Stamps overlay */}
         {showPaidStamp && (
-          <div className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-green-600 border-4 border-green-600 rounded-full w-64 h-64 flex items-center justify-center opacity-30 pointer-events-none z-0">
-            <span className="text-6xl font-bold uppercase tracking-widest">PAID</span>
+          <div className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-green-600 border-4 border-green-600 rounded-full w-64 h-64 flex items-center justify-center opacity-60 pointer-events-none z-0">
+            <span className="text-6xl font-bold uppercase tracking-widest">{type === 'return' ? 'RECEIVED' : 'PAID'}</span>
           </div>
         )}
         {showCancelStamp && (
-          <div className={`absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-12 border-4 rounded-full w-64 h-64 flex items-center justify-center opacity-30 pointer-events-none z-0 ${type === 'return' ? 'text-blue-600 border-blue-600' : 'text-red-600 border-red-600'
+          <div className={`absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-12 border-4 rounded-full w-64 h-64 flex items-center justify-center opacity-60 pointer-events-none z-0 ${type === 'return' ? 'text-blue-600 border-blue-600' : 'text-red-600 border-red-600'
             }`}>
             <span className="text-5xl font-bold uppercase tracking-widest text-center">
               {type === 'return' ? 'RECEIVED' : 'CANCELLED'}
@@ -488,37 +501,60 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
             <div className="w-1/2 flex flex-col text-[13px]">
               <div className="flex flex-1 border-b border-black">
                 <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
-                  <span className="text-[11px] text-gray-600 font-medium">Invoice No.</span>
+                  <span className="text-[11px] text-gray-800 font-medium">Invoice No.</span>
                   <input value={invoiceNo} disabled={!!viewBill} onChange={e => handleInvoiceNoChange(e.target.value)} className="font-bold w-full max-w-[180px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0 disabled:opacity-50 disabled:cursor-not-allowed" />
                 </div>
                 <div className="w-1/2 p-2 flex flex-col justify-start">
-                  <span className="text-[11px] text-gray-600 font-medium">Date:-</span>
+                  <span className="text-[11px] text-gray-800 font-medium">Date:-</span>
                   <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="font-bold w-full max-w-[150px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0 cursor-pointer" readOnly={!!viewBill} disabled={!!viewBill} />
                 </div>
               </div>
               <div className="flex flex-1 border-b border-black">
                 <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
-                  <span className="text-[11px] text-gray-600 font-medium">Transport Name:</span>
-                  <input value={invoiceMeta.dispatchedThrough} onChange={e => setInvoiceMeta({ ...invoiceMeta, dispatchedThrough: e.target.value })} className="font-bold w-full max-w-[180px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" readOnly={!!viewBill} />
+                  <span className="text-[11px] text-gray-800 font-medium">Transport Name:</span>
+                  <div className="relative" ref={transporterDropdownRef}>
+                    <input 
+                      value={invoiceMeta.dispatchedThrough} 
+                      onChange={e => {
+                        setInvoiceMeta({ ...invoiceMeta, dispatchedThrough: e.target.value });
+                        setTransporterDropdownOpen(true);
+                      }} 
+                      onFocus={() => setTransporterDropdownOpen(true)}
+                      className="font-bold w-full max-w-[180px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" 
+                      readOnly={!!viewBill} 
+                    />
+                    {!viewBill && transporterDropdownOpen && transporters.filter(t => t.name.toLowerCase().includes(invoiceMeta.dispatchedThrough.toLowerCase())).length > 0 && (
+                      <div className="absolute top-full left-0 mt-1 w-[250px] bg-background text-foreground border shadow-xl z-50 max-h-40 overflow-y-auto no-print text-sm rounded">
+                        {transporters.filter(t => t.name.toLowerCase().includes(invoiceMeta.dispatchedThrough.toLowerCase())).map(t => (
+                          <div key={t.id} className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer border-b" onClick={() => { 
+                            setInvoiceMeta({ ...invoiceMeta, dispatchedThrough: t.name }); 
+                            setTransporterDropdownOpen(false); 
+                          }}>
+                            <div className="font-bold">{t.name}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="w-1/2 p-2 flex flex-col justify-start">
-                  <span className="text-[11px] text-gray-600 font-medium">Transport no:</span>
+                  <span className="text-[11px] text-gray-800 font-medium">Transport no:</span>
                   <input value={invoiceMeta.dispatchDocNo} onChange={e => setInvoiceMeta({ ...invoiceMeta, dispatchDocNo: e.target.value })} className="font-bold w-full max-w-[150px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" readOnly={!!viewBill} />
                 </div>
               </div>
               <div className="flex flex-1 border-b border-black">
                 <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
-                  <span className="text-[11px] text-gray-600 font-medium">Delivery Note Date</span>
+                  <span className="text-[11px] text-gray-800 font-medium">Delivery Note Date</span>
                   <input type="date" value={invoiceMeta.deliveryNoteDate} onChange={e => setInvoiceMeta({ ...invoiceMeta, deliveryNoteDate: e.target.value })} className="font-bold w-full max-w-[150px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0 cursor-pointer" readOnly={!!viewBill} disabled={!!viewBill} />
                 </div>
                 <div className="w-1/2 p-2 flex flex-col justify-start">
-                  <span className="text-[11px] text-gray-600 font-medium">Order Date</span>
+                  <span className="text-[11px] text-gray-800 font-medium">Order Date</span>
                   <input type="date" value={invoiceMeta.orderDate} onChange={e => setInvoiceMeta({ ...invoiceMeta, orderDate: e.target.value })} className="font-bold w-full max-w-[150px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0 cursor-pointer" readOnly={!!viewBill} disabled={!!viewBill} />
                 </div>
               </div>
               <div className="flex flex-1">
                 <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
-                  <span className="text-[11px] text-gray-600 font-medium">Despatched through</span>
+                  <span className="text-[11px] text-gray-800 font-medium">Despatched through</span>
                   <div className="relative w-full max-w-[180px] mt-1 print:hidden" ref={despatchDropdownRef}>
                     <div
                       onClick={() => setDespatchDropdownOpen(!despatchDropdownOpen)}
@@ -561,7 +597,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
             {/* Buyer Details (Full Width) */}
             <div className="w-full p-2 flex flex-col flex-1">
               <div className="flex items-start gap-1">
-                <span className="text-sm">Buyer:-</span>
+                <span className="text-[15px]">Buyer:-</span>
                 <div className="flex-1 flex justify-between gap-4">
                   <div className="flex-1 max-w-[60%] flex flex-col">
                     <div className="relative mb-1" ref={partyDropdownRef}>
@@ -574,7 +610,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                         }}
                         onFocus={() => setPartyDropdownOpen(true)}
                         placeholder="Search & Enter Buyer Name or Phone..."
-                        className="font-bold w-full outline-none bg-transparent"
+                        className="font-bold w-full outline-none bg-transparent text-[15px]"
                         readOnly={!!viewBill}
                       />
 

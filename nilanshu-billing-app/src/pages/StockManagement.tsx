@@ -107,12 +107,15 @@ export default function StockManagement() {
       return;
     }
     
+    const sanitizedData = { ...formData };
+    if (sanitizedData.part === '0') sanitizedData.part = '';
+    
     setIsModalOpen(false);
 
     if (editingId) {
-      updateProduct(editingId, formData);
+      updateProduct(editingId, sanitizedData);
     } else {
-      addProduct(formData);
+      addProduct(sanitizedData);
     }
   };
 
@@ -139,7 +142,10 @@ export default function StockManagement() {
         const text = await file.text();
         const data = JSON.parse(text);
         if (Array.isArray(data)) {
-          newProducts = data;
+          newProducts = data.map(p => ({
+            ...p,
+            part: String(p.part) === '0' ? '' : p.part
+          }));
         } else {
           throw new Error('JSON file must contain an array of products');
         }
@@ -152,16 +158,21 @@ export default function StockManagement() {
         const data = XLSX.utils.sheet_to_json(worksheet);
         
         // Map Excel columns to Product fields
-        newProducts = data.map((row: any) => ({
-          name: row.name || row.Name || row['Product Name'] || '',
-          category: row.category || row.Category || 'ALL',
-          price: Number(row.price || row.Price || row.MRP || 0),
-          stock: Number(row.stock || row.Stock || row.Qty || 0),
-          lowStockThreshold: Number(row.lowStockThreshold || row['Min Stock'] || 10),
-          bindingVariant: row.bindingVariant || row.Variant || row.Binding || '',
-          hsn: row.hsn || row.HSN || '',
-          barcode: row.barcode || row.Barcode || ''
-        })).filter(p => p.name); // only keep rows that at least have a name
+        newProducts = data.map((row: any) => {
+          let part = String(row.part || row.Part || '');
+          if (part === '0') part = '';
+          return {
+            name: row.name || row.Name || row['Product Name'] || '',
+            category: row.category || row.Category || 'ALL',
+            price: Number(row.price || row.Price || row.MRP || 0),
+            stock: Number(row.stock || row.Stock || row.Qty || 0),
+            lowStockThreshold: Number(row.lowStockThreshold || row['Min Stock'] || 10),
+            bindingVariant: row.bindingVariant || row.Variant || row.Binding || '',
+            hsn: row.hsn || row.HSN || '',
+            barcode: row.barcode || row.Barcode || '',
+            part
+          };
+        }).filter((p: any) => p.name); // only keep rows that at least have a name
       }
 
       if (newProducts.length > 0) {
@@ -258,7 +269,7 @@ export default function StockManagement() {
                 <td className="p-4 text-muted-foreground font-medium whitespace-nowrap">{product.id}</td>
                 <td className="p-4">
                   <div className="font-medium text-foreground">{product.name}</div>
-                  {product.part && (
+                  {(product.part && String(product.part).trim() !== '0') && (
                     <div className="inline-flex items-center mt-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary/10 text-primary">
                       Part: {product.part}
                     </div>

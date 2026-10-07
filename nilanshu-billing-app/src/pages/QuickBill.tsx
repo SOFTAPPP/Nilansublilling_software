@@ -258,7 +258,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
         </div>
         <div className="border-b-2 border-black w-full mt-2 mb-2"></div>
         <div className="text-center mb-2">
-          <span className="font-bold text-lg tracking-widest text-blue-600">QUICK BILL</span>
+          <span className="font-black text-2xl tracking-widest text-blue-600 uppercase">QUICK BILL</span>
         </div>
 
         <div className="flex justify-between items-end border-b border-black pb-2 mb-4 text-sm">
@@ -297,7 +297,7 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
         <div className="flex border border-black z-10 relative">
           <div className="flex-1 flex items-center justify-center overflow-hidden">
             {showPaidStamp && (
-              <div className="pointer-events-none z-0 opacity-50 print:opacity-60">
+              <div className="pointer-events-none z-0 opacity-70 print:opacity-70">
                 <div className="border-[4px] border-green-600 rounded-full w-40 h-40 flex items-center justify-center transform -rotate-12">
                   <span className="text-4xl font-bold uppercase tracking-widest text-green-600">PAID</span>
                 </div>

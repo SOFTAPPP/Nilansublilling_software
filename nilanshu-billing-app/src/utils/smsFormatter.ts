@@ -58,3 +58,22 @@ Packets: ${data.totalPacket}
 Value: Rs.${data.value}
 Thank you!`;
 };
+
+export interface ReceiptSMSData {
+  companyName: string;
+  receiptNo: string;
+  buyerName: string;
+  amount: number;
+  paymentMode: string;
+  date: string;
+}
+
+export const formatReceiptMessage = (data: ReceiptSMSData): string => {
+  return `${data.companyName.toUpperCase()}
+RECEIPT: ${data.receiptNo}
+Received with thanks from: ${data.buyerName}
+Amount: Rs.${data.amount}
+Mode: ${data.paymentMode}
+Date: ${data.date}
+Thank you!`;
+};

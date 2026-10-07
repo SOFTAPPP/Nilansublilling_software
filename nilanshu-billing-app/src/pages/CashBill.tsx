@@ -63,7 +63,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         setItems(viewBill.lineItems.map((li: any) => ({
           ...li,
           mrp: li.mrp || li.rate,
-          amount: li.amount,
+          amount: (li.rate || li.mrp) * li.quantity,
           discountPercent: li.discountPercent || 0,
         })));
       }
@@ -301,7 +301,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
 
         {/* Stamps overlay */}
         {showPaidStamp && (
-          <div className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-green-600 border-4 border-green-600 rounded-full w-48 h-48 flex items-center justify-center opacity-30 pointer-events-none z-0">
+          <div className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-green-600 border-4 border-green-600 rounded-full w-48 h-48 flex items-center justify-center opacity-60 pointer-events-none z-0">
             <span className="text-5xl font-bold uppercase tracking-widest">PAID</span>
           </div>
         )}
@@ -345,20 +345,20 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
             {/* Buyer Block */}
             <div className="flex flex-col gap-1 relative w-[380px] print:w-auto print:flex-1" ref={partyDropdownRef}>
               <div className="flex items-baseline gap-2">
-                <span className="text-sm">Buyer:-</span>
+                <span className="text-[15px]">Buyer:-</span>
                 <input
                   type="text"
                   value={partyName}
                   onChange={e => { handlePartyLookup(e.target.value); setPartyDropdownOpen(true); }}
                   onFocus={() => setPartyDropdownOpen(true)}
-                  className="outline-none w-full bg-transparent font-bold text-sm text-foreground"
+                  className="outline-none w-full bg-transparent font-bold text-[15px] text-foreground"
                   placeholder="Search & Enter Buyer Name or Phone..."
                   readOnly={!!viewBill}
                 />
               </div>
 
               {partyId && (
-                <div className="text-[14px] text-foreground font-medium mt-1 pl-12 flex flex-col gap-1">
+                <div className="text-[15px] text-foreground font-medium mt-1 pl-12 flex flex-col gap-1">
                   {parties.find(p => p.id === partyId)?.address && (
                     <div className="whitespace-pre-wrap max-h-[4.5em] overflow-y-auto print:max-h-none print:overflow-visible pr-2 leading-tight">
                       {parties.find(p => p.id === partyId)?.address?.replace(/ \| PIN:/g, '\nPIN:').replace(/ \| Dist:/g, '\nDist:')}
