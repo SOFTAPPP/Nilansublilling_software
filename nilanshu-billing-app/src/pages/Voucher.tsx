@@ -13,9 +13,12 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
   const [debitors, setDebitors] = useState('');
   const [amount, setAmount] = useState<number>(0);
   const [chequeNo, setChequeNo] = useState('');
+  const [paymentMode, setPaymentMode] = useState<'Cash' | 'Cheque'>('Cash');
+  const [paymentDropdownOpen, setPaymentDropdownOpen] = useState(false);
   const [partyId, setPartyId] = useState<string | null>(null);
   const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
   const partyDropdownRef = useRef<HTMLDivElement>(null);
+  const paymentDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getNextBillNumber('VCH-').then(setVoucherNo);
@@ -41,6 +44,9 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
     const handleClickOutside = (event: MouseEvent) => {
       if (partyDropdownRef.current && !partyDropdownRef.current.contains(event.target as Node)) {
         setPartyDropdownOpen(false);
+      }
+      if (paymentDropdownRef.current && !paymentDropdownRef.current.contains(event.target as Node)) {
+        setPaymentDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -121,49 +127,55 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
 
       <div className="print:block" style={{ pageBreakInside: 'avoid' }}>
         <div className="w-[210mm] print:w-[190mm] print:my-4 mx-auto bg-card text-foreground print:bg-white print:text-black p-8 border-2 border-foreground print:border-gray-800" style={{ fontFamily: 'serif' }}>
-          {/* Header */}
-          <div className="flex justify-between items-start mb-1">
-            <div className="text-base font-medium">
-              <p>34, Beniatola Lane, Kol - 9</p>
-              <p>Cont - {settings.companyContact}</p>
-            </div>
-            <div className="text-right text-base flex items-center gap-2">
-              <span className="font-bold">Date: </span>
-              <input type="date" value={voucherDate} onChange={e => setVoucherDate(e.target.value)} className="border-b border-foreground print:border-gray-800 px-2 bg-transparent outline-none w-32 print:appearance-none text-foreground print:text-black" />
+          {/* Top Company Header */}
+          <div className="text-center flex flex-col items-center relative p-2 border-b-2 border-black print:border-black dark:border-white">
+            <img src="/logo.png" alt="Logo" className="absolute left-2 top-2 w-20 h-20 object-contain" />
+            <input 
+              value={settings.companyName || 'NILANSU PUBLICATION'} 
+              onChange={e => updateSettings({ companyName: e.target.value })} 
+              className="text-4xl font-bold uppercase tracking-wide text-center w-full bg-transparent outline-none border-none hover:bg-black/5 dark:hover:bg-white/5 focus:bg-black/5 dark:focus:bg-white/5 transition-colors print:hover:bg-transparent text-foreground print:text-black" 
+            />
+            <div className="text-base mt-1 text-center w-full text-foreground print:text-black">{settings.companyAddress}</div>
+            <div className="text-base text-center w-full text-foreground print:text-black">{settings.companyCity}</div>
+            <div className="flex gap-2 text-base justify-center w-full items-center mt-1 text-foreground print:text-black">
+              <span className="flex items-center whitespace-nowrap font-semibold">IT PAN: <span className="ml-1 uppercase font-normal">{settings.companyPan}</span></span>
+              <span className="text-gray-400">|</span>
+              <span className="flex items-center whitespace-nowrap font-semibold">Phone: <span className="ml-1 font-normal">{settings.companyContact}</span></span>
+              <span className="text-gray-400">|</span>
+              <span className="flex items-center whitespace-nowrap font-semibold">Email: <span className="ml-1 font-normal">{settings.companyEmail}</span></span>
             </div>
           </div>
 
-          <div className="text-center my-4">
-            <p className="text-xs font-bold tracking-[0.3em] uppercase text-gray-600 mb-1">VOUCHER</p>
-            <input 
-              value={settings.companyName || 'NILANSU PUBLICATION'}
-              onChange={e => updateSettings({ companyName: e.target.value })}
-              className="text-3xl font-black tracking-wide bg-transparent outline-none text-center w-full text-foreground print:text-black" 
-              style={{ fontFamily: 'serif' }}
-            />
-            <p className="text-sm mt-1">34, BENIATOLA LANE, KOLKATA - KOL - 9</p>
-            <p className="text-sm">CONT - 8240160147</p>
+          <div className="flex justify-between items-center my-4 px-2">
+            <div className="flex-1"></div>
+            <div className="text-2xl font-bold tracking-[0.3em] uppercase text-gray-800 text-center flex-1">
+              VOUCHER
+            </div>
+            <div className="text-right text-base flex justify-end items-center gap-2 flex-1">
+              <span className="font-bold text-lg">Date: </span>
+              <input type="date" value={voucherDate} onChange={e => setVoucherDate(e.target.value)} className="border-b border-foreground print:border-gray-800 px-2 bg-transparent outline-none w-36 font-bold text-lg print:appearance-none text-foreground print:text-black cursor-pointer" />
+            </div>
           </div>
 
           <div className="space-y-4 text-[14px] mt-8">
             <div className="flex items-baseline gap-3">
               <span className="whitespace-nowrap font-bold">No.</span>
-              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2 font-bold flex">
-                <input type="text" value={voucherNo} onChange={e => setVoucherNo(e.target.value)} className="bg-transparent outline-none w-full font-bold p-0 border-none h-5 text-foreground print:text-black print:appearance-none" />
+              <span className="border-b border-dotted border-foreground print:border-transparent flex-1 px-2 font-bold flex">
+                <input type="text" value={voucherNo} onChange={e => setVoucherNo(e.target.value)} className="bg-transparent outline-none w-full font-bold p-0 border-none h-6 text-lg print:text-lg text-foreground print:text-black print:appearance-none" />
               </span>
             </div>
 
             <div className="flex items-baseline gap-3">
               <span className="whitespace-nowrap font-bold">Debitors</span>
-              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2 flex">
-                <input type="text" value={debitors} onChange={e => setDebitors(e.target.value)} className="bg-transparent outline-none w-full p-0 border-none h-5 text-foreground print:text-black print:appearance-none" />
+              <span className="border-b border-dotted border-foreground print:border-transparent flex-1 px-2 flex">
+                <input type="text" value={debitors} onChange={e => setDebitors(e.target.value)} className="bg-transparent outline-none w-full p-0 border-none h-6 text-lg font-bold print:font-bold print:text-lg text-foreground print:text-black print:appearance-none" />
               </span>
             </div>
 
             <div className="flex items-baseline gap-3 relative" ref={partyDropdownRef}>
               <span className="whitespace-nowrap font-bold">Pay to</span>
-              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2 relative flex">
-                <input type="text" placeholder="Search by name..." value={payTo} onChange={e => { setPayTo(e.target.value); setPartyDropdownOpen(true); setPartyId(null); }} onFocus={() => setPartyDropdownOpen(true)} className="bg-transparent outline-none w-full p-0 border-none h-5 text-foreground print:text-black print:appearance-none placeholder:text-muted-foreground/50" />
+              <span className="border-b border-dotted border-foreground print:border-transparent flex-1 px-2 relative flex">
+                <input type="text" placeholder="Search by name..." value={payTo} onChange={e => { setPayTo(e.target.value); setPartyDropdownOpen(true); setPartyId(null); }} onFocus={() => setPartyDropdownOpen(true)} className="bg-transparent outline-none w-full p-0 border-none h-6 text-lg font-bold print:font-bold print:text-lg text-foreground print:text-black print:appearance-none placeholder:text-muted-foreground/50" />
                 {partyDropdownOpen && filteredParties.length > 0 && (
                   <div className="absolute top-full left-0 mt-1 w-full md:w-[400px] bg-card border border-border shadow-xl rounded-lg z-50 max-h-48 overflow-y-auto no-print">
                     {filteredParties.map(p => (
@@ -177,25 +189,45 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
               </span>
             </div>
 
-            <div className="flex items-baseline gap-3">
-              <span className="whitespace-nowrap font-bold">Address</span>
-              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2 flex">
-                <input type="text" value={address} onChange={e => setAddress(e.target.value)} className="bg-transparent outline-none w-full p-0 border-none h-5 text-foreground print:text-black print:appearance-none" />
-              </span>
+            <div className="flex items-start gap-3">
+              <span className="whitespace-nowrap font-bold mt-0.5">Address</span>
+              <div className="flex-1 min-w-0">
+                <textarea value={address} onChange={e => setAddress(e.target.value)} rows={(address.length > 55 || address.includes('\n')) ? 2 : 1} className="bg-transparent outline-none w-full p-0 border-b border-dotted border-foreground print:border-transparent h-auto text-lg font-bold text-foreground resize-none overflow-y-auto leading-tight print:hidden" />
+                <div className="hidden print:block w-full text-black font-bold text-lg leading-tight whitespace-pre-wrap break-words">{address}</div>
+              </div>
             </div>
 
             <div className="flex items-baseline gap-3">
               <span className="whitespace-nowrap font-bold">Rupees in words :</span>
-              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2">
+              <span className="border-b border-dotted border-foreground print:border-transparent flex-1 px-2 text-lg font-bold print:font-bold print:text-lg">
                 {amount > 0 ? `${numberToWords(amount)} only` : ''}
               </span>
             </div>
 
-            <div className="flex items-baseline gap-3">
-              <span className="whitespace-nowrap font-bold">Cheque No. :</span>
-              <span className="border-b border-dotted border-foreground print:border-gray-800 flex-1 px-2 flex">
-                <input type="text" value={chequeNo} onChange={e => setChequeNo(e.target.value)} className="bg-transparent outline-none w-full p-0 border-none h-5 text-foreground print:text-black print:appearance-none" />
-              </span>
+            <div className="flex items-baseline gap-3 relative" ref={paymentDropdownRef}>
+              <span className="whitespace-nowrap font-bold">by</span>
+              <div className="relative inline-block border-b border-dotted border-foreground print:border-transparent text-foreground print:text-black font-bold text-lg print:font-bold print:text-lg cursor-pointer" onClick={() => setPaymentDropdownOpen(!paymentDropdownOpen)}>
+                {paymentMode}
+                {paymentDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-1 w-32 bg-card border shadow-xl z-50 rounded-lg overflow-hidden text-sm no-print font-normal text-foreground">
+                    {['Cash', 'Cheque'].map((mode) => (
+                      <div key={mode} className="px-4 py-2 hover:bg-muted cursor-pointer transition-colors" onClick={() => { setPaymentMode(mode as 'Cash' | 'Cheque'); setPaymentDropdownOpen(false); }}>
+                        {mode}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {paymentMode === 'Cheque' ? (
+                <>
+                  <span className="whitespace-nowrap font-bold">/ Cheque No. :</span>
+                  <span className="border-b border-dotted border-foreground print:border-transparent flex-1 px-2 flex">
+                    <input type="text" value={chequeNo} onChange={e => setChequeNo(e.target.value)} className="bg-transparent outline-none w-full p-0 border-none h-6 text-lg font-bold print:font-bold print:text-lg text-foreground print:text-black print:appearance-none" />
+                  </span>
+                </>
+              ) : (
+                <span className="border-b border-dotted border-foreground print:border-transparent flex-1 px-2 flex"></span>
+              )}
             </div>
           </div>
 

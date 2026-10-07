@@ -211,34 +211,45 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
 
   const receiptContent = (copyLabel: string) => (
     <div className="border-2 border-blue-500 print:border-blue-800 p-6 bg-card text-foreground print:bg-white print:text-black" style={{ width: '100%', fontFamily: 'serif' }}>
-      <div className="flex justify-between items-start mb-1">
-        <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="Logo" className="w-16 h-16 object-contain" />
-          <span className="text-base text-blue-500 print:text-blue-800 font-bold italic">{copyLabel}</span>
+      
+      {/* Top Company Header */}
+      <div className="text-center flex flex-col items-center relative p-2 border-b-2 border-blue-500 print:border-blue-800">
+        <img src="/logo.png" alt="Logo" className="absolute left-2 top-2 w-20 h-20 object-contain" />
+        <span className="absolute left-2 top-24 text-base text-blue-500 print:text-blue-800 font-bold italic">{copyLabel}</span>
+        
+        <input 
+          value={settings.companyName || 'NILANSU PUBLICATION'} 
+          onChange={e => updateSettings({ companyName: e.target.value })} 
+          className="text-4xl font-bold uppercase tracking-wide text-center w-full bg-transparent outline-none border-none hover:bg-black/5 dark:hover:bg-white/5 focus:bg-black/5 dark:focus:bg-white/5 transition-colors print:hover:bg-transparent text-blue-600 print:text-blue-800" 
+        />
+        <div className="text-base mt-1 text-center w-full text-blue-600 print:text-blue-800">{settings.companyAddress}</div>
+        <div className="text-base text-center w-full text-blue-600 print:text-blue-800">{settings.companyCity}</div>
+        <div className="flex gap-2 text-base justify-center w-full items-center mt-1 text-blue-600 print:text-blue-800">
+          <span className="flex items-center whitespace-nowrap font-semibold">IT PAN: <span className="ml-1 uppercase font-normal">{settings.companyPan}</span></span>
+          <span className="text-blue-400">|</span>
+          <span className="flex items-center whitespace-nowrap font-semibold">Phone: <span className="ml-1 font-normal">{settings.companyContact}</span></span>
+          <span className="text-blue-400">|</span>
+          <span className="flex items-center whitespace-nowrap font-semibold">Email: <span className="ml-1 font-normal">{settings.companyEmail}</span></span>
         </div>
-        <div className="text-right text-lg flex items-center gap-2">
-          <span className="font-bold">No. </span>
+      </div>
+
+      <div className="flex justify-between items-center my-4 px-2">
+        <div className="flex-1"></div>
+        <div className="flex justify-center items-center flex-1">
+          <h2 className="text-xl font-bold bg-blue-500 print:bg-blue-800 text-white print:text-white px-8 py-1 rounded-sm uppercase tracking-widest">Receipt</h2>
+        </div>
+        <div className="text-right text-lg flex items-center justify-end gap-2 flex-1">
+          <span className="font-bold text-blue-500 print:text-blue-800">No. </span>
           <span className="border-b border-blue-500 print:border-blue-800 font-bold text-blue-500 print:text-blue-800 flex">
              <input type="text" value={receiptNo} onChange={e => setReceiptNo(e.target.value)} className="bg-transparent outline-none w-24 p-0 border-none h-6 text-blue-500 print:text-blue-800 print:appearance-none text-right font-bold" />
           </span>
         </div>
       </div>
 
-      <div className="text-center mb-3">
-        <input 
-          value={settings.companyName || 'NILANSU PUBLICATION'}
-          onChange={e => updateSettings({ companyName: e.target.value })}
-          className="text-2xl font-black text-blue-500 print:text-blue-900 tracking-wide bg-transparent outline-none text-center w-full" 
-          style={{ fontFamily: 'serif' }}
-        />
-        <p className="text-sm font-medium text-blue-500 print:text-blue-800">34, BENIATOLA LANE, KOLKATA-700009</p>
-        <p className="text-sm font-medium text-blue-500 print:text-blue-800">Mob. : {settings.companyContact}</p>
-      </div>
-
       <div className="space-y-3 text-sm">
         <div className="flex items-baseline gap-2 relative" ref={partyDropdownRef}>
           <span className="whitespace-nowrap font-semibold">Received with thanks from</span>
-          <span className="flex-1 border-b border-dotted border-blue-500 print:border-blue-800 text-blue-500 print:text-blue-900 font-bold px-1 relative flex">
+          <span className="flex-1 border-b border-dotted border-blue-500 print:border-transparent text-blue-500 print:text-blue-900 font-bold px-1 relative flex">
              <input type="text" placeholder="Search by name..." value={customerName} onChange={e => { setCustomerName(e.target.value); setPartyDropdownOpen(true); setPartyId(null); }} onFocus={() => setPartyDropdownOpen(true)} className="bg-transparent outline-none w-full p-0 border-none h-6 text-blue-500 print:text-blue-900 print:appearance-none font-bold text-lg print:font-bold print:text-lg placeholder:text-blue-500/50" />
              {partyDropdownOpen && filteredParties.length > 0 && (
                 <div className="absolute top-full left-0 mt-1 w-full md:w-[400px] bg-card border border-border shadow-xl rounded-lg z-50 max-h-48 overflow-y-auto no-print font-normal text-foreground">
@@ -266,7 +277,7 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
 
         <div className="flex items-baseline gap-2">
           <span className="whitespace-nowrap font-semibold">Rs.</span>
-          <span className="flex-1 border-b border-dotted border-blue-500 print:border-blue-800 text-blue-500 print:text-blue-900 font-bold px-1 flex items-center">
+          <span className="flex-1 border-b border-dotted border-blue-500 print:border-transparent text-blue-500 print:text-blue-900 font-bold px-1 flex items-center">
              ₹
              <input type="number" value={amount || ''} onChange={e => setAmount(parseFloat(e.target.value) || 0)} className="bg-transparent outline-none w-32 p-0 border-none h-6 mx-2 text-blue-500 print:text-blue-900 print:appearance-none font-bold text-lg print:font-bold print:text-lg" placeholder="0" />
              /- ({amount > 0 ? `${numberToWords(amount)} only` : ''})
@@ -275,7 +286,7 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
 
         <div className="flex items-baseline gap-2 relative" ref={paymentDropdownRef}>
           <span className="whitespace-nowrap font-semibold">by</span>
-          <div className="relative inline-block border-b border-dotted border-blue-500 print:border-blue-800 text-blue-500 print:text-blue-900 font-bold cursor-pointer" onClick={() => setPaymentDropdownOpen(!paymentDropdownOpen)}>
+          <div className="relative inline-block border-b border-dotted border-blue-500 print:border-transparent text-blue-500 print:text-blue-900 font-bold cursor-pointer" onClick={() => setPaymentDropdownOpen(!paymentDropdownOpen)}>
             {paymentMode}
             {paymentDropdownOpen && (
               <div className="absolute top-full left-0 mt-1 w-32 bg-card border shadow-xl z-50 rounded-lg overflow-hidden text-sm no-print font-normal text-foreground">
@@ -287,10 +298,16 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
               </div>
             )}
           </div>
-          <span className="whitespace-nowrap font-semibold">/ Cheque No.</span>
-          <span className="flex-1 border-b border-dotted border-blue-500 print:border-blue-800 text-blue-500 print:text-blue-900 font-bold px-1 flex">
-            <input type="text" value={chequeNo} onChange={e => setChequeNo(e.target.value)} className="bg-transparent outline-none w-full p-0 border-none h-5 text-blue-500 print:text-blue-900 print:appearance-none font-bold" />
-          </span>
+          {paymentMode === 'Cheque' ? (
+            <>
+              <span className="whitespace-nowrap font-semibold">/ Cheque No.</span>
+              <span className="flex-1 border-b border-dotted border-blue-500 print:border-transparent text-blue-500 print:text-blue-900 font-bold px-1 flex">
+                <input type="text" value={chequeNo} onChange={e => setChequeNo(e.target.value)} className="bg-transparent outline-none w-full p-0 border-none h-5 text-blue-500 print:text-blue-900 print:appearance-none font-bold" />
+              </span>
+            </>
+          ) : (
+            <span className="flex-1 border-b border-dotted border-blue-500 print:border-transparent text-blue-500 print:text-blue-900 font-bold px-1 flex"></span>
+          )}
         </div>
 
         <div className="flex items-center gap-4">

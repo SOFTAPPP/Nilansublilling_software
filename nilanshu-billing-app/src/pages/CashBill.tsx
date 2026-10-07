@@ -308,7 +308,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
 
         {/* Header */}
         <div className="text-center flex flex-col items-center relative">
-          <img src="/logo.png" alt="Logo" className="absolute left-0 top-0 w-16 h-16 object-contain" />
+          <img src="/logo.png" alt="Logo" className="absolute left-0 top-0 w-20 h-20 object-contain" />
           <input 
             value={settings.companyName} 
             onChange={e => updateSettings({ companyName: e.target.value })} 
@@ -326,7 +326,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
         </div>
 
         {/* Thick Divider */}
-        <div className="h-1 bg-black w-full my-4"></div>
+        <div className="h-1 bg-black w-full mt-0 mb-3"></div>
 
         {/* Bill Meta */}
         <div className="flex flex-col mb-4 bg-muted/20 print:bg-transparent rounded-xl p-4 print:p-0 border border-border print:border-none gap-4 min-h-[170px] print:min-h-0">

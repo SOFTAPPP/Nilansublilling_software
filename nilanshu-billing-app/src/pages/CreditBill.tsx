@@ -471,199 +471,257 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           </div>
         )}
 
-        {/* Header */}
-        <div className="relative text-center py-2 font-bold text-lg border-b-2 border-black tracking-wide">
-          <img src="/logo.png" alt="Logo" className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 object-contain print:block" />
+        {/* Top Company Header */}
+        <div className="text-center flex flex-col items-center relative p-2 border-b-2 border-black">
+          <img src="/logo.png" alt="Logo" className="absolute left-2 top-2 w-20 h-20 object-contain" />
+          <input 
+            value={settings.companyName} 
+            onChange={e => updateSettings({ companyName: e.target.value })} 
+            className="text-4xl font-bold uppercase tracking-wide text-center w-full bg-transparent outline-none" 
+            readOnly={!!viewBill}
+          />
+          <div className="text-base mt-1 text-center w-full">{settings.companyAddress}</div>
+          <div className="text-base text-center w-full">{settings.companyCity}</div>
+          <div className="flex gap-2 text-base justify-center w-full items-center mt-1">
+            <span className="flex items-center whitespace-nowrap font-semibold">IT PAN: <span className="ml-1 uppercase font-normal">{settings.companyPan}</span></span>
+            <span className="text-gray-400">|</span>
+            <span className="flex items-center whitespace-nowrap font-semibold">Phone: <span className="ml-1 font-normal">{settings.companyContact}</span></span>
+            <span className="text-gray-400">|</span>
+            <span className="flex items-center whitespace-nowrap font-semibold">Email: <span className="ml-1 font-normal">{settings.companyEmail}</span></span>
+          </div>
+        </div>
+
+        <div className="relative text-center py-2 font-bold text-lg border-b-2 border-black tracking-wide bg-gray-100 print:bg-transparent">
           {type === 'return' ? 'RETURN CUM CHALLAN' : 'INVOICE CUM CHALLAN'}
           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[12px] font-normal italic text-gray-600">Original for Recipient</span>
         </div>
 
         {/* Top Details Grid */}
-        <div className="flex flex-col text-sm border-b-2 border-black min-h-[220px]">
-          {/* Top Half */}
-          <div className="flex border-b-2 border-black">
-            {/* Seller Details (Left) */}
-            <div className="w-1/2 border-r-2 border-black p-2 flex flex-col justify-start min-h-[140px]">
-              <input 
-                value={settings.companyName} 
-                onChange={e => updateSettings({ companyName: e.target.value })} 
-                className="font-bold text-3xl uppercase w-full bg-transparent outline-none" 
-                readOnly={!!viewBill}
+        <div className="flex flex-col text-sm border-b-2 border-black">
+          {/* Top Tier: Buyer (Left 50%) + Invoice & Order Dates (Right 50%) */}
+          <div className="flex border-b border-black">
+            {/* Buyer Details (Left) */}
+            <div className="w-1/2 border-r-2 border-black p-2 flex flex-col justify-start">
+              <span className="text-[14px] font-bold mb-1">Buyer:-</span>
+              <div className="relative mb-1" ref={partyDropdownRef}>
+                <input
+                  value={buyerName}
+                  onChange={e => {
+                    handlePartyLookup(e.target.value, 'name');
+                    setPartySearch(e.target.value);
+                    setPartyDropdownOpen(true);
+                  }}
+                  onFocus={() => setPartyDropdownOpen(true)}
+                  placeholder="Search & Enter Buyer Name or Phone..."
+                  className="font-bold w-full outline-none bg-transparent text-[14px]"
+                  readOnly={!!viewBill}
+                />
+
+                {partyDropdownOpen && parties.filter(p => {
+                  const isSelectedMatch = partyId && parties.find(x => x.id === partyId)?.name === buyerName;
+                  if (isSelectedMatch) return true;
+                  return p.name.toLowerCase().includes(buyerName.toLowerCase()) || p.phone.includes(buyerName);
+                }).length > 0 && (
+                  <div className="absolute top-full left-0 mt-1 w-[400px] max-w-[90vw] bg-background border border-border shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
+                    {parties.filter(p => {
+                      const isSelectedMatch = partyId && parties.find(x => x.id === partyId)?.name === buyerName;
+                      if (isSelectedMatch) return true;
+                      return p.name.toLowerCase().includes(buyerName.toLowerCase()) || p.phone.includes(buyerName);
+                    }).map(p => (
+                      <div
+                        key={p.id}
+                        className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-gray-100 last:border-0 flex justify-between items-center"
+                        onClick={() => {
+                          handlePartyLookup(p.phone, 'phone');
+                          setPartyDropdownOpen(false);
+                        }}
+                      >
+                        <div className="font-bold">{p.name}</div>
+                        <div className="text-xs opacity-90">{p.phone}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <textarea 
+                value={buyerAddress} 
+                onChange={e => setBuyerAddress(e.target.value)} 
+                placeholder="Buyer Address" 
+                rows={(buyerAddress.length > 55 || buyerAddress.includes('\n')) ? 2 : 1} 
+                className="w-full outline-none bg-transparent mt-0.5 resize-none overflow-y-auto leading-tight print:hidden text-[13px]" 
+                readOnly={!!viewBill} 
               />
-              <div className="font-bold text-[15px] w-full">Publishers and Book Sellers</div>
-              <div className="w-full text-[15px] mt-1">{settings.companyAddress}</div>
-              <div className="w-full text-[15px]">{settings.companyCity}</div>
-              <div className="flex gap-2 text-[15px] mt-1"><span className="whitespace-nowrap">IT PAN -</span><span className="w-full uppercase">{settings.companyPan}</span></div>
-              <div className="flex gap-2 text-[15px]"><span className="whitespace-nowrap">Phone No.-</span><span className="w-full">{settings.companyContact}</span></div>
+              <div className="hidden print:block w-full mt-0.5 leading-tight whitespace-pre-wrap break-words text-[13px]">{buyerAddress}</div>
+              <input 
+                value={buyerPhone} 
+                onChange={e => setBuyerPhone(e.target.value)} 
+                placeholder="Buyer Phone" 
+                className="w-full outline-none bg-transparent mt-0.5 print:hidden text-[13px]" 
+                readOnly={!!viewBill} 
+              />
+              <div className="hidden print:block w-full mt-0.5 leading-tight text-[13px]">{buyerPhone}</div>
+
+              {partyId && (() => {
+                const selectedParty = parties.find(p => p.id === partyId);
+                if (!selectedParty) return null;
+                const hasBankDetails = selectedParty.bankName || selectedParty.bankAccountNo || selectedParty.bankIfsc;
+                if (!hasBankDetails) return null;
+                return (
+                  <div className="text-[11px] text-gray-700 flex flex-col items-start mt-1.5 pt-1 border-t border-dashed border-gray-300">
+                    <div className="font-bold underline mb-0.5">Bank Details:</div>
+                    {selectedParty.bankName && <div>Bank: {selectedParty.bankName}</div>}
+                    {selectedParty.bankAccountNo && <div>A/c No: {selectedParty.bankAccountNo}</div>}
+                    {selectedParty.bankIfsc && <div>IFSC: {selectedParty.bankIfsc}</div>}
+                  </div>
+                );
+              })()}
             </div>
 
-            {/* Invoice Meta Grid (Right) */}
+            {/* Invoice & Order Meta (Right 50% - 2 Rows) */}
             <div className="w-1/2 flex flex-col text-[13px]">
+              {/* Row 1: Invoice No. | Date */}
               <div className="flex flex-1 border-b border-black">
                 <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
                   <span className="text-[11px] text-gray-800 font-medium">Invoice No.</span>
-                  <input value={invoiceNo} disabled={!!viewBill} onChange={e => handleInvoiceNoChange(e.target.value)} className="font-bold w-full max-w-[180px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0 disabled:opacity-50 disabled:cursor-not-allowed" />
+                  <input 
+                    value={invoiceNo} 
+                    disabled={!!viewBill} 
+                    onChange={e => handleInvoiceNoChange(e.target.value)} 
+                    className="font-bold w-full max-w-[180px] outline-none border border-gray-300 rounded px-2 py-1 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0 disabled:opacity-50 disabled:cursor-not-allowed" 
+                  />
                 </div>
                 <div className="w-1/2 p-2 flex flex-col justify-start">
                   <span className="text-[11px] text-gray-800 font-medium">Date:-</span>
-                  <input type="date" value={billDate} onChange={e => setBillDate(e.target.value)} className="font-bold w-full max-w-[150px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0 cursor-pointer" readOnly={!!viewBill} disabled={!!viewBill} />
+                  <input 
+                    type="date" 
+                    value={billDate} 
+                    onChange={e => setBillDate(e.target.value)} 
+                    className="font-bold w-full max-w-[150px] outline-none border border-gray-300 rounded px-2 py-1 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0 cursor-pointer" 
+                    readOnly={!!viewBill} 
+                    disabled={!!viewBill} 
+                  />
                 </div>
               </div>
-              <div className="flex flex-1 border-b border-black">
-                <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
-                  <span className="text-[11px] text-gray-800 font-medium">Transport Name:</span>
-                  <div className="relative" ref={transporterDropdownRef}>
-                    <input 
-                      value={invoiceMeta.dispatchedThrough} 
-                      onChange={e => {
-                        setInvoiceMeta({ ...invoiceMeta, dispatchedThrough: e.target.value });
-                        setTransporterDropdownOpen(true);
-                      }} 
-                      onFocus={() => setTransporterDropdownOpen(true)}
-                      className="font-bold w-full max-w-[180px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" 
-                      readOnly={!!viewBill} 
-                    />
-                    {!viewBill && transporterDropdownOpen && transporters.filter(t => t.name.toLowerCase().includes(invoiceMeta.dispatchedThrough.toLowerCase())).length > 0 && (
-                      <div className="absolute top-full left-0 mt-1 w-[250px] bg-background text-foreground border shadow-xl z-50 max-h-40 overflow-y-auto no-print text-sm rounded">
-                        {transporters.filter(t => t.name.toLowerCase().includes(invoiceMeta.dispatchedThrough.toLowerCase())).map(t => (
-                          <div key={t.id} className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer border-b" onClick={() => { 
-                            setInvoiceMeta({ ...invoiceMeta, dispatchedThrough: t.name }); 
-                            setTransporterDropdownOpen(false); 
-                          }}>
-                            <div className="font-bold">{t.name}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="w-1/2 p-2 flex flex-col justify-start">
-                  <span className="text-[11px] text-gray-800 font-medium">Transport no:</span>
-                  <input value={invoiceMeta.dispatchDocNo} onChange={e => setInvoiceMeta({ ...invoiceMeta, dispatchDocNo: e.target.value })} className="font-bold w-full max-w-[150px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" readOnly={!!viewBill} />
-                </div>
-              </div>
-              <div className="flex flex-1 border-b border-black">
+
+              {/* Row 2: Delivery Note Date | Order Date */}
+              <div className="flex flex-1">
                 <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
                   <span className="text-[11px] text-gray-800 font-medium">Delivery Note Date</span>
-                  <input type="date" value={invoiceMeta.deliveryNoteDate} onChange={e => setInvoiceMeta({ ...invoiceMeta, deliveryNoteDate: e.target.value })} className="font-bold w-full max-w-[150px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0 cursor-pointer" readOnly={!!viewBill} disabled={!!viewBill} />
+                  <input 
+                    type="date" 
+                    value={invoiceMeta.deliveryNoteDate} 
+                    onChange={e => setInvoiceMeta({ ...invoiceMeta, deliveryNoteDate: e.target.value })} 
+                    className="font-bold w-full max-w-[150px] outline-none border border-gray-300 rounded px-2 py-1 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0 cursor-pointer" 
+                    readOnly={!!viewBill} 
+                    disabled={!!viewBill} 
+                  />
                 </div>
                 <div className="w-1/2 p-2 flex flex-col justify-start">
                   <span className="text-[11px] text-gray-800 font-medium">Order Date</span>
-                  <input type="date" value={invoiceMeta.orderDate} onChange={e => setInvoiceMeta({ ...invoiceMeta, orderDate: e.target.value })} className="font-bold w-full max-w-[150px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0 cursor-pointer" readOnly={!!viewBill} disabled={!!viewBill} />
-                </div>
-              </div>
-              <div className="flex flex-1">
-                <div className="w-1/2 border-r border-black p-2 flex flex-col justify-start">
-                  <span className="text-[11px] text-gray-800 font-medium">Despatched through</span>
-                  <div className="relative w-full max-w-[180px] mt-1 print:hidden" ref={despatchDropdownRef}>
-                    <div
-                      onClick={() => setDespatchDropdownOpen(!despatchDropdownOpen)}
-                      className="flex justify-between items-center font-bold w-full outline-none bg-background cursor-pointer border border-border rounded px-2 py-1.5 text-[12px] hover:border-gray-400 focus:border-blue-500 transition-all shadow-sm"
-                    >
-                      <span>{invoiceMeta.termsOfPayment || 'ROAD'}</span>
-                      <svg className={`fill-current h-4 w-4 text-gray-500 transition-transform ${despatchDropdownOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
-                    </div>
-                    {despatchDropdownOpen && (
-                      <div className="absolute top-full left-0 mt-1 w-full bg-background border border-border shadow-xl rounded-md z-50 overflow-hidden text-sm">
-                        {['ROAD', 'TRAIN', 'AIR', 'BY HAND'].map((method) => (
-                          <div
-                            key={method}
-                            className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-border/50 last:border-0 font-medium"
-                            onClick={() => {
-                              setInvoiceMeta({ ...invoiceMeta, termsOfPayment: method });
-                              setDespatchDropdownOpen(false);
-                            }}
-                          >
-                            {method}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="hidden print:block font-bold w-full outline-none bg-transparent mt-1">
-                    {invoiceMeta.termsOfPayment || 'ROAD'}
-                  </div>
-                </div>
-                <div className="w-1/2 p-2 flex flex-col justify-start">
-                  <span className="text-[11px] text-gray-600 font-medium">Destination</span>
-                  <input value={invoiceMeta.destination} onChange={e => setInvoiceMeta({ ...invoiceMeta, destination: e.target.value })} className="font-bold w-full max-w-[180px] outline-none border border-gray-300 rounded px-2 py-1.5 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" readOnly={!!viewBill} />
+                  <input 
+                    type="date" 
+                    value={invoiceMeta.orderDate} 
+                    onChange={e => setInvoiceMeta({ ...invoiceMeta, orderDate: e.target.value })} 
+                    className="font-bold w-full max-w-[150px] outline-none border border-gray-300 rounded px-2 py-1 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0 cursor-pointer" 
+                    readOnly={!!viewBill} 
+                    disabled={!!viewBill} 
+                  />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Bottom Half */}
-          <div className="flex flex-1">
-            {/* Buyer Details (Full Width) */}
-            <div className="w-full p-2 flex flex-col flex-1">
-              <div className="flex items-start gap-1">
-                <span className="text-[15px]">Buyer:-</span>
-                <div className="flex-1 flex justify-between gap-4">
-                  <div className="flex-1 max-w-[60%] flex flex-col">
-                    <div className="relative mb-1" ref={partyDropdownRef}>
-                      <input
-                        value={buyerName}
-                        onChange={e => {
-                          handlePartyLookup(e.target.value, 'name');
-                          setPartySearch(e.target.value);
-                          setPartyDropdownOpen(true);
-                        }}
-                        onFocus={() => setPartyDropdownOpen(true)}
-                        placeholder="Search & Enter Buyer Name or Phone..."
-                        className="font-bold w-full outline-none bg-transparent text-[15px]"
-                        readOnly={!!viewBill}
-                      />
-
-                      {partyDropdownOpen && parties.filter(p => {
-                        const isSelectedMatch = partyId && parties.find(x => x.id === partyId)?.name === buyerName;
-                        if (isSelectedMatch) return true;
-                        return p.name.toLowerCase().includes(buyerName.toLowerCase()) || p.phone.includes(buyerName);
-                      }).length > 0 && (
-                        <div className="absolute top-full left-0 mt-1 w-[400px] max-w-[90vw] bg-background border border-border shadow-xl rounded-md z-50 max-h-60 overflow-y-auto no-print text-sm text-left">
-                          {parties.filter(p => {
-                            const isSelectedMatch = partyId && parties.find(x => x.id === partyId)?.name === buyerName;
-                            if (isSelectedMatch) return true;
-                            return p.name.toLowerCase().includes(buyerName.toLowerCase()) || p.phone.includes(buyerName);
-                          }).map(p => (
-                            <div
-                              key={p.id}
-                              className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-gray-100 last:border-0 flex justify-between items-center"
-                              onClick={() => {
-                                handlePartyLookup(p.phone, 'phone');
-                                setPartyDropdownOpen(false);
-                              }}
-                            >
-                              <div className="font-bold">{p.name}</div>
-                              <div className="text-xs opacity-90">{p.phone}</div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <textarea value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} placeholder="Buyer Address" rows={2} className="w-full outline-none bg-transparent mt-1 resize-none overflow-y-auto leading-tight print:hidden" readOnly={!!viewBill} />
-                    <div className="hidden print:block w-full mt-1 leading-tight whitespace-pre-wrap break-words">{buyerAddress}</div>
-                    <input value={buyerPhone} onChange={e => setBuyerPhone(e.target.value)} placeholder="Buyer Phone" className="w-full outline-none bg-transparent mt-1 print:hidden" readOnly={!!viewBill} />
-                    <div className="hidden print:block w-full mt-1 leading-tight">{buyerPhone}</div>
-                  </div>
-                  {partyId && (() => {
-                    const selectedParty = parties.find(p => p.id === partyId);
-                    if (!selectedParty) return null;
-                    const hasBankDetails = selectedParty.bankName || selectedParty.bankAccountNo || selectedParty.bankIfsc;
-                    if (!hasBankDetails) return null;
-                    return (
-                      <div className="text-[11px] text-gray-700 flex flex-col items-end text-right min-w-[200px]">
-                        <div className="font-bold underline mb-1">Bank Details:</div>
-                        {selectedParty.bankName && <div>Bank: {selectedParty.bankName}</div>}
-                        {selectedParty.bankAccountNo && <div>A/c No: {selectedParty.bankAccountNo}</div>}
-                        {selectedParty.bankIfsc && <div>IFSC: {selectedParty.bankIfsc}</div>}
+          {/* Bottom Tier: Transport & Logistics Bar (4 Equal Columns across full width) */}
+          <div className="flex w-full text-[13px] bg-gray-50/50 print:bg-transparent">
+            {/* Transport Name (Col 1: 25%) */}
+            <div className="w-1/4 border-r border-black p-2 flex flex-col justify-start">
+              <span className="text-[11px] text-gray-800 font-medium">Transport Name:</span>
+              <div className="relative" ref={transporterDropdownRef}>
+                <input 
+                  value={invoiceMeta.dispatchedThrough} 
+                  onChange={e => {
+                    setInvoiceMeta({ ...invoiceMeta, dispatchedThrough: e.target.value });
+                    setTransporterDropdownOpen(true);
+                  }} 
+                  onFocus={() => setTransporterDropdownOpen(true)}
+                  placeholder="Transport Name"
+                  className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" 
+                  readOnly={!!viewBill} 
+                />
+                {!viewBill && transporterDropdownOpen && transporters.filter(t => t.name.toLowerCase().includes(invoiceMeta.dispatchedThrough.toLowerCase())).length > 0 && (
+                  <div className="absolute top-full left-0 mt-1 w-[250px] bg-background text-foreground border shadow-xl z-50 max-h-40 overflow-y-auto no-print text-sm rounded">
+                    {transporters.filter(t => t.name.toLowerCase().includes(invoiceMeta.dispatchedThrough.toLowerCase())).map(t => (
+                      <div key={t.id} className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer border-b" onClick={() => { 
+                        setInvoiceMeta({ ...invoiceMeta, dispatchedThrough: t.name }); 
+                        setTransporterDropdownOpen(false); 
+                      }}>
+                        <div className="font-bold">{t.name}</div>
                       </div>
-                    );
-                  })()}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
+            </div>
+
+            {/* Transport No (Col 2: 25%) */}
+            <div className="w-1/4 border-r border-black p-2 flex flex-col justify-start">
+              <span className="text-[11px] text-gray-800 font-medium">Transport no:</span>
+              <input 
+                value={invoiceMeta.dispatchDocNo} 
+                onChange={e => setInvoiceMeta({ ...invoiceMeta, dispatchDocNo: e.target.value })} 
+                placeholder="LR / Doc No"
+                className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" 
+                readOnly={!!viewBill} 
+              />
+            </div>
+
+            {/* Despatched through (Col 3: 25%) */}
+            <div className="w-1/4 border-r border-black p-2 flex flex-col justify-start">
+              <span className="text-[11px] text-gray-800 font-medium">Despatched through</span>
+              <div className="relative w-full mt-1 print:hidden" ref={despatchDropdownRef}>
+                <div
+                  onClick={() => setDespatchDropdownOpen(!despatchDropdownOpen)}
+                  className="flex justify-between items-center font-bold w-full outline-none bg-background cursor-pointer border border-border rounded px-2 py-1 text-[12px] hover:border-gray-400 focus:border-blue-500 transition-all shadow-sm"
+                >
+                  <span>{invoiceMeta.termsOfPayment || 'ROAD'}</span>
+                  <svg className={`fill-current h-4 w-4 text-gray-500 transition-transform ${despatchDropdownOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                </div>
+                {despatchDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-1 w-full bg-background border border-border shadow-xl rounded-md z-50 overflow-hidden text-sm">
+                    {['ROAD', 'TRAIN', 'AIR', 'BY HAND'].map((method) => (
+                      <div
+                        key={method}
+                        className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors border-b border-border/50 last:border-0 font-medium"
+                        onClick={() => {
+                          setInvoiceMeta({ ...invoiceMeta, termsOfPayment: method });
+                          setDespatchDropdownOpen(false);
+                        }}
+                      >
+                        {method}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="hidden print:block font-bold w-full outline-none bg-transparent mt-1">
+                {invoiceMeta.termsOfPayment || 'ROAD'}
+              </div>
+            </div>
+
+            {/* Destination (Col 4: 25%) */}
+            <div className="w-1/4 p-2 flex flex-col justify-start">
+              <span className="text-[11px] text-gray-800 font-medium">Destination</span>
+              <input 
+                value={invoiceMeta.destination} 
+                onChange={e => setInvoiceMeta({ ...invoiceMeta, destination: e.target.value })} 
+                placeholder="Destination City"
+                className="font-bold w-full outline-none border border-gray-300 rounded px-2 py-1 mt-1 text-[12px] bg-background hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm print:border-none print:bg-transparent print:p-0 print:shadow-none print:mt-0" 
+                readOnly={!!viewBill} 
+              />
             </div>
           </div>
         </div>
+
 
         {/* Line Items */}
         <div className="flex-1 flex flex-col border-b-2 border-black min-h-[350px]">

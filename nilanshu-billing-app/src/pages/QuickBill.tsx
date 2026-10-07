@@ -240,23 +240,23 @@ export default function QuickBill({ viewBill }: { viewBill?: any }) {
       {/* Bill Canvas */}
       <div className="a4-page border border-border p-6 relative flex flex-col">
 
-        <div className="text-center flex flex-col items-center relative z-10">
-          <img src="/logo.png" alt="Logo" className="absolute left-0 top-0 w-12 h-12 object-contain" />
+        <div className="text-center flex flex-col items-center relative px-2 pt-2 pb-0.5 border-b-2 border-black">
+          <img src="/logo.png" alt="Logo" className="absolute left-2 top-2 w-20 h-20 object-contain" />
           <input 
             value={settings.companyName} 
             onChange={e => updateSettings({ companyName: e.target.value })} 
-            className="text-2xl font-bold uppercase tracking-wide text-center w-full bg-transparent outline-none" 
+            className="text-4xl font-bold uppercase tracking-wide text-center w-full bg-transparent outline-none" 
           />
-          <div className="text-sm text-center w-full leading-tight mt-1">{settings.companyAddress}, {settings.companyCity}</div>
-          <div className="flex gap-2 text-sm justify-center w-full items-center leading-tight mt-0.5">
+          <div className="text-base mt-1 text-center w-full">{settings.companyAddress}</div>
+          <div className="text-base text-center w-full">{settings.companyCity}</div>
+          <div className="flex gap-2 text-base justify-center w-full items-center mt-1">
             <span className="flex items-center whitespace-nowrap font-semibold">IT PAN: <span className="ml-1 uppercase font-normal">{settings.companyPan}</span></span>
             <span className="text-gray-400">|</span>
-            <span className="flex items-center whitespace-nowrap font-semibold">Ph: <span className="ml-1 font-normal">{settings.companyContact}</span></span>
+            <span className="flex items-center whitespace-nowrap font-semibold">Phone: <span className="ml-1 font-normal">{settings.companyContact}</span></span>
             <span className="text-gray-400">|</span>
             <span className="flex items-center whitespace-nowrap font-semibold">Email: <span className="ml-1 font-normal">{settings.companyEmail}</span></span>
           </div>
         </div>
-        <div className="border-b-2 border-black w-full mt-2 mb-2"></div>
         <div className="text-center mb-2">
           <span className="font-black text-2xl tracking-widest text-blue-600 uppercase">QUICK BILL</span>
         </div>

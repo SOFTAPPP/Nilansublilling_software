@@ -37,6 +37,18 @@ function App() {
 
 
   useEffect(() => {
+    // Show window once React is mounted to prevent white flash
+    const showAppWindow = async () => {
+      try {
+        await getCurrentWindow().show();
+      } catch (e) {
+        console.error('Failed to show window:', e);
+      }
+    };
+    showAppWindow();
+  }, []);
+
+  useEffect(() => {
     const isToken = sessionStorage.getItem('token');
     const loadInitialData = async () => {
       if (isToken) {
