@@ -249,7 +249,7 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
       <div className="space-y-3 text-sm">
         <div className="flex items-baseline gap-2 relative" ref={partyDropdownRef}>
           <span className="whitespace-nowrap font-semibold">Received with thanks from</span>
-          <span className="flex-1 border-b border-dotted border-blue-500 print:border-transparent text-blue-500 print:text-blue-900 font-bold px-1 relative flex">
+          <span className="flex-1 border-b border-dotted border-blue-500 print:border-blue-900 text-blue-500 print:text-blue-900 font-bold px-1 relative flex">
              <input type="text" placeholder="Search by name..." value={customerName} onChange={e => { setCustomerName(e.target.value); setPartyDropdownOpen(true); setPartyId(null); }} onFocus={() => setPartyDropdownOpen(true)} className="bg-transparent outline-none w-full p-0 border-none h-6 text-blue-500 print:text-blue-900 print:appearance-none font-bold text-lg print:font-bold print:text-lg placeholder:text-blue-500/50" />
              {partyDropdownOpen && filteredParties.length > 0 && (
                 <div className="absolute top-full left-0 mt-1 w-full md:w-[400px] bg-card border border-border shadow-xl rounded-lg z-50 max-h-48 overflow-y-auto no-print font-normal text-foreground">
@@ -277,7 +277,7 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
 
         <div className="flex items-baseline gap-2">
           <span className="whitespace-nowrap font-semibold">Rs.</span>
-          <span className="flex-1 border-b border-dotted border-blue-500 print:border-transparent text-blue-500 print:text-blue-900 font-bold px-1 flex items-center">
+          <span className="flex-1 border-b border-dotted border-blue-500 print:border-blue-900 text-blue-500 print:text-blue-900 font-bold px-1 flex items-center">
              ₹
              <input type="number" value={amount || ''} onChange={e => setAmount(parseFloat(e.target.value) || 0)} className="bg-transparent outline-none w-32 p-0 border-none h-6 mx-2 text-blue-500 print:text-blue-900 print:appearance-none font-bold text-lg print:font-bold print:text-lg" placeholder="0" />
              /- ({amount > 0 ? `${numberToWords(amount)} only` : ''})
@@ -286,7 +286,7 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
 
         <div className="flex items-baseline gap-2 relative" ref={paymentDropdownRef}>
           <span className="whitespace-nowrap font-semibold">by</span>
-          <div className="relative inline-block border-b border-dotted border-blue-500 print:border-transparent text-blue-500 print:text-blue-900 font-bold cursor-pointer" onClick={() => setPaymentDropdownOpen(!paymentDropdownOpen)}>
+          <div className="relative inline-block border-b border-dotted border-blue-500 print:border-blue-900 text-blue-500 print:text-blue-900 font-bold cursor-pointer" onClick={() => setPaymentDropdownOpen(!paymentDropdownOpen)}>
             {paymentMode}
             {paymentDropdownOpen && (
               <div className="absolute top-full left-0 mt-1 w-32 bg-card border shadow-xl z-50 rounded-lg overflow-hidden text-sm no-print font-normal text-foreground">
@@ -301,12 +301,12 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
           {paymentMode === 'Cheque' ? (
             <>
               <span className="whitespace-nowrap font-semibold">/ Cheque No.</span>
-              <span className="flex-1 border-b border-dotted border-blue-500 print:border-transparent text-blue-500 print:text-blue-900 font-bold px-1 flex">
+              <span className="flex-1 border-b border-dotted border-blue-500 print:border-blue-900 text-blue-500 print:text-blue-900 font-bold px-1 flex">
                 <input type="text" value={chequeNo} onChange={e => setChequeNo(e.target.value)} className="bg-transparent outline-none w-full p-0 border-none h-5 text-blue-500 print:text-blue-900 print:appearance-none font-bold" />
               </span>
             </>
           ) : (
-            <span className="flex-1 border-b border-dotted border-blue-500 print:border-transparent text-blue-500 print:text-blue-900 font-bold px-1 flex"></span>
+            <span className="flex-1 border-b border-dotted border-blue-500 print:border-blue-900 text-blue-500 print:text-blue-900 font-bold px-1 flex"></span>
           )}
         </div>
 
