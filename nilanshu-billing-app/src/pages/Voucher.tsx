@@ -126,7 +126,7 @@ export default function Voucher({ viewBill }: { viewBill?: any }) {
       </div>
 
       <div className="print:block" style={{ pageBreakInside: 'avoid' }}>
-        <div className="w-[210mm] print:w-[190mm] print:my-4 mx-auto bg-card text-foreground print:bg-white print:text-black p-8 border-2 border-foreground print:border-gray-800" style={{ fontFamily: 'serif' }}>
+        <div className="w-[210mm] print:w-full print:max-w-[190mm] print:my-4 mx-auto bg-card text-foreground print:bg-white print:text-black p-8 border-2 border-foreground print:border-gray-800" style={{ fontFamily: 'serif' }}>
           {/* Top Company Header */}
           <div className="text-center flex flex-col items-center relative p-2 border-b-2 border-black print:border-black dark:border-white">
             <img src="/logo.png" alt="Logo" className="absolute left-2 top-2 w-20 h-20 object-contain" />

@@ -31,9 +31,11 @@ router.post('/', async (req, res) => {
 // Update party
 router.put('/:id', async (req, res) => {
     try {
+        // outstandingBalance is only changed by bills/receipts (routes/bills.ts), never by a party edit
+        const { outstandingBalance, id, ...data } = req.body;
         const party = await prisma_1.default.party.update({
             where: { id: req.params.id },
-            data: req.body,
+            data,
         });
         res.json(party);
     }

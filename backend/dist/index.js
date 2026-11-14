@@ -12,6 +12,8 @@ const parties_1 = __importDefault(require("./routes/parties"));
 const bills_1 = __importDefault(require("./routes/bills"));
 const settings_1 = __importDefault(require("./routes/settings"));
 const sms_1 = __importDefault(require("./routes/sms"));
+const transporters_1 = __importDefault(require("./routes/transporters"));
+const sync_1 = __importDefault(require("./routes/sync"));
 const auth_2 = require("./middleware/auth");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -24,7 +26,9 @@ app.use('/api/products', auth_2.authenticate, products_1.default);
 app.use('/api/parties', auth_2.authenticate, parties_1.default);
 app.use('/api/bills', auth_2.authenticate, bills_1.default);
 app.use('/api/settings', auth_2.authenticate, settings_1.default);
-app.use('/api/sms', sms_1.default);
+app.use('/api/transporters', auth_2.authenticate, transporters_1.default);
+app.use('/api/sync', auth_2.authenticate, sync_1.default);
+app.use('/api/sms', sms_1.default); // Local SMS simulator - no auth needed
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });

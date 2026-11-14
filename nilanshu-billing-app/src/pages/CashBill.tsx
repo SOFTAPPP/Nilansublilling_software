@@ -4,6 +4,7 @@ import { BillLineItem, useStore } from '../store/useStore';
 import { checkBillNumberExists, getNextBillNumber, getNextBillNumberSync } from '../utils/billNumber';
 import { getLocalDateString } from '../utils/dateUtils';
 import { numberToWords } from '../utils/numberToWords';
+import { balanceBeforeBill } from '../utils/partyBalance';
 
 export default function CashBill({ viewBill }: { viewBill?: any }) {
   const { settings, updateSettings, createBill, updateBill, parties, showDialog } = useStore();
@@ -117,7 +118,15 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
   const roundOff = Math.round(subtotalBeforeRound) - subtotalBeforeRound;
   const grandTotal = Math.round(subtotalBeforeRound);
 
-  const partyOutstanding = parties.find(p => p.id === partyId)?.outstandingBalance || 0;
+  const [createdBillId, setCreatedBillId] = useState<string | null>(null);
+
+  // Negative = the party has an advance with us
+  const partyOutstanding = balanceBeforeBill(
+    parties.find(p => p.id === partyId)?.outstandingBalance || 0,
+    bills,
+    partyId,
+    createdBillId || viewBill?.id,
+  );
   const addedAmount = Number(advanceAmount) || 0;
   const netPayable = grandTotal + addedAmount;
 
@@ -175,7 +184,6 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
     }
   };
 
-  const [createdBillId, setCreatedBillId] = useState<string | null>(null);
 
   const handleSave = () => {
     if (!validate()) return;
@@ -345,7 +353,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
             {/* Buyer Block */}
             <div className="flex flex-col gap-1 relative w-[380px] print:w-auto print:flex-1" ref={partyDropdownRef}>
               <div className="flex items-baseline gap-2">
-                <span className="text-[15px]">Buyer:-</span>
+                <span className="text-[15px] w-[76px] shrink-0">Buyer:-</span>
                 <input
                   type="text"
                   value={partyName}
@@ -358,14 +366,20 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
               </div>
 
               {partyId && (
-                <div className="text-[15px] text-foreground font-medium mt-1 pl-12 flex flex-col gap-1">
+                <div className="text-[15px] text-foreground font-medium mt-1 flex flex-col gap-1">
                   {parties.find(p => p.id === partyId)?.address && (
-                    <div className="whitespace-pre-wrap max-h-[4.5em] overflow-y-auto print:max-h-none print:overflow-visible pr-2 leading-tight">
-                      {parties.find(p => p.id === partyId)?.address?.replace(/ \| PIN:/g, '\nPIN:').replace(/ \| Dist:/g, '\nDist:')}
+                    <div className="flex items-baseline gap-2">
+                      <span className="w-[76px] shrink-0 font-normal">Address:-</span>
+                      <div className="whitespace-pre-wrap max-h-[4.5em] overflow-y-auto print:max-h-none print:overflow-visible pr-2 leading-tight">
+                        {parties.find(p => p.id === partyId)?.address?.replace(/ \| PIN:/g, '\nPIN:').replace(/ \| Dist:/g, '\nDist:')}
+                      </div>
                     </div>
                   )}
                   {parties.find(p => p.id === partyId)?.phone && (
-                    <div className="leading-tight mt-1">{parties.find(p => p.id === partyId)?.phone}</div>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="w-[76px] shrink-0 font-normal">Ph No:-</span>
+                      <div className="leading-tight">{parties.find(p => p.id === partyId)?.phone}</div>
+                    </div>
                   )}
                 </div>
               )}
@@ -446,8 +460,8 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
           <div className="w-[60%] border-r border-black p-3 flex flex-col justify-between">
             <div>
               <p className="font-bold underline mb-1 text-xs">Bank Details:</p>
-              <div className="flex items-center gap-2 text-xs mb-1"><span className="font-semibold whitespace-nowrap flex-shrink-0">Bank Name:</span><input value={settings.bankName} onChange={e => { const val = e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''); if (val.replace(/ /g, '').length <= 44) updateSettings({ bankName: val }); }} className="outline-none bg-transparent w-full" placeholder="Bank Name" readOnly={!!viewBill} /></div>
-              <div className="flex items-center gap-2 text-xs"><span className="font-semibold whitespace-nowrap flex-shrink-0">A/c No:</span><input value={settings.bankAccountNo} maxLength={17} onChange={e => { const val = e.target.value.replace(/\D/g, ''); updateSettings({ bankAccountNo: val }) }} className="outline-none bg-transparent w-full" placeholder="A/c No" readOnly={!!viewBill} /> <span className="font-semibold whitespace-nowrap flex-shrink-0">IFSC Code:</span><input value={settings.bankIfsc} maxLength={11} onChange={e => { let val = e.target.value.toUpperCase(); let formatted = ''; for (let i = 0; i < val.length; i++) { if (i < 4) { if (/[A-Z]/.test(val[i])) formatted += val[i]; } else { if (/[0-9]/.test(val[i])) formatted += val[i]; } } updateSettings({ bankIfsc: formatted }) }} className="outline-none bg-transparent w-full uppercase" placeholder="IFSC Code" readOnly={!!viewBill} /></div>
+              <div className="flex items-center gap-2 text-xs mb-1"><span className="font-semibold whitespace-nowrap flex-shrink-0">Bank Name:</span><span>{settings.bankName}</span></div>
+              <div className="flex items-center gap-2 text-xs"><span className="font-semibold whitespace-nowrap flex-shrink-0">A/c No:</span><span className="whitespace-nowrap">{settings.bankAccountNo}</span> <span className="font-semibold whitespace-nowrap flex-shrink-0 ml-4">IFSC Code:</span><span className="whitespace-nowrap">{settings.bankIfsc}</span></div>
             </div>
 
             {/* QR Code in the middle space */}
@@ -495,7 +509,7 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
                 <span className="text-xs font-bold text-red-600 dark:text-red-400 shrink-0 w-16 text-right">+ {partyOutstanding.toFixed(2)}</span>
               </div>
             )}
-            <div className="flex items-center justify-between border-b border-black p-2 bg-muted/50 print:bg-transparent gap-2">
+            <div className={`flex items-center justify-between border-b border-black p-2 bg-muted/50 print:bg-transparent gap-2 ${addedAmount > 0 ? '' : 'print:hidden'}`}>
               <div className="flex items-center gap-2 no-print text-[10px] flex-1">
                 <span className="font-bold text-foreground leading-tight flex-1">Add: Extra Cash Received (To clear old debt)</span>
                 <input 
@@ -503,8 +517,12 @@ export default function CashBill({ viewBill }: { viewBill?: any }) {
                   value={advanceAmount} 
                   onChange={e => {
                     const val = e.target.value;
+                    const maxExtra = Math.max(0, partyOutstanding);
                     if (Number(val) < 0) {
                       setAdvanceAmount('0');
+                    } else if (Number(val) > maxExtra) {
+                      // Extra cash only clears old dues; more than that would push the party into a false advance
+                      setAdvanceAmount(maxExtra.toString());
                     } else {
                       setAdvanceAmount(val);
                     }

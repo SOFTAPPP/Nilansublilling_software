@@ -50,6 +50,7 @@ export interface Bill {
   total: number;
   status: string;
   date: string;
+  createdAt?: string;
   paymentAmount?: number;
   lrNo?: string;
   lineItems?: BillLineItem[];
@@ -135,6 +136,15 @@ interface AppState {
   findProductByBarcode: (barcode: string) => Product | undefined;
 }
 
+// Company bank account printed on every bill. Fixed here rather than edited on the
+// bill, because typing it on the bill saved typos to the server ("BANOF INDIA",
+// a 13-digit account number) that then printed on every bill.
+export const COMPANY_BANK = {
+  bankName: 'BANK OF INDIA',
+  bankAccountNo: '402930150000011',
+  bankIfsc: 'BKID0004029',
+};
+
 export const useStore = create<AppState>((set, get) => ({
   products: [],
   parties: [],
@@ -150,9 +160,7 @@ export const useStore = create<AppState>((set, get) => ({
     companyEmail: 'nilansupublication@gmail.com',
     companyPan: 'CJZPP7439N',
     bankAccountName: '',
-    bankName: '',
-    bankAccountNo: '',
-    bankIfsc: ''
+    ...COMPANY_BANK
   },
   theme: 'light',
   token: sessionStorage.getItem('token'),
@@ -254,7 +262,7 @@ export const useStore = create<AppState>((set, get) => ({
               (mergedSettings as any)[k] = v;
             }
           });
-          return { settings: mergedSettings };
+          return { settings: { ...mergedSettings, ...COMPANY_BANK } };
         });
       }
     } catch (error) {
@@ -275,7 +283,7 @@ export const useStore = create<AppState>((set, get) => ({
           });
         }
         return {
-          settings: mergedSettings,
+          settings: { ...mergedSettings, ...COMPANY_BANK },
           products: data.products,
           parties: data.parties,
           transporters: data.transporters,
@@ -374,7 +382,10 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
   
-  updateParty: async (id, party) => {
+  updateParty: async (id, partyEdit) => {
+    // The balance is owned by bills/receipts on the server; sending the edit form's
+    // copy back would overwrite it with whatever it was when the form was opened
+    const { outstandingBalance: _ignored, ...party } = partyEdit as any;
     const prev = get().parties;
     set(state => ({ parties: state.parties.map(p => p.id === id ? { ...p, ...party } : p) })); // Optimistic update
     try {

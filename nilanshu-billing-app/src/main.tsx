@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { initPrintFit } from './utils/printFit'
 
 // ── Make the app feel native (disable all browser behaviors) ──
 
@@ -62,6 +63,9 @@ document.addEventListener('keydown', e => {
 document.addEventListener('dragstart', e => e.preventDefault());
 document.addEventListener('drop', e => e.preventDefault());
 document.addEventListener('dragover', e => e.preventDefault());
+
+// 4. Fit every bill onto a single A4 sheet when printing
+initPrintFit();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -111,7 +111,10 @@
   }
 }
 
+/* Screen-only: !important inside a layer beats the unlayered print overrides,
+   so these fixed sizes must not apply while printing */
 @layer components {
+  @media screen {
   .a4-page {
     width: 210mm !important;
     min-height: 297mm !important;
@@ -135,6 +138,7 @@
     box-sizing: border-box;
     overflow: visible;
     flex-shrink: 0;
+  }
   }
 }
 
@@ -163,9 +167,11 @@
     --ring: 221.2 83.2% 53.3%;
   }
 
+  /* Keep a safe margin: printers cannot print the outer ~4-5mm of the sheet,
+     so a zero margin clips the left/right/bottom edges of every bill. */
   @page {
-    size: A4;
-    margin: 0;
+    size: A4 portrait;
+    margin: 6mm;
   }
   ::-webkit-scrollbar {
     display: none !important;
@@ -195,12 +201,16 @@
     width: 100% !important;
     overflow: visible !important;
   }
+  /* Fill the printable area on exactly one sheet. 100vh is the page area left
+     after margins, so this holds even when the print dialog overrides @page
+     margins. Bills taller than this are scaled down by utils/printFit.ts */
   .a4-page {
-    width: 210mm !important;
-    max-width: 210mm !important;
-    min-height: 297mm !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: calc(var(--print-fit-vh, 100vh) - 2mm) !important;
     height: auto !important;
-    margin: 0 auto !important;
+    margin: 0 !important;
+    break-inside: avoid;
     box-shadow: none !important;
     overflow: visible !important;
     background-color: white !important;

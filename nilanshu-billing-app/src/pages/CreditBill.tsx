@@ -4,6 +4,7 @@ import { BillLineItem, useStore } from '../store/useStore';
 import { checkBillNumberExists, getNextBillNumber, getNextBillNumberSync } from '../utils/billNumber';
 import { getLocalDateString } from '../utils/dateUtils';
 import { numberToWords } from '../utils/numberToWords';
+import { balanceBeforeBill } from '../utils/partyBalance';
 
 export default function CreditBill({ type = 'credit', viewBill }: { type?: 'credit' | 'return', viewBill?: any }) {
   const { parties, transporters, settings, updateSettings, createBill, updateBill, showDialog } = useStore();
@@ -50,6 +51,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   const [partyDiscount, setPartyDiscount] = useState(0);
   const [partyId, setPartyId] = useState<string | null>(null);
   const [advanceAmount, setAdvanceAmount] = useState<string>('');
+  const [createdBillId, setCreatedBillId] = useState<string | null>(null);
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true);
 
@@ -198,9 +200,19 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
   const roundOff = Math.round(subtotalBeforeRound) - subtotalBeforeRound;
   const grandTotal = Math.round(subtotalBeforeRound);
 
-  const partyOutstanding = parties.find(p => p.id === partyId)?.outstandingBalance || 0;
-  const addedAmount = Number(advanceAmount) || 0;
-  const netPayable = grandTotal + partyOutstanding - addedAmount;
+  // Negative = the party has an advance with us
+  const partyOutstanding = balanceBeforeBill(
+    parties.find(p => p.id === partyId)?.outstandingBalance || 0,
+    bills,
+    partyId,
+    createdBillId || viewBill?.id,
+  );
+  // A return note only states the value of the goods taken back; the backend deducts
+  // it from the party's due. Adding the old due (or a payment) to it makes no sense.
+  const isReturn = type === 'return';
+  const addedAmount = isReturn ? 0 : Number(advanceAmount) || 0;
+  // An advance larger than this bill leaves nothing to pay, never a negative total
+  const netPayable = isReturn ? grandTotal : Math.max(0, grandTotal + partyOutstanding - addedAmount);
 
   // Validate invoice number on change - check for duplicates
   const handleInvoiceNoChange = async (val: string) => {
@@ -273,8 +285,6 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
     }
     return true;
   };
-
-  const [createdBillId, setCreatedBillId] = useState<string | null>(null);
 
   const handleSave = () => {
     if (!validate()) return;
@@ -652,7 +662,15 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                   <div className="absolute top-full left-0 mt-1 w-[250px] bg-background text-foreground border shadow-xl z-50 max-h-40 overflow-y-auto no-print text-sm rounded">
                     {transporters.filter(t => t.name.toLowerCase().includes(invoiceMeta.dispatchedThrough.toLowerCase())).map(t => (
                       <div key={t.id} className="px-3 py-2 hover:bg-blue-600 hover:text-white cursor-pointer border-b" onClick={() => { 
-                        setInvoiceMeta({ ...invoiceMeta, dispatchedThrough: t.name }); 
+                        let parsedVehicle = '';
+                        const vMatch = (t.address || '').match(/ \| Vehicle: (.*?)(?= \| Route:|$)/);
+                        if (vMatch) parsedVehicle = vMatch[1].trim();
+                        
+                        setInvoiceMeta({ 
+                          ...invoiceMeta, 
+                          dispatchedThrough: t.name,
+                          dispatchDocNo: parsedVehicle || invoiceMeta.dispatchDocNo
+                        }); 
                         setTransporterDropdownOpen(false); 
                       }}>
                         <div className="font-bold">{t.name}</div>
@@ -771,7 +789,7 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
               {roundOff.toFixed(2)}
             </div>
           </div>
-          {partyOutstanding > 0 && (
+          {!isReturn && partyOutstanding > 0 && (
             <div className="flex border-t-2 border-black text-sm font-bold bg-muted/50 print:bg-transparent">
               <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
                 Add: Previous Due
@@ -781,7 +799,19 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
               </div>
             </div>
           )}
-          <div className="flex border-t-2 border-black text-sm font-bold bg-muted/50 print:bg-transparent">
+          {!isReturn && partyOutstanding < 0 && (
+            <div className="flex border-t-2 border-black text-sm font-bold bg-muted/50 print:bg-transparent">
+              <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
+                Less: Previous Advance
+              </div>
+              <div className="w-[15%] text-right pr-2 py-1 text-green-600 dark:text-green-400">
+                - {Math.abs(partyOutstanding).toFixed(2)}
+              </div>
+            </div>
+          )}
+          {/* Nothing paid now: keep the input on screen, but leave the "- 0.00" row off the printout */}
+          {!isReturn && (
+          <div className={`flex border-t-2 border-black text-sm font-bold bg-muted/50 print:bg-transparent ${addedAmount > 0 ? '' : 'print:hidden'}`}>
             <div className="w-[85%] text-right pr-4 py-1 border-r border-black flex justify-end items-center gap-2">
               <div className="flex items-center gap-2 no-print text-xs">
                 <span className="font-bold text-foreground">Less: Advance Payment Received Now</span>
@@ -805,12 +835,13 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
                   readOnly={!!viewBill}
                 />
               </div>
-              <span className="hidden print:block text-xs font-semibold">Less: Advance Payment</span>
+              <span className="hidden print:block text-xs font-semibold">Less: Payment Received</span>
             </div>
             <div className="w-[15%] text-right pr-2 py-1 text-green-600 dark:text-green-400">
               - {addedAmount.toFixed(2)}
             </div>
           </div>
+          )}
 
           <div className="flex border-t-2 border-black text-sm font-bold text-lg">
             <div className="w-[85%] text-right pr-4 py-1 border-r border-black">
@@ -833,9 +864,9 @@ export default function CreditBill({ type = 'credit', viewBill }: { type?: 'cred
           <div className="p-2 border-b border-black">
             <p className="underline mb-1">Company's Bank Details :-</p>
             <div className="flex flex-wrap gap-x-6 gap-y-1 font-bold">
-              <div className="flex gap-2"><span>Bank Name :-</span><input value={settings.bankName} onChange={e => { const val = e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''); if (val.replace(/ /g, '').length <= 44) updateSettings({ bankName: val }); }} className="outline-none bg-transparent" /></div>
-              <div className="flex gap-2"><span>A/c. No.</span><input value={settings.bankAccountNo} maxLength={17} onChange={e => { const val = e.target.value.replace(/\D/g, ''); updateSettings({ bankAccountNo: val }) }} className="outline-none bg-transparent" /></div>
-              <div className="flex gap-2"><span>IFSC -</span><input value={settings.bankIfsc} maxLength={11} onChange={e => { let val = e.target.value.toUpperCase(); let formatted = ''; for (let i = 0; i < val.length; i++) { if (i < 4) { if (/[A-Z]/.test(val[i])) formatted += val[i]; } else { if (/[0-9]/.test(val[i])) formatted += val[i]; } } updateSettings({ bankIfsc: formatted }) }} className="outline-none bg-transparent uppercase" /></div>
+              <div className="flex gap-2"><span>Bank Name :-</span><span>{settings.bankName}</span></div>
+              <div className="flex gap-2"><span>A/c. No.</span><span>{settings.bankAccountNo}</span></div>
+              <div className="flex gap-2"><span>IFSC -</span><span>{settings.bankIfsc}</span></div>
             </div>
           </div>
           <div className="flex">

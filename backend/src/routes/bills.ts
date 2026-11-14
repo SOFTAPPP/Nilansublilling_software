@@ -22,9 +22,30 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { lineItems, ...billData } = req.body;
+    const type = billData.type || 'cash';
+    
+    // Types that affect stock (sales/returns)
+    const stockAffectingTypes = ['cash', 'credit', 'quick', 'transport', 'return'];
+    const shouldAffectStock = stockAffectingTypes.includes(type);
     
     const bill = await prisma.$transaction(async (tx) => {
-      // 1. Create the bill and line items
+      // 1. Validate stock BEFORE creating the bill (only for sale types, not return/receipt/voucher)
+      if (shouldAffectStock && type !== 'return') {
+        for (const item of lineItems) {
+          if (item.productId) {
+            const product = await tx.product.findUnique({ where: { id: item.productId } });
+            if (!product) {
+              throw new Error(`Product not found: ${item.productId}`);
+            }
+            const qty = Number(item.quantity) || 0;
+            if (qty > product.stock) {
+              throw new Error(`Insufficient stock for "${product.name}". Available: ${product.stock}, Requested: ${qty}`);
+            }
+          }
+        }
+      }
+
+      // 2. Create the bill and line items
       const newBill = await tx.bill.create({
         data: {
           ...billData,
@@ -44,21 +65,21 @@ router.post('/', async (req, res) => {
         include: { lineItems: true }
       });
 
-      const type = billData.type || 'cash';
-
-      // 2. Adjust Stock
-      for (const item of lineItems) {
-        if (item.productId) {
-          if (type === 'return') {
-            await tx.product.update({
-              where: { id: item.productId },
-              data: { stock: { increment: Number(item.quantity) || 0 } }
-            });
-          } else {
-            await tx.product.update({
-              where: { id: item.productId },
-              data: { stock: { decrement: Number(item.quantity) || 0 } }
-            });
+      // 3. Adjust Stock (only for stock-affecting types)
+      if (shouldAffectStock) {
+        for (const item of lineItems) {
+          if (item.productId) {
+            if (type === 'return') {
+              await tx.product.update({
+                where: { id: item.productId },
+                data: { stock: { increment: Number(item.quantity) || 0 } }
+              });
+            } else {
+              await tx.product.update({
+                where: { id: item.productId },
+                data: { stock: { decrement: Number(item.quantity) || 0 } }
+              });
+            }
           }
         }
       }
@@ -96,7 +117,10 @@ router.post('/', async (req, res) => {
     res.status(201).json(bill);
   } catch (error: any) {
     console.error(error);
-    res.status(500).json({ error: error.message || 'Failed to create bill' });
+    const msg = error.message || 'Failed to create bill';
+    // Return 400 for stock validation errors, 500 for other errors
+    const status = msg.includes('Insufficient stock') ? 400 : 500;
+    res.status(status).json({ error: msg });
   }
 });
 
@@ -132,18 +156,21 @@ router.put('/:id', async (req, res) => {
         }
       }
 
-      // Revert old stock
-      for (const oldItem of oldBill.lineItems) {
-        if (oldBill.type === 'return') {
-          await tx.product.update({
-            where: { id: oldItem.productId },
-            data: { stock: { decrement: oldItem.quantity } }
-          });
-        } else {
-          await tx.product.update({
-            where: { id: oldItem.productId },
-            data: { stock: { increment: oldItem.quantity } }
-          });
+      // Revert old stock (only for stock-affecting bill types)
+      const oldStockAffecting = ['cash', 'credit', 'quick', 'transport', 'return'].includes(oldBill.type);
+      if (oldStockAffecting) {
+        for (const oldItem of oldBill.lineItems) {
+          if (oldBill.type === 'return') {
+            await tx.product.update({
+              where: { id: oldItem.productId },
+              data: { stock: { decrement: oldItem.quantity } }
+            });
+          } else {
+            await tx.product.update({
+              where: { id: oldItem.productId },
+              data: { stock: { increment: oldItem.quantity } }
+            });
+          }
         }
       }
 
@@ -171,19 +198,35 @@ router.put('/:id', async (req, res) => {
         include: { lineItems: true }
       });
 
-      // Apply new stock
-      for (const item of lineItems) {
-        if (item.productId) {
-          if (type === 'return') {
-            await tx.product.update({
-              where: { id: item.productId },
-              data: { stock: { increment: Number(item.quantity) || 0 } }
-            });
-          } else {
-            await tx.product.update({
-              where: { id: item.productId },
-              data: { stock: { decrement: Number(item.quantity) || 0 } }
-            });
+      // Apply new stock (only for stock-affecting types)
+      const newStockAffecting = ['cash', 'credit', 'quick', 'transport', 'return'].includes(type);
+      if (newStockAffecting) {
+        // Validate stock before decrementing (for sale types)
+        if (type !== 'return') {
+          for (const item of lineItems) {
+            if (item.productId) {
+              const product = await tx.product.findUnique({ where: { id: item.productId } });
+              if (!product) throw new Error(`Product not found: ${item.productId}`);
+              const qty = Number(item.quantity) || 0;
+              if (qty > product.stock) {
+                throw new Error(`Insufficient stock for "${product.name}". Available: ${product.stock}, Requested: ${qty}`);
+              }
+            }
+          }
+        }
+        for (const item of lineItems) {
+          if (item.productId) {
+            if (type === 'return') {
+              await tx.product.update({
+                where: { id: item.productId },
+                data: { stock: { increment: Number(item.quantity) || 0 } }
+              });
+            } else {
+              await tx.product.update({
+                where: { id: item.productId },
+                data: { stock: { decrement: Number(item.quantity) || 0 } }
+              });
+            }
           }
         }
       }
@@ -217,9 +260,11 @@ router.put('/:id', async (req, res) => {
     });
 
     res.json(bill);
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to update bill' });
+    const msg = error.message || 'Failed to update bill';
+    const status = msg.includes('Insufficient stock') ? 400 : 500;
+    res.status(status).json({ error: msg });
   }
 });
 
@@ -235,18 +280,21 @@ router.delete('/:id', async (req, res) => {
       });
       if (!bill) return;
 
-      // Revert stock
-      for (const item of bill.lineItems) {
-        if (bill.type === 'return') {
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stock: { decrement: item.quantity } }
-          });
-        } else {
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stock: { increment: item.quantity } }
-          });
+      // Revert stock (only for stock-affecting bill types)
+      const delStockAffecting = ['cash', 'credit', 'quick', 'transport', 'return'].includes(bill.type);
+      if (delStockAffecting) {
+        for (const item of bill.lineItems) {
+          if (bill.type === 'return') {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stock: { decrement: item.quantity } }
+            });
+          } else {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stock: { increment: item.quantity } }
+            });
+          }
         }
       }
 

@@ -369,7 +369,7 @@ export default function PartyStatement() {
         </div>
       </div>
 
-      <div className="w-[210mm] bg-white dark:bg-card p-10 relative mx-auto text-slate-800 dark:text-foreground shadow-xl border border-slate-200 dark:border-slate-700 print:shadow-none print:border-none print:pt-12 print:px-0 print:pb-0">
+      <div className="w-[210mm] print:w-full bg-white dark:bg-card p-10 relative mx-auto text-slate-800 dark:text-foreground shadow-xl border border-slate-200 dark:border-slate-700 print:shadow-none print:border-none print:pt-12 print:px-0 print:pb-0">
 
         {/* Header */}
         <div className="flex flex-col items-center border-b border-slate-200 dark:border-slate-700 print:border-slate-200 pb-8 mb-8">
@@ -419,7 +419,7 @@ export default function PartyStatement() {
             <div className="grid grid-cols-4 gap-4 bg-white dark:bg-card print:bg-white border border-gray-300 dark:border-slate-700 print:border-gray-300 rounded-md p-6 mb-6 text-center shadow-sm">
               <div className="border-r border-gray-300 dark:border-slate-700 print:border-gray-300">
                 <div className="text-gray-700 dark:text-slate-300 print:text-gray-700 font-semibold mb-2">Opening Balance</div>
-                <div className="font-bold text-lg mb-1">₹{formatMoney(Math.abs(openingBalance))}</div>
+                <div className={`font-bold text-lg mb-1 ${getBalanceColor(openingBalance)}`}>₹{formatMoney(Math.abs(openingBalance))} {getBalanceSuffix(openingBalance)}</div>
                 <div className="text-xs text-gray-500 dark:text-slate-400 print:text-gray-500">(on {new Date(fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric'})})</div>
               </div>
               <div className="border-r border-gray-300 dark:border-slate-700 print:border-gray-300">
@@ -435,7 +435,9 @@ export default function PartyStatement() {
                 <div className={`font-bold text-lg mb-1 ${getBalanceColor(finalBalance)}`}>
                   ₹{formatBalance(finalBalance)} {getBalanceSuffix(finalBalance)}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-slate-400 print:text-gray-500">(Now will get)</div>
+                <div className="text-xs text-gray-500 dark:text-slate-400 print:text-gray-500">
+                  {finalBalance > 0 ? '(Now will get)' : finalBalance < 0 ? '(Advance given)' : '(Settled)'}
+                </div>
               </div>
             </div>
 
@@ -460,7 +462,7 @@ export default function PartyStatement() {
                     <td className="py-2 px-3 border-r border-gray-400 dark:border-slate-600 print:border-gray-400"></td>
                     <td className="py-2 px-3 border-r border-gray-400 dark:border-slate-600 print:border-gray-400"></td>
                     <td colSpan={2} className="py-2 px-3 text-right text-gray-500 dark:text-slate-400 print:text-gray-500 bg-gray-50 dark:bg-slate-800 print:bg-gray-50">
-                      (Opening Balance: {formatMoney(Math.abs(openingBalance))})
+                      (Opening Balance: {formatMoney(Math.abs(openingBalance))} {getBalanceSuffix(openingBalance)})
                     </td>
                   </tr>
 

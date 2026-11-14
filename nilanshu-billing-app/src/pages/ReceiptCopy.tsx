@@ -11,6 +11,8 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
   const [customerName, setCustomerName] = useState('');
   const [partyId, setPartyId] = useState<string | null>(null);
   const [amount, setAmount] = useState<number>(0);
+  // Each save creates a new receipt and lowers the party's due again, so allow it once
+  const [isSaved, setIsSaved] = useState(false);
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'Cheque'>('Cash');
   const [chequeNo, setChequeNo] = useState('');
   const [place, setPlace] = useState('');
@@ -86,6 +88,8 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
   };
 
   const doSaveReceipt = () => {
+    if (isSaved || viewBill) return;
+    setIsSaved(true);
     try {
       createBill({
         type: 'receipt',
@@ -99,12 +103,14 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
         status: 'completed',
         date: receiptDate,
         lineItems: [],
+      }).then(() => {
+        showDialog({ title: 'Success', message: 'Receipt saved successfully!', type: 'alert' });
       }).catch(err => {
+        setIsSaved(false);
         showDialog({ title: 'Error', message: err.message || 'Failed to save receipt', type: 'alert' });
       });
-
-      showDialog({ title: 'Success', message: 'Receipt saved successfully!', type: 'alert' });
     } catch (err: any) {
+      setIsSaved(false);
       showDialog({ title: 'Error', message: err.message || 'Failed to save receipt', type: 'alert' });
     }
   };
@@ -150,6 +156,7 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
   };
 
   const handleNew = () => {
+    setIsSaved(false);
     setCustomerName('');
     setPartyId(null);
     setAmount(0);
@@ -250,7 +257,8 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
         <div className="flex items-baseline gap-2 relative" ref={partyDropdownRef}>
           <span className="whitespace-nowrap font-semibold">Received with thanks from</span>
           <span className="flex-1 border-b border-dotted border-blue-500 print:border-blue-900 text-blue-500 print:text-blue-900 font-bold px-1 relative flex">
-             <input type="text" placeholder="Search by name..." value={customerName} onChange={e => { setCustomerName(e.target.value); setPartyDropdownOpen(true); setPartyId(null); }} onFocus={() => setPartyDropdownOpen(true)} className="bg-transparent outline-none w-full p-0 border-none h-6 text-blue-500 print:text-blue-900 print:appearance-none font-bold text-lg print:font-bold print:text-lg placeholder:text-blue-500/50" />
+             <input type="text" placeholder="Search by name..." value={customerName} onChange={e => { setCustomerName(e.target.value); setPartyDropdownOpen(true); setPartyId(null); }} onFocus={() => setPartyDropdownOpen(true)} className="bg-transparent outline-none w-full p-0 border-none h-6 text-blue-500 print:hidden font-bold text-lg placeholder:text-blue-500/50" />
+             <span className="hidden print:block w-full text-blue-900 font-bold text-lg leading-snug break-words">{customerName}</span>
              {partyDropdownOpen && filteredParties.length > 0 && (
                 <div className="absolute top-full left-0 mt-1 w-full md:w-[400px] bg-card border border-border shadow-xl rounded-lg z-50 max-h-48 overflow-y-auto no-print font-normal text-foreground">
                   {filteredParties.map(p => (
@@ -310,14 +318,17 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
           )}
         </div>
 
-        <div className="flex items-center gap-4">
+        {/* Inputs can't wrap, so long addresses were cut off on paper: print plain wrapping text instead */}
+        <div className="flex items-end gap-4">
           <span className="font-bold w-32 shrink-0">Place</span>
-          <span className="border-b border-dashed border-blue-500 print:border-blue-800 flex-1 flex">
-             <input type="text" value={place} onChange={e => setPlace(e.target.value)} className="bg-transparent outline-none w-full p-0 border-none h-6 text-blue-500 print:text-blue-800 print:appearance-none font-bold text-lg print:font-bold print:text-lg" />
+          <span className="border-b border-dashed border-blue-500 print:border-blue-800 flex-1 min-w-0 flex">
+             <input type="text" value={place} onChange={e => setPlace(e.target.value)} className="bg-transparent outline-none w-full p-0 border-none h-6 text-blue-500 print:hidden font-bold text-lg" />
+             <span className="hidden print:block w-full text-blue-800 font-bold text-base leading-snug break-words">{place}</span>
           </span>
           <span className="font-bold w-12 shrink-0">Dist.</span>
-          <span className="border-b border-dashed border-blue-500 print:border-blue-800 flex-1 flex">
-             <input type="text" value={district} onChange={e => setDistrict(e.target.value)} className="bg-transparent outline-none w-full p-0 border-none h-6 text-blue-500 print:text-blue-800 print:appearance-none font-bold text-lg print:font-bold print:text-lg" />
+          <span className="border-b border-dashed border-blue-500 print:border-blue-800 w-36 shrink-0 flex">
+             <input type="text" value={district} onChange={e => setDistrict(e.target.value)} className="bg-transparent outline-none w-full p-0 border-none h-6 text-blue-500 print:hidden font-bold text-lg" />
+             <span className="hidden print:block w-full text-blue-800 font-bold text-lg leading-snug break-words">{district}</span>
           </span>
         </div>
         <div className="flex items-center gap-4">
@@ -351,14 +362,14 @@ export default function ReceiptCopy({ viewBill }: { viewBill?: any }) {
           />
           <button onClick={handleSendSMS} className="bg-amber-500 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-amber-600 transition-colors">Send SMS</button>
           <button onClick={handleNew} className="bg-gray-500 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-gray-600 transition-colors">New</button>
-          <button onClick={handleSave} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold text-sm">Save</button>
+          <button onClick={handleSave} disabled={isSaved || !!viewBill} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed">{isSaved ? 'Saved' : 'Save'}</button>
           <button onClick={handlePrint} className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg font-bold text-sm">Print</button>
         </div>
       </div>
 
       {/* Printable Receipt - Single copy */}
       <div className="print:block" style={{ pageBreakInside: 'avoid' }}>
-        <div className="w-[210mm] print:w-[190mm] print:my-4 mx-auto space-y-6 print:space-y-4">
+        <div className="w-[210mm] print:w-full print:max-w-[190mm] print:my-4 mx-auto space-y-6 print:space-y-4">
           {receiptContent('')}
         </div>
       </div>

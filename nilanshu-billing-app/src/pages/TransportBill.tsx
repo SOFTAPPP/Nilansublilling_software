@@ -170,7 +170,23 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
       setTransporterId(t.id);
       setTransporterName(t.name);
       setTransporterPhone(t.phone);
-      setTransporterAddress(t.address || '');
+      
+      let parsedAddress = t.address || '';
+      let parsedVehicle = '';
+      
+      const vMatch = parsedAddress.match(/ \| Vehicle: (.*?)(?= \| Route:|$)/);
+      const rMatch = parsedAddress.match(/ \| Route: (.*)$/);
+      
+      if (vMatch) {
+        parsedVehicle = vMatch[1].trim();
+        parsedAddress = parsedAddress.replace(vMatch[0], '');
+      }
+      if (rMatch) {
+        parsedAddress = parsedAddress.replace(rMatch[0], '');
+      }
+
+      setTransporterAddress(parsedAddress.trim());
+      setVehicleNo(parsedVehicle);
     }
   };
 
@@ -391,7 +407,7 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
               <div className="flex items-start gap-2">
                 <span className="font-bold whitespace-nowrap w-32 mt-0.5">Address :</span>
                 <div className="flex-1 min-w-0">
-                  <textarea value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} rows={(buyerAddress.length > 55 || buyerAddress.includes('\n')) ? 2 : 1} className="border-b-2 border-dotted border-black print:border-transparent dark:border-white outline-none font-normal text-sm bg-transparent w-full px-1 pb-0.5 resize-none overflow-y-auto leading-tight print:hidden" readOnly={!!viewBill} />
+                  <textarea value={buyerAddress} onChange={e => setBuyerAddress(e.target.value)} rows={(buyerAddress.length > 85 || buyerAddress.includes('\n')) ? 2 : 1} className="border-b-2 border-dotted border-black print:border-transparent dark:border-white outline-none font-normal text-sm bg-transparent w-full px-1 pb-0.5 resize-none overflow-y-auto leading-tight print:hidden" readOnly={!!viewBill} />
                   <div className="hidden print:block w-full leading-tight whitespace-pre-wrap break-words px-1 pb-0.5 font-normal text-sm">{buyerAddress}</div>
                 </div>
               </div>
@@ -440,26 +456,26 @@ export default function TransportBill({ viewBill }: { viewBill?: any }) {
               </div>
 
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="font-bold whitespace-nowrap w-40">Vehicle / Transport No. :</span>
+                <span className="font-bold whitespace-nowrap w-48">Vehicle / Transport No. :</span>
                 <input value={vehicleNo} onChange={e => setVehicleNo(e.target.value)} className="border-b-2 border-dotted border-black print:border-transparent dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap w-40">Route (From - To) :</span>
+                <span className="font-bold whitespace-nowrap w-48">Route (From - To) :</span>
                 <input value={route} onChange={e => setRoute(e.target.value)} className="border-b-2 border-dotted border-black print:border-transparent dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap w-40">Transporter Name :</span>
+                <span className="font-bold whitespace-nowrap w-48">Transporter Name :</span>
                 <input value={transporterName} onChange={e => setTransporterName(e.target.value)} className="border-b-2 border-dotted border-black print:border-transparent dark:border-white outline-none font-bold text-sm print:text-sm print:font-bold bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
               <div className="flex items-start gap-2">
-                <span className="font-bold whitespace-nowrap w-40 mt-0.5">Transporter Address :</span>
+                <span className="font-bold whitespace-nowrap w-48 mt-0.5">Transporter Address :</span>
                 <div className="flex-1 min-w-0">
-                  <textarea value={transporterAddress} onChange={e => setTransporterAddress(e.target.value)} rows={(transporterAddress.length > 55 || transporterAddress.includes('\n')) ? 2 : 1} className="border-b-2 border-dotted border-black print:border-transparent dark:border-white outline-none font-normal text-sm bg-transparent w-full px-1 pb-0.5 resize-none overflow-y-auto leading-tight print:hidden" readOnly={!!viewBill} />
+                  <textarea value={transporterAddress} onChange={e => setTransporterAddress(e.target.value)} rows={(transporterAddress.length > 85 || transporterAddress.includes('\n')) ? 2 : 1} className="border-b-2 border-dotted border-black print:border-transparent dark:border-white outline-none font-normal text-sm bg-transparent w-full px-1 pb-0.5 resize-none overflow-y-auto leading-tight print:hidden" readOnly={!!viewBill} />
                   <div className="hidden print:block w-full leading-tight whitespace-pre-wrap break-words px-1 pb-0.5 font-normal text-sm">{transporterAddress}</div>
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap w-40">Transporter Ph. No. :</span>
+                <span className="font-bold whitespace-nowrap w-48">Transporter Ph. No. :</span>
                 <input value={transporterPhone} onChange={e => setTransporterPhone(e.target.value)} className="border-b-2 border-dotted border-black print:border-transparent dark:border-white outline-none font-normal text-sm bg-transparent flex-1 min-w-0 px-1 pb-0.5" readOnly={!!viewBill} />
               </div>
             </div>
